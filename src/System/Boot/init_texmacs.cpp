@@ -673,6 +673,59 @@ init_plugins () {
   // 首个 buffer 排版前才需要这些路径
 }
 
+/**
+ * @brief 打印命令行帮助。-h/--help 显式触发；未知选项也打印后退出。
+ * @note 选项列表须与 TeXmacs_main 及 research.cpp 的 immediate_options 保持同步。
+ */
+static void
+print_usage () {
+  cout << "\n";
+  cout << "Usage: MoganSTEM [options] [file ...]\n\n";
+  cout << "Options:\n\n";
+  cout << "  -b [file]         Specify scheme buffers initialization file\n";
+  cout << "  -c [in] [out]     Convert file 'in' into file 'out' and quit\n";
+  cout << "  -d, -debug        Debug mode: keep logs on the terminal instead "
+          "of a log file\n";
+  cout << "  -fn [font]        Set the default TeX font\n";
+  cout << "  -g [geom]         Set geometry of window in pixels "
+          "(WxH[+X+Y])\n";
+  cout << "  -h, -help         Display this help message\n";
+  cout << "  -headless         Run without a GUI window (for scripting and "
+          "conversion)\n";
+  cout << "  -i [file]         Specify scheme initialization file\n";
+  cout << "  -p, -path         Print the TeXmacs path\n";
+  cout << "  -bp, -binpath     Print the TeXmacs binary path\n";
+  cout << "  -q, -quit         Shortcut for -x \"(quit-TeXmacs)\"\n";
+  cout << "  -r, -reverse      Reverse video mode\n";
+  cout << "  -R, -retina       Force retina (HiDPI) rendering\n";
+  cout << "  -no-retina        Disable retina (HiDPI) rendering\n";
+  cout << "  -s, -silent       Suppress information messages\n";
+  cout << "  -S, -setup        Rerun setup (reset settings and caches) "
+          "before starting\n";
+  cout << "  -delete-cache     Delete all caches before starting\n";
+  cout << "  -delete-style-cache / -delete-font-cache / "
+          "-delete-plugin-cache\n";
+  cout << "                    Delete the corresponding cache before "
+          "starting\n";
+  cout << "  -server           Start the TeXmacs server\n";
+  cout << "  -v, -version      Display current version\n";
+  cout << "  -V, -verbose      Show some informative messages\n";
+  cout << "  -x [cmd]          Execute scheme command\n";
+  cout << "  -debug-<area>     Enable debug output for one area: events, io, "
+          "bench, history, qt,\n";
+  cout << "                    qt-widgets, keyboard, packrat, flatten, "
+          "parser, correct, convert,\n";
+  cout << "                    remote, live; -debug-all enables the common "
+          "ones\n";
+#ifdef QTTEXMACS
+  cout << "  -Oc               TeX characters bitmap clipping off\n";
+  cout << "  +Oc               TeX characters bitmap clipping on (default)\n";
+#endif
+  cout << "\nOptions may also be written with a double dash (--help).\n";
+  cout << "Please report bugs at <https://github.com/MoganLab/mogan/issues>\n";
+  cout << "\n";
+}
+
 void
 TeXmacs_main (int argc, char** argv) {
   int    i;
@@ -857,29 +910,17 @@ TeXmacs_main (int argc, char** argv) {
         ;
       else if (starts (s, "-psn"))
         ;
-      else {
-        cout << "\n";
-        cout << "Options for TeXmacs:\n\n";
-        cout << "  -b [file]  Specify scheme buffers initialization file\n";
-        cout << "  -c [i] [o] Convert file 'i' into file 'o' and quit\n";
-        cout << "  -d         For debugging purposes\n";
-        cout << "  -fn [font] Set the default TeX font\n";
-        cout << "  -g [geom]  Set geometry of window in pixels\n";
-        cout << "  -h         Display this help message\n";
-        cout << "  -i [file]  Specify scheme initialization file\n";
-        cout << "  -p         Get the TeXmacs path\n";
-        cout << "  -q         Shortcut for -x \"(quit-TeXmacs)\"\n";
-        cout << "  -r         Reverse video mode\n";
-        cout << "  -s         Suppress information messages\n";
-        cout << "  -S         Rerun TeXmacs setup program before starting\n";
-        cout << "  -v         Display current TeXmacs version\n";
-        cout << "  -V         Show some informative messages\n";
-        cout << "  -x [cmd]   Execute scheme command\n";
-        cout << "  -Oc        TeX characters bitmap clipping off\n";
-        cout << "  +Oc        TeX characters bitmap clipping on (default)\n";
-        cout << "\nPlease report bugs to <bugs@texmacs.org>\n";
-        cout << "\n";
+      else if ((s == "-h") || (s == "-help")) {
+        print_usage ();
         exit (0);
+      }
+      else {
+        // 未知选项：以前静默当作 -h 并以 0 退出，脚本里的拼写错误无从察觉。
+        // 这一行走原生 stderr：此时 cout/cerr 可能已被 immediate_options
+        // 重定向到日志文件（它无法预知全部选项），错误提示必须留在终端。
+        fprintf (stderr, "Unknown option: %s (see -h for usage)\n", argv[i]);
+        print_usage ();
+        exit (1);
       }
     }
   if (flag) debug (DEBUG_FLAG_AUTO, true);
