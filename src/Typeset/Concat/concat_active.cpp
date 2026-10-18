@@ -458,8 +458,9 @@ concater_rep::typeset_image (tree t, path ip) {
   else if (is_func (image_tree, TUPLE, 2) &&
            is_func (image_tree[0], RAW_DATA, 1) &&
            is_atomic (image_tree[0][0]) && is_atomic (image_tree[1])) {
-    image= url_ramdisc (image_tree[0][0]->label) *
-           url ("image." * image_tree[1]->label);
+    string ext= suffix (image_tree[1]->label);
+    if (ext == "") ext= image_tree[1]->label;
+    image= url_ramdisc (image_tree[0][0]->label) * url ("image." * ext);
   }
   else error_image (image_tree);
 
@@ -479,6 +480,13 @@ concater_rep::typeset_image (tree t, path ip) {
     imw= (SI) ((iw * ((double) imh)) / ih);
   if (t[1] != "" && t[2] == "" && iw != 0)
     imh= (SI) ((ih * ((double) imw)) / iw);
+  if (t[1] == "" && t[2] == "") {
+    SI par= env->as_length ("1par", "w");
+    if (par > 0 && w > par) {
+      imw= (SI) (0.8 * par);
+      if (iw != 0) imh= (SI) ((ih * ((double) imw)) / iw);
+    }
+  }
   if (imw <= 0 || imh <= 0) {
     imw= w / 4;
     imh= h / 4;

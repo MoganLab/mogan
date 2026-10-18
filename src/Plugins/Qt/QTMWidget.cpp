@@ -795,7 +795,8 @@ QTMWidget::dropEvent (QDropEvent* event) {
         string imagedata (buf.constData (), buf.size ());
         qt_pretty_image_size (ww, hh, w, h);
 #endif
-        tree t (IMAGE, tuple (tree (RAW_DATA, imagedata), name), w, h, "", "");
+        tree t (IMAGE, tuple (tree (RAW_DATA, imagedata), extension), w, h, "",
+                "");
         tree with (WITH);
         with << tree ("par-mode") << tree ("center") << t;
         doc << with;
