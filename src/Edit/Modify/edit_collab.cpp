@@ -739,8 +739,10 @@ edit_modify_rep::set_remote_cursor (string peer, string payload) {
 array<editor_rep::remote_cursor_view>
 edit_modify_rep::get_remote_cursors () {
   array<remote_cursor_view> out;
-  tree                      buf  = the_buffer ();
-  array<linear_item>        items= tree_to_linear_ir (buf);
+  // 每次重绘都会调用；无远程光标时跳过 O(文档大小) 的线性 IR 构建
+  if (N (remote_cursors) == 0) return out;
+  tree               buf  = the_buffer ();
+  array<linear_item> items= tree_to_linear_ir (buf);
 
   for (int i= 0; i < N (remote_cursors); i++) {
     remote_cursor_entry& e= remote_cursors[i];
