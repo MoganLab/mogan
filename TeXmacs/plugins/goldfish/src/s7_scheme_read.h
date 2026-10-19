@@ -74,9 +74,8 @@ s7_pointer read_line_p_p(s7_scheme *sc, s7_pointer port);
 s7_pointer read_line_p_pp(s7_scheme *sc, s7_pointer port, s7_pointer with_eol);
 
 /* Export helpers */
-s7_pointer input_port_if_not_loading(s7_scheme *sc);
+s7_pointer s7i_loader_port(s7_scheme *sc);
 s7_pointer s7i_port_read_line(s7_scheme *sc, s7_pointer port, bool with_eol);
-s7_pointer s7i_input_port_if_not_loading(s7_scheme *sc);
 
 #ifdef __cplusplus
 }

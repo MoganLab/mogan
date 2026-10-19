@@ -1,9 +1,14 @@
 (define-library (liii os)
   (export os-arch os-type os-windows? os-linux? os-macos? os-temp-dir os-sep
     pathsep os-call mkdir chdir rmdir remove rename getenv putenv unsetenv
-    getcwd listdir access getlogin getpid
+    getcwd listdir access getlogin getpid os-tty?
   ) ;export
-  (import (scheme process-context) (liii base) (liii error) (liii string))
+  (import (scheme base)
+    (scheme process-context)
+    (liii base)
+    (liii error)
+    (liii string)
+  ) ;import
   (begin
 
     (define (os-arch)
@@ -144,6 +149,13 @@
 
     (define (getpid)
       (g_getpid)
+    ) ;define
+
+    (define (os-tty? fd)
+      (if (not (exact-integer? fd))
+        (type-error "os-tty?: fd must be an integer")
+        (g_os_tty_p fd)
+      ) ;if
     ) ;define
 
   ) ;begin

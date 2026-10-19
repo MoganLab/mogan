@@ -544,17 +544,48 @@
     ) ;define
 
     (define-macro (guard results . body)
-      `(let ((,(car results)
-              (catch #t
-                (lambda ,() ,@body)
-                (lambda (type info)
-                  (if (pair? (*s7* 'catches))
-                    (lambda () (apply throw type info))
-                    (car info))))))
-         (cond ,@(cdr results)
-               (else (if (procedure? ,(car results))
-                       (,(car results))
-                       ,(car results)))))
+      (unless (and (pair? results) (symbol? (car results)))
+        (error 'syntax-error "guard: malformed results specification" results)
+      ) ;unless
+      (let* ((var (car results))
+             (clauses (cdr results))
+             (has-else?
+               (let loop
+                 ((cls clauses))
+                 (cond ((null? cls) #f)
+                       ((and (pair? (car cls)) (eq? (caar cls) 'else)) #t)
+                       (else (loop (cdr cls)))
+                 ) ;cond
+               ) ;let
+             ) ;has-else?
+             (tag (gensym "guard-tag-"))
+             (vals (gensym "guard-vals-"))
+             (type (gensym "guard-type-"))
+             (info (gensym "guard-info-"))
+            ) ;
+        ;; 正常路径的值原样透传；异常被打包为 (tag type . info) 的单元素列表以区分。
+        ;; handler 内必须 list-copy info：S7 会复用 handler 的参数列表，跨求值步骤持有引用会被改写
+        `(call-with-values (lambda ,()
+                             (catch #t
+                               (lambda ,() ,@body)
+                               (lambda (,type ,info)
+                                 (cons (quote ,tag)
+                                   (cons ,type (list-copy ,info))))))
+           (lambda ,vals
+             (if (and (pair? ,vals)
+                   (null? (cdr ,vals))
+                   (pair? (car ,vals))
+                   (eq? (caar ,vals) (quote ,tag)))
+               (let ((,type (cadr (car ,vals))) (,info (cddr (car ,vals))))
+                 (let ((,var (if (pair? ,info) (car ,info) ,info)))
+                   (cond ,@clauses
+                         ,@(if has-else?
+                             '()
+                             `((else (apply throw ,type ,info)))))))
+               (if (and (pair? ,vals) (null? (cdr ,vals)))
+                 (car ,vals)
+                 (apply values ,vals)))))
+      ) ;let*
     ) ;define-macro
 
     (define (read-error? obj)

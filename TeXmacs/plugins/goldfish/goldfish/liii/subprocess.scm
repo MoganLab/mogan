@@ -15,10 +15,17 @@
 ;;
 
 (define-library (liii subprocess)
-  (export run run-values run-either run-set! run-get run-allow! run-ban!
-    run-unban! run-and run-or run-sequence run-pipe run-if run-when
+  (export run run-either run-set! run-get run-allow! run-ban! run-unban! run-and
+    run-or run-sequence run-pipe run-if run-when process? process-pid
+    process-spawn process-alive? process-poll process-wait process-terminate
+    process-kill process-kill-tree process-close process-close-stdin
+    process-write process-write-stdin process-read process-read-line
+    run-streaming process-last-activity-time process-idle-seconds
+    make-process-error process-error? process-error-code process-error-stderr
+    process-error-stdout process-error-command process-error-message
   ) ;export
   (import (scheme base)
+    (scheme time)
     (liii base)
     (liii either)
     (liii error)
@@ -27,6 +34,7 @@
     (liii os)
     (liii path)
     (liii string)
+    (liii subprocess process-error)
   ) ;import
   (begin
 
@@ -130,6 +138,9 @@
             ((and (pair? command) (symbol? (car command)))
              (%resolve-symbol-command (car command) (cdr command))
             ) ;
+            ((and (pair? command) (string? (car command)))
+             (%resolve-symbol-command (string->symbol (car command)) (cdr command))
+            ) ;
             (else
               (value-error
                 (let ((suggestion
@@ -175,23 +186,22 @@
                   (apply (cadr cmd-spec) (cddr cmd-spec))
                   0
                  ) ;
-                 ((or env input timeout stdout stderr stdin)
+                 ((or (pair? cmd-spec) env input timeout stdout stderr stdin)
                   (let-values (((out err code)
-                                (run-values command
+                                (%run-values command
                                   :cwd     cwd
                                   :env     env
                                   :input   input
                                   :timeout timeout
-                                  :stdout  stdout
-                                  :stderr  stderr
+                                  :stdout  (or stdout 'inherit)
+                                  :stderr  (or stderr 'inherit)
                                   :stdin   stdin
-                                ) ;run-values
+                                ) ;%run-values
                                ) ;
                               ) ;
                     code
                   ) ;let-values
                  ) ;
-                 ((pair? cmd-spec) (let-values (((out err code) (run-values command))) code))
                  (else (os-call cmd-spec))
                 ) ;cond
               ) ;result
@@ -236,25 +246,6 @@
       (set! %run-ban-list (filter (lambda (x) (not (eq? x symbol))) %run-ban-list))
     ) ;define
 
-    (define (%valid-stdout? val)
-      (or (not val)
-        (eq? val 'capture)
-        (eq? val 'discard)
-        (eq? val 'inherit)
-        (string? val)
-      ) ;or
-    ) ;define
-
-    (define (%valid-stderr? val)
-      (or (not val)
-        (eq? val 'capture)
-        (eq? val 'discard)
-        (eq? val 'inherit)
-        (eq? val 'stdout)
-        (string? val)
-      ) ;or
-    ) ;define
-
     (define (%valid-env? env)
       (or (not env)
         (and (proper-list? env)
@@ -266,7 +257,40 @@
       ) ;or
     ) ;define
 
-    (define (run-values command . opts)
+    (define (%normalize-stream-spec caller kw val allowed-symbols default)
+      (cond ((not val) default)
+            ((path? val) (path->string val))
+            ((string? val) val)
+            ((symbol? val)
+             (unless (memq val allowed-symbols)
+               (value-error (format #f
+                              "Invalid ~a value: ~a, expected one of ~a or a string/path"
+                              kw val allowed-symbols
+                            ) ;format
+               ) ;value-error
+             ) ;unless
+             val
+            ) ;
+            (else (type-error (format #f
+                                "~a: ~a must be a symbol, string, or path, got: ~a"
+                                caller
+                                kw
+                                (object->string val)
+                              ) ;format
+                  ) ;type-error
+            ) ;else
+      ) ;cond
+    ) ;define
+
+    (define (%normalize-cwd caller cwd)
+      (cond ((not cwd) #f)
+            ((path? cwd) (path->string cwd))
+            ((string? cwd) cwd)
+            (else (type-error (format #f "~a: :cwd must be a string or path" caller)))
+      ) ;cond
+    ) ;define
+
+    (define (%run-values command . opts)
       (let ((cwd (%keyword-value :cwd opts #f))
             (env (%keyword-value :env opts #f))
             (input (%keyword-value :input opts #f))
@@ -283,20 +307,24 @@
         (when (string? cmd-spec)
           (%check-string-command cmd-spec)
         ) ;when
-        (unless (%valid-stdout? stdout)
-          (value-error (format #f
-                         "Invalid :stdout value: ~a, expected 'capture, 'discard, 'inherit, or string"
-                         stdout
-                       ) ;format
-          ) ;value-error
-        ) ;unless
-        (unless (%valid-stderr? stderr)
-          (value-error (format #f
-                         "Invalid :stderr value: ~a, expected 'capture, 'discard, 'inherit, 'stdout, or string"
-                         stderr
-                       ) ;format
-          ) ;value-error
-        ) ;unless
+        (set! cwd (%normalize-cwd "run" cwd))
+        (set! stdout
+          (%normalize-stream-spec "run"
+            :stdout stdout
+            '(capture discard inherit tee)
+            'capture
+          ) ;%normalize-stream-spec
+        ) ;set!
+        (set! stderr
+          (%normalize-stream-spec "run"
+            :stderr stderr
+            '(capture discard inherit tee stdout)
+            'capture
+          ) ;%normalize-stream-spec
+        ) ;set!
+        (set! stdin
+          (%normalize-stream-spec "run" :stdin stdin '(inherit discard pipe null) #f)
+        ) ;set!
         (unless (%valid-env? env)
           (type-error "run-values: :env must be a list of (key . value) string pairs")
         ) ;unless
@@ -332,22 +360,12 @@
     ) ;define
 
     (define (run-either command . opts)
-      (let ((has-stdout? (%keyword-value :stdout opts #f))
-            (has-stderr? (%keyword-value :stderr opts #f))
-           ) ;
-        (let-values (((out err code)
-                      (apply run-values
-                        command
-                        (append (if has-stdout? '() (list :stdout 'capture))
-                          (if has-stderr? '() (list :stderr 'capture))
-                          opts
-                        ) ;append
-                      ) ;apply
-                     ) ;
-                    ) ;
-          (if (zero? code) (from-right out) (from-left (cons code err)))
-        ) ;let-values
-      ) ;let
+      (let-values (((out err code) (apply %run-values command opts)))
+        (if (zero? code)
+          (from-right out)
+          (from-left (make-process-error code err out command))
+        ) ;if
+      ) ;let-values
     ) ;define
 
     (define (%symbol-keyword? sym)
@@ -384,34 +402,34 @@
             ((cmds commands) (first? #t))
             (cond ((null? cmds) (from-right 0))
                   ((null? (cdr cmds))
-                   (let-values (((out err code)
-                                 (run-values (car cmds)
-                                   :cwd     cwd
-                                   :env     env
-                                   :timeout timeout
-                                   :input   (if first? input #f)
-                                   :stdin   (if first? stdin #f)
-                                   :stdout  stdout
-                                   :stderr  stderr
-                                 ) ;run-values
-                                ) ;
-                               ) ;
-                     (if (zero? code) (from-right code) (from-left (list code (car cmds))))
-                   ) ;let-values
+                   (let ((res (run-either (car cmds)
+                                :cwd     cwd
+                                :env     env
+                                :timeout timeout
+                                :input   (if first? input #f)
+                                :stdin   (if first? stdin #f)
+                                :stdout  (or stdout 'inherit)
+                                :stderr  (or stderr 'inherit)
+                              ) ;run-either
+                         ) ;res
+                        ) ;
+                     (either-map (lambda (_) 0) res)
+                   ) ;let
                   ) ;
                   (else
-                    (let-values (((out err code)
-                                  (run-values (car cmds)
-                                    :cwd     cwd
-                                    :env     env
-                                    :timeout timeout
-                                    :input   (if first? input #f)
-                                    :stdin   (if first? stdin #f)
-                                  ) ;run-values
-                                 ) ;
-                                ) ;
-                      (if (zero? code) (loop (cdr cmds) #f) (from-left (list code (car cmds))))
-                    ) ;let-values
+                    (let ((res (run-either (car cmds)
+                                 :cwd     cwd
+                                 :env     env
+                                 :timeout timeout
+                                 :input   (if first? input #f)
+                                 :stdin   (if first? stdin #f)
+                                 :stdout  'inherit
+                                 :stderr  'inherit
+                               ) ;run-either
+                          ) ;res
+                         ) ;
+                      (if (either-right? res) (loop (cdr cmds) #f) res)
+                    ) ;let
                   ) ;else
             ) ;cond
           ) ;let
@@ -428,15 +446,21 @@
           (let loop
             ((cmds commands))
             (cond ((null? cmds) (from-right 0))
-                  ((null? (cdr cmds))
-                   (let-values (((out err code) (run-values (car cmds) :cwd cwd :env env :timeout timeout)))
-                     (if (zero? code) (from-right code) (from-left (list code (car cmds))))
-                   ) ;let-values
-                  ) ;
                   (else
-                    (let-values (((out err code) (run-values (car cmds) :cwd cwd :env env :timeout timeout)))
-                      (if (zero? code) (from-right 0) (loop (cdr cmds)))
-                    ) ;let-values
+                    (let ((res (run-either (car cmds)
+                                 :cwd     cwd
+                                 :env     env
+                                 :timeout timeout
+                                 :stdout  'inherit
+                                 :stderr  'inherit
+                               ) ;run-either
+                          ) ;res
+                         ) ;
+                      (cond ((either-right? res) (from-right 0))
+                            ((null? (cdr cmds)) res)
+                            (else (loop (cdr cmds)))
+                      ) ;cond
+                    ) ;let
                   ) ;else
             ) ;cond
           ) ;let
@@ -451,16 +475,21 @@
               (timeout (%keyword-value :timeout opts #f))
              ) ;
           (let loop
-            ((cmds commands) (last-code 0))
-            (cond ((null? cmds)
-                   (if (zero? last-code) (from-right last-code) (from-left last-code))
-                  ) ;
-                  (else
-                    (let-values (((out err code) (run-values (car cmds) :cwd cwd :env env :timeout timeout)))
-                      (loop (cdr cmds) code)
-                    ) ;let-values
-                  ) ;else
-            ) ;cond
+            ((cmds commands) (last-res (from-right 0)))
+            (if (null? cmds)
+              last-res
+              (let ((res (run-either (car cmds)
+                           :cwd     cwd
+                           :env     env
+                           :timeout timeout
+                           :stdout  'inherit
+                           :stderr  'inherit
+                         ) ;run-either
+                    ) ;res
+                   ) ;
+                (loop (cdr cmds) (either-map (lambda (_) 0) res))
+              ) ;let
+            ) ;if
           ) ;let
         ) ;let
       ) ;let-values
@@ -477,34 +506,28 @@
             ((cmds commands) (input #f))
             (cond ((null? cmds) (from-right ""))
                   ((null? (cdr cmds))
-                   (let-values (((out err code)
-                                 (run-values (car cmds)
-                                   :cwd     cwd
-                                   :env     env
-                                   :timeout timeout
-                                   :input   input
-                                   :stdin   stdin
-                                   :stdout  'capture
-                                 ) ;run-values
-                                ) ;
-                               ) ;
-                     (if (zero? code) (from-right out) (from-left (list code (car cmds))))
-                   ) ;let-values
+                   (run-either (car cmds)
+                     :cwd     cwd
+                     :env     env
+                     :timeout timeout
+                     :input   input
+                     :stdin   stdin
+                     :stdout  'capture
+                   ) ;run-either
                   ) ;
                   (else
-                    (let-values (((out err code)
-                                  (run-values (car cmds)
-                                    :cwd     cwd
-                                    :env     env
-                                    :timeout timeout
-                                    :input   input
-                                    :stdin   stdin
-                                    :stdout  'capture
-                                  ) ;run-values
-                                 ) ;
-                                ) ;
-                      (if (zero? code) (loop (cdr cmds) out) (from-left (list code (car cmds))))
-                    ) ;let-values
+                    (let ((res (run-either (car cmds)
+                                 :cwd     cwd
+                                 :env     env
+                                 :timeout timeout
+                                 :input   input
+                                 :stdin   stdin
+                                 :stdout  'capture
+                               ) ;run-either
+                          ) ;res
+                         ) ;
+                      (if (either-right? res) (loop (cdr cmds) (to-right res)) res)
+                    ) ;let
                   ) ;else
             ) ;cond
           ) ;let
@@ -513,27 +536,463 @@
     ) ;define
 
     (define (run-if condition then-cmd else-cmd)
-      (let-values (((out err code) (run-values condition)))
-        (if (zero? code)
-          (let-values (((out err code) (run-values then-cmd)))
-            (if (zero? code) (from-right code) (from-left (list code then-cmd)))
-          ) ;let-values
-          (let-values (((out err code) (run-values else-cmd)))
-            (if (zero? code) (from-right code) (from-left (list code else-cmd)))
-          ) ;let-values
-        ) ;if
-      ) ;let-values
+      (let ((chosen-cmd (if (zero? (run condition :stdout 'inherit :stderr 'inherit)) then-cmd else-cmd)
+            ) ;chosen-cmd
+           ) ;
+        (let ((res (run-either chosen-cmd :stdout 'inherit :stderr 'inherit)))
+          (either-map (lambda (_) 0) res)
+        ) ;let
+      ) ;let
     ) ;define
 
     (define (run-when condition command)
-      (let-values (((out err code) (run-values condition)))
-        (if (zero? code)
-          (from-right 0)
-          (let-values (((out err code) (run-values command)))
-            (if (zero? code) (from-right code) (from-left (list code command)))
-          ) ;let-values
+      (if (zero? (run condition :stdout 'inherit :stderr 'inherit))
+        (from-right 0)
+        (let ((res (run-either command :stdout 'inherit :stderr 'inherit)))
+          (either-map (lambda (_) 0) res)
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (process? obj)
+      (g_process? obj)
+    ) ;define
+
+    (define (process-pid proc)
+      (unless (process? proc)
+        (type-error "process-pid: argument must be a process")
+      ) ;unless
+      (g_subprocess-pid proc)
+    ) ;define
+
+    (define (process-alive? proc)
+      (unless (process? proc)
+        (type-error "process-alive?: argument must be a process")
+      ) ;unless
+      (g_subprocess-alive? proc)
+    ) ;define
+
+    (define (process-poll proc)
+      (unless (process? proc)
+        (type-error "process-poll: argument must be a process")
+      ) ;unless
+      (g_subprocess-poll proc)
+    ) ;define
+
+    (define (process-wait proc . args)
+      (unless (process? proc)
+        (type-error "process-wait: first argument must be a process")
+      ) ;unless
+      (let ((timeout-ms (if (pair? args) (car args) -1)))
+        (unless (integer? timeout-ms)
+          (type-error "process-wait: timeout must be an integer")
+        ) ;unless
+        (g_subprocess-wait proc timeout-ms)
+      ) ;let
+    ) ;define
+
+    (define (process-terminate proc)
+      (unless (process? proc)
+        (type-error "process-terminate: argument must be a process")
+      ) ;unless
+      (g_subprocess-terminate proc)
+    ) ;define
+
+    (define (process-kill proc)
+      (unless (process? proc)
+        (type-error "process-kill: argument must be a process")
+      ) ;unless
+      (g_subprocess-kill proc)
+    ) ;define
+
+    (define (process-kill-tree proc-or-pid . opts)
+      (unless (or (process? proc-or-pid) (and (integer? proc-or-pid) (exact? proc-or-pid)))
+        (type-error "process-kill-tree: argument must be a process or exact integer")
+      ) ;unless
+      (when (and (integer? proc-or-pid) (not (process? proc-or-pid)))
+        (unless (> proc-or-pid 0)
+          (value-error "process-kill-tree: pid must be a positive integer")
+        ) ;unless
+      ) ;when
+      (let ((signal (%keyword-value :signal opts 'sigkill))
+            (timeout (%keyword-value :timeout opts 3))
+           ) ;
+        (unless (symbol? signal)
+          (type-error "process-kill-tree: :signal must be a symbol")
+        ) ;unless
+        (unless (or (eq? signal 'sigkill) (eq? signal 'sigterm))
+          (value-error "process-kill-tree: :signal must be 'sigkill or 'sigterm")
+        ) ;unless
+        (unless (real? timeout)
+          (type-error "process-kill-tree: :timeout must be a real number")
+        ) ;unless
+        (when (< timeout 0)
+          (value-error "process-kill-tree: :timeout must be non-negative")
+        ) ;when
+        (if (and (process? proc-or-pid) (not (process-alive? proc-or-pid)))
+          #t
+          (let ((timeout-ms (exact (round (* timeout 1000)))))
+            (g_subprocess-kill-tree proc-or-pid signal timeout-ms)
+          ) ;let
         ) ;if
-      ) ;let-values
+      ) ;let
+    ) ;define
+
+    (define (process-close proc)
+      (unless (process? proc)
+        (type-error "process-close: argument must be a process")
+      ) ;unless
+      (g_subprocess-close proc)
+    ) ;define
+
+    (define (process-close-stdin proc)
+      (unless (process? proc)
+        (type-error "process-close-stdin: argument must be a process")
+      ) ;unless
+      (g_subprocess-close-stdin proc)
+    ) ;define
+
+    (define (process-last-activity-time proc)
+      (unless (process? proc)
+        (type-error "process-last-activity-time: argument must be a process")
+      ) ;unless
+      (g_subprocess-last-activity-time proc)
+    ) ;define
+
+    (define (process-idle-seconds proc)
+      (unless (process? proc)
+        (type-error "process-idle-seconds: argument must be a process")
+      ) ;unless
+      (g_subprocess-idle-seconds proc)
+    ) ;define
+
+    (define (process-write-stdin proc data)
+      (unless (process? proc)
+        (type-error "process-write-stdin: first argument must be a process")
+      ) ;unless
+      (unless (or (string? data) (bytevector? data))
+        (type-error "process-write-stdin: second argument must be a string or bytevector"
+        ) ;type-error
+      ) ;unless
+      (g_subprocess-write proc data)
+    ) ;define
+
+    (define process-write process-write-stdin)
+
+    (define (process-read proc . opts)
+      (unless (process? proc)
+        (type-error "process-read: first argument must be a process")
+      ) ;unless
+      (let ((max-bytes (%keyword-value :max-bytes opts 65536))
+            (stream (%keyword-value :stream opts 'stdout))
+           ) ;
+        (unless (integer? max-bytes)
+          (type-error "process-read: :max-bytes must be an integer")
+        ) ;unless
+        (unless (> max-bytes 0)
+          (value-error "process-read: :max-bytes must be a positive integer")
+        ) ;unless
+        (unless (symbol? stream)
+          (type-error "process-read: :stream must be a symbol")
+        ) ;unless
+        (unless (or (eq? stream 'stdout) (eq? stream 'stderr))
+          (value-error "process-read: :stream must be 'stdout or 'stderr")
+        ) ;unless
+        (g_subprocess-read proc max-bytes stream)
+      ) ;let
+    ) ;define
+
+    (define (process-read-line proc . opts)
+      (unless (process? proc)
+        (type-error "process-read-line: first argument must be a process")
+      ) ;unless
+      (let ((stream (%keyword-value :stream opts 'stdout)))
+        (unless (symbol? stream)
+          (type-error "process-read-line: :stream must be a symbol")
+        ) ;unless
+        (unless (or (eq? stream 'stdout) (eq? stream 'stderr))
+          (value-error "process-read-line: :stream must be 'stdout or 'stderr")
+        ) ;unless
+        (g_subprocess-read-line proc stream)
+      ) ;let
+    ) ;define
+
+    (define (%normalize-cmd-arg arg)
+      (cond ((string? arg) arg)
+            ((symbol? arg) (symbol->string arg))
+            ((path? arg) (path->string arg))
+            (else (type-error (format #f
+                                "process-spawn: command element must be a string, symbol, or path, got: ~a"
+                                (object->string arg)
+                              ) ;format
+                  ) ;type-error
+            ) ;else
+      ) ;cond
+    ) ;define
+
+    (define (%normalize-process-command command)
+      (cond ((string? command) command)
+            ((proper-list? command)
+             (if (null? command)
+               (value-error "process-spawn: command list cannot be empty")
+               (map %normalize-cmd-arg command)
+             ) ;if
+            ) ;
+            (else (type-error (format #f
+                                "process-spawn: command must be a string or a proper list, got: ~a"
+                                (object->string command)
+                              ) ;format
+                  ) ;type-error
+            ) ;else
+      ) ;cond
+    ) ;define
+
+    (define (process-spawn command . opts)
+      (let ((cwd (%keyword-value :cwd opts #f))
+            (env (%keyword-value :env opts #f))
+            (stdin (%keyword-value :stdin opts #f))
+            (stdout (%keyword-value :stdout opts #f))
+            (stderr (%keyword-value :stderr opts #f))
+            (norm-cmd (%normalize-process-command command))
+           ) ;
+        (set! cwd (%normalize-cwd "process-spawn" cwd))
+        (when env
+          (unless (%valid-env? env)
+            (type-error "process-spawn: :env must be a list of (key . value) string pairs")
+          ) ;unless
+        ) ;when
+        (let ((norm-stdin (%normalize-stream-spec "process-spawn" :stdin stdin '(pipe null
+                                                                                  inherit) #f)
+              ) ;norm-stdin
+              (norm-stdout (%normalize-stream-spec "process-spawn"
+                             :stdout stdout
+                             '(pipe capture discard inherit)
+                             #f
+                           ) ;%normalize-stream-spec
+              ) ;norm-stdout
+              (norm-stderr (%normalize-stream-spec "process-spawn"
+                             :stderr stderr
+                             '(pipe capture discard inherit stdout)
+                             #f
+                           ) ;%normalize-stream-spec
+              ) ;norm-stderr
+             ) ;
+          (g_subprocess-spawn norm-cmd cwd env norm-stdin norm-stdout norm-stderr)
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (%current-time-ms)
+      (* 1000.0 (/ (current-jiffy) (jiffies-per-second)))
+    ) ;define
+
+    (define (%invoke-on-idle on-idle proc idle-secs)
+      (let ((ar (car (arity on-idle))))
+        (if (= ar 1) (on-idle idle-secs) (on-idle proc idle-secs))
+      ) ;let
+    ) ;define
+
+    (define (run-streaming command . opts)
+      (let ((cwd (%keyword-value :cwd opts #f))
+            (env (%keyword-value :env opts #f))
+            (on-stdout (%keyword-value :on-stdout opts #f))
+            (on-stderr (%keyword-value :on-stderr opts #f))
+            (timeout (%keyword-value :timeout opts #f))
+            (idle-timeout (%keyword-value :idle-timeout opts #f))
+            (on-idle (%keyword-value :on-idle opts #f))
+           ) ;
+        (when (and on-stdout (not (procedure? on-stdout)))
+          (type-error "run-streaming: :on-stdout must be a procedure")
+        ) ;when
+        (when (and on-stderr (not (procedure? on-stderr)))
+          (type-error "run-streaming: :on-stderr must be a procedure")
+        ) ;when
+        (when (and on-idle (not (procedure? on-idle)))
+          (type-error "run-streaming: :on-idle must be a procedure")
+        ) ;when
+        (when (and timeout (not (real? timeout)))
+          (type-error "run-streaming: :timeout must be a real number")
+        ) ;when
+        (when (and timeout (<= timeout 0))
+          (value-error "run-streaming: :timeout must be a positive number")
+        ) ;when
+        (when (and idle-timeout (not (real? idle-timeout)))
+          (type-error "run-streaming: :idle-timeout must be a real number")
+        ) ;when
+        (when (and idle-timeout (<= idle-timeout 0))
+          (value-error "run-streaming: :idle-timeout must be a positive number")
+        ) ;when
+        (when (and timeout idle-timeout (> idle-timeout timeout))
+          (value-error "run-streaming: :idle-timeout cannot be greater than :timeout")
+        ) ;when
+        (let* ((capture-out? (or on-stdout idle-timeout on-idle))
+               (capture-err? (or on-stderr idle-timeout on-idle))
+               (proc (process-spawn command
+                       :cwd    cwd
+                       :env    env
+                       :stdout (if capture-out? 'pipe 'inherit)
+                       :stderr (if capture-err? 'pipe 'inherit)
+                     ) ;process-spawn
+               ) ;proc
+              ) ;
+          (let* ((timeout-ms
+                   (if timeout (inexact->exact (round (* timeout 1000))) #f)
+                 ) ;timeout-ms
+                 (deadline-ms (if timeout-ms (+ (%current-time-ms) timeout-ms) #f))
+                ) ;
+            (define (%rem-ms)
+              (if (not deadline-ms)
+                -1
+                (let ((rem (inexact->exact (round (- deadline-ms (%current-time-ms))))))
+                  (if (<= rem 0) 0 rem)
+                ) ;let
+              ) ;if
+            ) ;define
+
+            (define (%idle-rem-ms idle-secs)
+              (if (not idle-timeout)
+                -1
+                (let ((rem-ms (inexact->exact (round (* (- idle-timeout idle-secs) 1000)))))
+                  (if (<= rem-ms 0) 0 rem-ms)
+                ) ;let
+              ) ;if
+            ) ;define
+
+            (cond
+             ((and (not capture-out?) (not capture-err?))
+              (let ((code (process-wait proc (or timeout-ms -1))))
+                (process-close proc)
+                code
+              ) ;let
+             ) ;
+             (else
+               (let loop
+                 ()
+                 (let* ((rem-ms (%rem-ms))
+                        (idle-secs (and (or idle-timeout on-idle) (g_subprocess-idle-seconds proc)))
+                        (idle-rem-ms (%idle-rem-ms idle-secs))
+                       ) ;
+                   (cond
+                    ((or (and deadline-ms (<= rem-ms 0)) (and idle-timeout (<= idle-rem-ms 0)))
+                     (process-kill-tree proc)
+                     (process-close proc)
+                     (process-wait proc 500)
+                     #f
+                    ) ;
+                    (else
+                      (let* ((poll-timeout
+                               (max 1
+                                 (min 50 (if (>= rem-ms 0) rem-ms 50) (if (>= idle-rem-ms 0) idle-rem-ms 50))
+                               ) ;max
+                             ) ;poll-timeout
+                             (ev (g_subprocess-poll-io proc poll-timeout))
+                            ) ;
+                        (cond
+                         ((eq? ev 'stdout)
+                          (let ((line (process-read-line proc :stream 'stdout)))
+                            (when (and on-stdout (not (eof-object? line)))
+                              (on-stdout line)
+                            ) ;when
+                          ) ;let
+                          (loop)
+                         ) ;
+                         ((eq? ev 'stderr)
+                          (let ((line (process-read-line proc :stream 'stderr)))
+                            (when (and on-stderr (not (eof-object? line)))
+                              (on-stderr line)
+                            ) ;when
+                          ) ;let
+                          (loop)
+                         ) ;
+                         ((eq? ev 'both)
+                          (let ((line-out (process-read-line proc :stream 'stdout)))
+                            (when (and on-stdout (not (eof-object? line-out)))
+                              (on-stdout line-out)
+                            ) ;when
+                          ) ;let
+                          (let ((line-err (process-read-line proc :stream 'stderr)))
+                            (when (and on-stderr (not (eof-object? line-err)))
+                              (on-stderr line-err)
+                            ) ;when
+                          ) ;let
+                          (loop)
+                         ) ;
+                         ((eq? ev 'eof)
+                          (when on-stdout
+                            (let drain
+                              ()
+                              (let ((line (process-read-line proc :stream 'stdout)))
+                                (when (not (eof-object? line))
+                                  (on-stdout line)
+                                  (drain)
+                                ) ;when
+                              ) ;let
+                            ) ;let
+                          ) ;when
+                          (when on-stderr
+                            (let drain
+                              ()
+                              (let ((line (process-read-line proc :stream 'stderr)))
+                                (when (not (eof-object? line))
+                                  (on-stderr line)
+                                  (drain)
+                                ) ;when
+                              ) ;let
+                            ) ;let
+                          ) ;when
+                          (process-close proc)
+                          (process-wait proc (%rem-ms))
+                         ) ;
+                         (else
+                           (if (and (not (process-alive? proc))
+                                 (g_subprocess-eof? proc 'stdout)
+                                 (g_subprocess-eof? proc 'stderr)
+                               ) ;and
+                             (begin
+                               (when on-stdout
+                                 (let drain
+                                   ()
+                                   (let ((line (process-read-line proc :stream 'stdout)))
+                                     (when (not (eof-object? line))
+                                       (on-stdout line)
+                                       (drain)
+                                     ) ;when
+                                   ) ;let
+                                 ) ;let
+                               ) ;when
+                               (when on-stderr
+                                 (let drain
+                                   ()
+                                   (let ((line (process-read-line proc :stream 'stderr)))
+                                     (when (not (eof-object? line))
+                                       (on-stderr line)
+                                       (drain)
+                                     ) ;when
+                                   ) ;let
+                                 ) ;let
+                               ) ;when
+                               (process-close proc)
+                               (process-wait proc (%rem-ms))
+                             ) ;begin
+                             (begin
+                               (when on-idle
+                                 (%invoke-on-idle on-idle proc idle-secs)
+                               ) ;when
+                               (loop)
+                             ) ;begin
+                           ) ;if
+                         ) ;else
+                        ) ;cond
+                      ) ;let*
+                    ) ;else
+                   ) ;cond
+                 ) ;let*
+               ) ;let
+             ) ;else
+            ) ;cond
+          ) ;let*
+        ) ;let*
+      ) ;let
     ) ;define
 
   ) ;begin

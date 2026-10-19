@@ -421,6 +421,7 @@
 #include "s7_scheme_let.h"
 #include "s7_op_names.h"
 #include "s7_ctables.h"
+#include "s7_stacktrace.h"
 
 /* there is also apparently __STDC_NO_COMPLEX__ */
 #if WITH_CLANG_PP
@@ -5754,7 +5755,7 @@ s7_pointer set_elist_5(s7_scheme *sc, s7_pointer x1, s7_pointer x2, s7_pointer x
   return(sc->elist_5);
 }
 
-static s7_pointer set_elist_6(s7_scheme *sc, s7_pointer x1, s7_pointer x2, s7_pointer x3, s7_pointer x4, s7_pointer x5, s7_pointer x6)
+s7_pointer set_elist_6(s7_scheme *sc, s7_pointer x1, s7_pointer x2, s7_pointer x3, s7_pointer x4, s7_pointer x5, s7_pointer x6)
 {
   set_car(sc->elist_6, x1);
   set_elist_5(sc, x2, x3, x4, x5, x6);
@@ -8753,7 +8754,8 @@ s7_pointer s7_gensym(s7_scheme *sc, const char *prefix)
     s7_int slen = catstrs(name, len, "{", (prefix) ? prefix : "", "}-", pos_int_to_str_direct(sc, sc->gensym_counter++), (char *)NULL);
     s7_uint hash = raw_string_hash((const uint8_t *)name, slen);
     int32_t location = hash % SYMBOL_TABLE_SIZE;
-    s7_pointer x = new_symbol(sc, name, slen, hash, location);  /* not T_GENSYM -- might be called from outside so should not be GC'd(?) */
+    s7_pointer x = new_symbol(sc, name, slen, hash, location);  /* unheaped, safe against GC */
+    set_type_bit(x, T_GENSYM);
     liberate(sc, b);
     return(x);
   }
@@ -10050,7 +10052,7 @@ s7_pointer s7_symbol_set_value(s7_scheme *sc, s7_pointer sym, s7_pointer val)
   #define H_symbol_to_dynamic_value "(symbol->dynamic-value sym) returns the dynamic binding of the symbol sym"
   #define Q_symbol_to_dynamic_value s7_make_signature(sc, 2, sc->T, sc->is_symbol_symbol)
 
-static bool direct_memq(const s7_pointer symbol, s7_pointer symbols)
+bool direct_memq(const s7_pointer symbol, s7_pointer symbols) /* also used in s7_stacktrace.c */
 {
   for (s7_pointer syms = symbols; is_pair(syms); syms = cdr(syms))
     if (car(syms) == symbol)
@@ -17593,29 +17595,58 @@ static bool is_output_port_b(s7_pointer p)          {return(is_output_port(p));}
 /* -------------------------------- current-input-port -------------------------------- */
 #define H_current_input_port "(current-input-port) returns the current input port"
 #define Q_current_input_port s7_make_signature(sc, 1, sc->is_input_port_symbol)
-s7_pointer s7_current_input_port(s7_scheme *sc) {return(current_input_port(sc));}
+
+static int32_t port_stack_find(s7_scheme *sc, bool find_loader)
+{
+  for (int32_t i = (int32_t)sc->input_port_stack_loc - 1; i >= 0; --i)
+    if (is_loader_port(sc->input_port_stack[i]) == find_loader)
+      return(i);
+  return(-1);
+}
+
+s7_pointer s7_current_input_port(s7_scheme *sc)
+{
+  s7_pointer p = current_input_port(sc);
+  int32_t i;
+  if (!is_loader_port(p)) return(p);
+  i = port_stack_find(sc, false);
+  return((i >= 0) ? sc->input_port_stack[i] : sc->standard_input);
+}
+
+s7_pointer s7i_loader_port(s7_scheme *sc)
+{
+  s7_pointer p = current_input_port(sc);
+  int32_t i;
+  if (is_loader_port(p)) return(p);
+  i = port_stack_find(sc, true);
+  return((i >= 0) ? sc->input_port_stack[i] : sc->nil);
+}
 
 static s7_pointer g_set_current_input_port(s7_scheme *sc, s7_pointer args)
 {
   #define H_set_current_input_port "(set-current-input-port port) sets the current-input port to port and returns the previous value of the input port"
   #define Q_set_current_input_port s7_make_signature(sc, 2, sc->is_input_port_symbol, sc->is_input_port_symbol)
 
-  const s7_pointer port = car(args), old_port = current_input_port(sc);
+  const s7_pointer port = car(args);
   if ((is_input_port(port)) &&
       (!port_is_closed(port)))
-    set_current_input_port(sc, port);
-  else
-    {
-      if_method_exists_return_value(sc, port, sc->set_current_input_port_symbol, args);
-      sole_arg_wrong_type_error_nr(sc, sc->set_current_input_port_symbol, port, an_open_input_port_string);
-    }
-  return(old_port);
+    return(s7_set_current_input_port(sc, port));
+  if_method_exists_return_value(sc, port, sc->set_current_input_port_symbol, args);
+  sole_arg_wrong_type_error_nr(sc, sc->set_current_input_port_symbol, port, an_open_input_port_string);
+  return(sc->F);
 }
 
 s7_pointer s7_set_current_input_port(s7_scheme *sc, s7_pointer port)
 {
-  s7_pointer old_port = current_input_port(sc);
-  set_current_input_port(sc, port);
+  s7_pointer old_port = s7_current_input_port(sc);
+  if (is_loader_port(current_input_port(sc)))
+    {
+      int32_t i = port_stack_find(sc, false);
+      if (i >= 0)
+        sc->input_port_stack[i] = port;
+      else sc->standard_input = port;
+    }
+  else set_current_input_port(sc, port);
   return(old_port);
 }
 
@@ -18814,7 +18845,7 @@ void pop_input_port(s7_scheme *sc)
   set_current_input_port(sc, (sc->input_port_stack_loc > 0) ? sc->input_port_stack[--(sc->input_port_stack_loc)] : sc->standard_input);
 }
 
-/* input_port_if_not_loading, s7i_input_port_if_not_loading and s7i_port_read_line moved to s7_scheme_read.c */
+/* s7i_port_read_line moved to s7_scheme_read.c */
 
 /* Export helper functions for s7_scheme_base.c */
 const char *s7i_an_input_port_string(void) {return("an input port");}
@@ -32817,357 +32848,6 @@ void s7i_capture_let_counter_inc(s7_scheme *sc) {sc->capture_let_counter++;}
 bool s7i_is_defined_in_rootlet(s7_scheme *sc, s7_pointer sym) {return((is_slot(global_slot(sym))) && (global_value(sym) != sc->undefined));}
 
 
-/* ---------------- stacktrace ---------------- */
-static s7_pointer stacktrace_find_caller(s7_scheme *sc, s7_pointer let)
-{
-  if ((is_let(let)) && (let != sc->rootlet))
-    return(((is_funclet(let)) || (is_maclet(let))) ? funclet_function(let) : stacktrace_find_caller(sc, let_outlet(let)));
-  return(sc->F);
-}
-
-static bool stacktrace_find_let(s7_scheme *sc, s7_int loc, s7_pointer let)
-{
-  return((loc > 0) &&
-	 ((stack_let(sc->stack, loc) == let) ||
-	  (stacktrace_find_let(sc, loc - 4, let))));
-}
-
-static s7_int stacktrace_find_error_hook_quit(s7_scheme *sc)
-{
-  for (s7_int op_loc = stack_top(sc) - 1; op_loc >= 3; op_loc -= 4)
-    if (stack_op(sc->stack, op_loc) == OP_ERROR_HOOK_QUIT)
-      return(op_loc);
-  return(-1);
-}
-
-static bool stacktrace_in_error_handler(s7_scheme *sc, s7_int loc)
-{
-  return((let_outlet(sc->owlet) == sc->curlet) ||
-	 (stacktrace_find_let(sc, loc * 4, let_outlet(sc->owlet))) ||
-	 (stacktrace_find_error_hook_quit(sc) > 0));
-}
-
-static bool stacktrace_error_hook_function(s7_scheme *sc, s7_pointer sym)
-{
-  if (is_symbol(sym))
-    {
-      s7_pointer func = s7_symbol_value(sc, sym);
-      return((is_procedure(func)) &&
-	     (hook_has_functions(sc->error_hook)) &&
-	     (direct_memq(func, s7_hook_functions(sc, sc->error_hook))));
-    }
-  return(false);
-}
-
-static char *stacktrace_walker(s7_scheme *sc, s7_pointer code, s7_pointer let, char *notes,
-			       s7_int code_cols, s7_int total_cols, s7_int notes_start_col,
-			       bool as_comment, int32_t depth)
-{
-  if (is_symbol(code))
-    {
-      if ((!symbol_is_in_small_symbol_set(sc, code)) &&
-	  (!is_slot(global_slot(code))))
-	{
-	  const s7_pointer val = s7_symbol_local_value(sc, code, let);
-	  add_symbol_to_small_symbol_set(sc, code);
-	  if ((val) &&
-	      (val != sc->undefined) &&
-	      (!is_any_macro(val)) &&
-	      (type(val) < T_CONTINUATION))
-	    {
-	      char *objstr;
-	      s7_pointer objp;
-	      s7_int new_note_len, notes_max;
-	      bool new_notes_line = false;
-	      const bool old_short_print = sc->short_print;
-	      const s7_int old_len = sc->print_length;
-	      s7_int objlen;
-
-	      if (notes_start_col < 0) notes_start_col = 50;
-	      if (notes_start_col > total_cols) notes_start_col = 0;
-	      notes_max = total_cols - notes_start_col;
-	      sc->short_print = true;
-	      if (sc->print_length > 4) sc->print_length = 4;
-	      objp = s7_object_to_string(sc, val, true);
-	      objstr = string_value(objp);
-	      objlen = string_length(objp);
-	      if ((objlen > notes_max) &&
-		  (notes_max > 5))
-		{
-		  objstr[notes_max - 4] = '.';
-		  objstr[notes_max - 3] = '.';
-		  objstr[notes_max - 2] = '.';
-		  objstr[notes_max - 1] = '\0';
-		  objlen = notes_max;
-		}
-	      sc->short_print = old_short_print;
-	      sc->print_length = old_len;
-	      new_note_len = symbol_name_length(code) + 3 + objlen;
-	      /* we want to append this much info to the notes, but does it need a new line? */
-	      if (notes_start_col < code_cols)
-		new_notes_line = true;
-	      else
-		if (notes)
-		  {
-		    const char *last_newline = strrchr(notes, (int)'\n'); /* returns ptr to end if none = nil if not found? */
-		    s7_int cur_line_len = (last_newline) ? (strlen(notes) - strlen(last_newline)) : strlen(notes);
-		    new_notes_line = ((cur_line_len + new_note_len) > notes_max);
-		  }
-	      {
-		char *str;
-		if (new_notes_line)
-		  {
-		    const char *spaces = "                                                                                ";
-		    const s7_int spaces_len = 80;
-		    new_note_len += (4 + notes_start_col + ((notes) ? strlen(notes) : 0));
-		    str = (char *)Malloc(new_note_len);   /* str[0] = '\0'; */
-		    catstrs_direct(str,
-				   (notes) ? notes : "",
-				   "\n",
-				   (as_comment) ? "; " : "",
-				   (spaces_len >= notes_start_col) ? (const char *)(spaces + spaces_len - notes_start_col) : "",
-				   (as_comment) ? "" : " ; ",
-				   symbol_name(code),
-				   ": ",
-				   objstr, (const char *)NULL);
-		  }
-		else
-		  {
-		    new_note_len += ((notes) ? strlen(notes) : 0) + 4;
-		    str = (char *)Malloc(new_note_len);   /* str[0] = '\0'; */
-		    catstrs_direct(str,
-				   (notes) ? notes : "",
-				   (notes) ? ", " : " ; ",
-				   symbol_name(code),
-				   ": ",
-				   objstr, (const char *)NULL);
-		  }
-		if (notes) free(notes);
-		return(str);
-	      }}}
-      return(notes);
-    }
-  if ((is_pair(code)) &&
-      (s7_list_length(sc, code) > 0) &&
-      (depth < 32))
-    {
-      notes = stacktrace_walker(sc, car(code), let, notes, code_cols, total_cols, notes_start_col, as_comment, depth + 1);
-      return(stacktrace_walker(sc, cdr(code), let, notes, code_cols, total_cols, notes_start_col, as_comment, depth + 2));
-    }
-  return(notes);
-}
-
-static block_t *stacktrace_add_func(s7_scheme *sc, s7_pointer caller, s7_pointer code, const char *errstr, char *notes, s7_int code_max, bool as_comment)
-{
-  s7_int newlen, errlen = strlen(errstr);
-  char *newstr;
-  block_t *newp;
-  if ((is_symbol(caller)) &&
-      (caller != car(code)))
-    {
-      newlen = symbol_name_length(caller) + errlen + 10;
-      newp = mallocate(sc, newlen);
-      newstr = (char *)block_data(newp);      /* newstr[0] = '\0'; */
-      errlen = catstrs_direct(newstr, symbol_name(caller), ": ", errstr, (const char *)NULL);
-    }
-  else
-    {
-      newlen = errlen + 8;
-      newp = mallocate(sc, newlen);
-      newstr = (char *)block_data(newp);      /* newstr[0] = '\0'; */
-      if ((errlen > 2) && (errstr[2] == '('))
-        errlen = catstrs_direct(newstr, "  ", errstr, (const char *)NULL);
-      else
-	{
-	  memcpy((void *)newstr, (const void *)errstr, errlen);
-	  newstr[errlen] = '\0';
-	}}
-  newlen = code_max + 8 + ((notes) ? strlen(notes) : 0);
-  {
-    block_t *b = mallocate(sc, newlen);
-    char *str = (char *)block_data(b);        /* str[0] = '\0'; */
-    if (errlen >= code_max)
-      {
-	newstr[code_max - 4] = '.';
-	newstr[code_max - 3] = '.';
-	newstr[code_max - 2] = '.';
-	newstr[code_max - 1] = '\0';
-	catstrs_direct(str, (as_comment) ? "; " : "", newstr, (notes) ? notes : "", "\n", (const char *)NULL);
-      }
-    else
-      {
-	/* send out newstr, pad with spaces to code_max, then notes */
-	const s7_int len = catstrs_direct(str, (as_comment) ? "; " : "", newstr, (const char *)NULL);
-	if (notes)
-	  {
-	    s7_int i;
-	    for (i = len; i < code_max - 1; i++) str[i] = ' ';
-	    str[i] = '\0';
-	    catstrs(str, newlen, notes, "\n", (char *)NULL);
-	  }
-	else catstrs(str, newlen, "\n", (char *)NULL);
-      }
-    liberate(sc, newp);
-    return(b);
-  }
-}
-
-static s7_pointer stacktrace_1(s7_scheme *sc, s7_int frames_max, s7_int code_cols, s7_int total_cols, s7_int notes_start_col, bool as_comment)
-{
-  char *str = NULL;
-  block_t *strp = NULL;
-  s7_int loc, frames = 0;
-  s7_int top = (sc->stack_end - sc->stack_start) / 4; /* (*s7* 'stack_top), not stack_top(sc)! */
-  begin_small_symbol_set(sc);
-
-  if (stacktrace_in_error_handler(sc, top))
-    {
-      const s7_pointer err_code = slot_value(sc->error_code);
-      if ((is_pair(err_code)) &&
-	  (!tree_is_cyclic(sc, err_code)))
-	{
-	  char *notes = NULL;
-	  const s7_pointer current_let = let_outlet(sc->owlet);
-	  const s7_pointer errstr = s7_object_to_string(sc, err_code, false);
-	  const s7_pointer caller = stacktrace_find_caller(sc, current_let); /* this is a symbol */
-	  if ((is_let(current_let)) &&
-	      (current_let != sc->rootlet))
-	    notes = stacktrace_walker(sc, err_code, current_let, NULL, code_cols, total_cols, notes_start_col, as_comment, 0);
-	  strp = stacktrace_add_func(sc, caller, err_code, string_value(errstr), notes, code_cols, as_comment);
-	  str = (char *)block_data(strp);
-	  if ((S7_DEBUGGING) && (notes == str)) fprintf(stderr, "%s[%d]: notes==str\n", __func__, __LINE__);
-	  if (notes) free(notes); /* copied into strp, 29-Sep-23 -- see below: maybe check that notes!=str? */
-	}
-      loc = stacktrace_find_error_hook_quit(sc); /* if OP_ERROR_HOOK_QUIT is in the stack, jump past it! */
-      if (loc > 0) top = (loc + 1) / 4;
-    }
-  for (loc = top - 1; loc > 0; loc--)
-    {
-      const s7_int true_loc = (loc + 1) * 4 - 1;
-      const s7_pointer code = stack_code(sc->stack, true_loc);
-      if ((is_pair(code)) &&
-	  (!tree_is_cyclic(sc, code)))
-	{
-	  const s7_pointer codep = s7_object_to_string(sc, code, false);
-	  if (string_length(codep) > 0)
-	    {
-	      const char *codestr = string_value(codep);
-	      if ((!local_strcmp(codestr, "(result)")) &&
-		  (!local_strcmp(codestr, "(#f)")) &&
-		  (!strstr(codestr, "(stacktrace)")) &&
-		  (!strstr(codestr, "(stacktrace ")))
-		{
-		  const s7_pointer let = stack_let(sc->stack, true_loc); /* might not be let (gc stack protection etc) */
-		  const s7_pointer func = stacktrace_find_caller(sc, let);
-		  if (!stacktrace_error_hook_function(sc, func))
-		    {
-		      char *notes = NULL, *newstr, *catstr;
-		      block_t *newp, *catp;
-		      s7_int newlen;
-
-		      frames++;
-		      if (frames > frames_max)
-			{
-			  end_small_symbol_set(sc);
-			  return(block_to_string(sc, strp, safe_strlen((char *)block_data(strp))));
-			}
-		      if ((is_let(let)) && (let != sc->rootlet))
-			notes = stacktrace_walker(sc, code, let, NULL, code_cols, total_cols, notes_start_col, as_comment, 0);
-		      newp = stacktrace_add_func(sc, func, code, codestr, notes, code_cols, as_comment);
-		      newstr = (char *)block_data(newp);
-		      if ((S7_DEBUGGING) && (notes == newstr)) fprintf(stderr, "%s[%d]: notes=newstr\n", __func__, __LINE__);
-		      if ((notes) && (notes != newstr) && (is_let(let)) && (let != sc->rootlet))
-			free(notes);
-
-		      newlen = strlen(newstr) + 1 + ((str) ? strlen(str) : 0);
-		      catp = mallocate(sc, newlen);
-		      catstr = (char *)block_data(catp);
-		      catstrs_direct(catstr, (str) ? str : "", newstr, (const char *)NULL);
-		      liberate(sc, newp);
-		      if (strp) liberate(sc, strp);
-		      strp = catp;
-		      str = (char *)block_data(strp);
-		    }}}}}
-  end_small_symbol_set(sc);
-  return((strp) ? block_to_string(sc, strp, safe_strlen((char *)block_data(strp))) : nil_string);
-}
-
-s7_pointer s7_stacktrace(s7_scheme *sc)
-{
-  return(stacktrace_1(sc,
-		      s7_integer_clamped_if_gmp(sc, car(sc->stacktrace_defaults)),
-		      s7_integer_clamped_if_gmp(sc, cadr(sc->stacktrace_defaults)),
-		      s7_integer_clamped_if_gmp(sc, caddr(sc->stacktrace_defaults)),
-		      s7_integer_clamped_if_gmp(sc, cadddr(sc->stacktrace_defaults)),
-		      s7_boolean(sc, s7_list_ref(sc, sc->stacktrace_defaults, 4))));
-}
-
-static s7_pointer g_stacktrace(s7_scheme *sc, s7_pointer args)
-{
-  #define H_stacktrace "(stacktrace (max-frames 30) (code-cols 45) (total-cols 80) (note-col 45) as-comment) returns \
-a stacktrace as a string.  Each line has two portions, the code being evaluated and a note giving \
-the value of local variables in that code.  The first argument sets how many lines are displayed. \
-The next three arguments set the length and layout of those lines.  'as-comment' if #t causes each \
-line to be preceded by a semicolon."
-  #define Q_stacktrace s7_make_signature(sc, 6, \
-                         sc->is_string_symbol, sc->is_integer_symbol, sc->is_integer_symbol, \
-                         sc->is_integer_symbol, sc->is_integer_symbol, sc->is_boolean_symbol)
-
-  /* now: 30, 45, 80, 45, #f and applied here as well as in s7_stacktrace, 22-Jan-25 */
-  #define ST_MAX_FRAMES 30
-  #define ST_CODE_COLS 45
-  #define ST_TOTAL_COLS 80
-  #define ST_NOTES_START_COL 45
-  #define ST_AS_COMMENT false
-
-  s7_int max_frames = s7_integer_clamped_if_gmp(sc, car(sc->stacktrace_defaults));
-  s7_int code_cols = s7_integer_clamped_if_gmp(sc, cadr(sc->stacktrace_defaults));
-  s7_int total_cols = s7_integer_clamped_if_gmp(sc, caddr(sc->stacktrace_defaults));
-  s7_int notes_start_col = s7_integer_clamped_if_gmp(sc, cadddr(sc->stacktrace_defaults));
-  bool as_comment = s7_boolean(sc, s7_list_ref(sc, sc->stacktrace_defaults, 4));
-
-  if (!is_null(args))
-    {
-      if (!s7_is_integer(car(args)))
-	return(method_or_bust(sc, car(args), sc->stacktrace_symbol, args, sc->type_names[T_INTEGER], 1));
-      max_frames = s7_integer_clamped_if_gmp(sc, car(args));
-      if ((max_frames <= 0) || (max_frames > S7_INT32_MAX))
-	max_frames = ST_MAX_FRAMES;
-      args = cdr(args);
-      if (!is_null(args))
-	{
-	  if (!s7_is_integer(car(args)))
-	    wrong_type_error_nr(sc, sc->stacktrace_symbol, 2, car(args), sc->type_names[T_INTEGER]);
-	  code_cols = s7_integer_clamped_if_gmp(sc, car(args));
-	  if ((code_cols <= 8) || (code_cols > 1024))
-	    code_cols = ST_CODE_COLS;
-	  args = cdr(args);
-	  if (!is_null(args))
-	    {
-	      if (!s7_is_integer(car(args)))
-		wrong_type_error_nr(sc, sc->stacktrace_symbol, 3, car(args), sc->type_names[T_INTEGER]);
-	      total_cols = s7_integer_clamped_if_gmp(sc, car(args));
-	      if ((total_cols <= code_cols) || (total_cols > S7_INT32_MAX))
-		total_cols = ST_TOTAL_COLS;
-	      args = cdr(args);
-	      if (!is_null(args))
-		{
-		  if (!s7_is_integer(car(args)))
-		    wrong_type_error_nr(sc, sc->stacktrace_symbol, 4, car(args), sc->type_names[T_INTEGER]);
-		  notes_start_col = s7_integer_clamped_if_gmp(sc, car(args));
-		  if ((notes_start_col <= 0) || (notes_start_col > S7_INT32_MAX))
-		    notes_start_col = ST_NOTES_START_COL;
-		  args = cdr(args);
-		  if (!is_null(args))
-		    {
-		      if (!is_boolean(car(args)))
-			wrong_type_error_nr(sc, sc->stacktrace_symbol, 5, car(args), sc->type_names[T_BOOLEAN]);
-		      as_comment = s7_boolean(sc, car(args));
-		    }}}}}
-  return(stacktrace_1(sc, max_frames, code_cols, total_cols, notes_start_col, as_comment));
-}
-
-
 /* -------- s7_history, s7_add_to_history, s7_history_enabled -------- */
 
 s7_pointer s7_add_to_history(s7_scheme *sc, s7_pointer entry)
@@ -34156,44 +33836,16 @@ no_return void error_nr(s7_scheme *sc, s7_pointer type, s7_pointer info)
       for (s7_pointer p = sc->cur_code; i < sc->history_size; i++, p = cdr(p)) car(p) = sc->nil;
     }
 #endif
-  if (is_pair(cur_code)) /* not redundant -- maybe use type_unchecked here */
-    {
-      s7_int line = -1, file, position;
-      if (has_location(cur_code)) /* ignore callgrind!  this is the normal case */
-	{
-	  line = pair_line_number(cur_code);
-	  file = pair_file_number(cur_code);
-	  position = pair_position(cur_code);
-	}
-      else /* try to find a plausible line number! */
-	for (s7_pointer p = cur_code, sp = cur_code; is_pair(p); p = cdr(p), sp = cdr(sp))
-	  {
-	    if ((is_pair(car(p))) && (has_location(car(p))))
-	      {
-		line = pair_line_number(car(p));
-		file = pair_file_number(car(p));
-		position = pair_position(car(p));
-		break;
-	      }
-	    p = cdr(p);
-	    if ((!is_pair(p)) || (p == sp)) break;
-	    /* p itself never has the line/file info */
-	    if ((is_pair(car(p))) && (has_location(car(p))))
-	      {
-		line = pair_line_number(car(p));
-		file = pair_file_number(car(p));
-		position = pair_position(car(p));
-		break;
-	      }}
-      if ((line <= 0) || (file < 0))
-	fill_error_location(sc);
-      else
-	{
-	  set_integer(slot_value(sc->error_line), line);
-	  set_integer(slot_value(sc->error_position), position);
-	  slot_set_value(sc->error_file, sc->file_names[file]);
-	}}
-  else fill_error_location(sc);
+  {
+    s7_int line, file, position;
+    if (s7i_find_error_location(sc, cur_code, &line, &file, &position))
+      {
+	set_integer(slot_value(sc->error_line), line);
+	set_integer(slot_value(sc->error_position), position);
+	slot_set_value(sc->error_file, sc->file_names[file]);
+      }
+    else fill_error_location(sc);
+  }
 
   /* look for a catcher, call catch*function in the error context (before unwinding the stack), outlet(owlet) is curlet */
   /* top is 1 past actual top, top - 1 is op, if op = OP_CATCH, top - 4 is the cell containing the catch struct */
@@ -34325,8 +33977,7 @@ no_return void error_nr(s7_scheme *sc, s7_pointer type, s7_pointer info)
 	  s7_pointer errp = s7_stacktrace(sc);
 	  if (string_length(errp) > 0)
 	    {
-	      port_write_string(current_error_port(sc))(sc, string_value(errp), string_length(errp), current_error_port(sc));
-	      port_write_character(current_error_port(sc))(sc, '\n', current_error_port(sc));
+	      format_to_error_port(sc, "\nStack trace:\n~A\n", set_plist_1(sc, errp), 16);
 	    }}
       else
 	if (is_pair(slot_value(sc->error_code)))
@@ -34494,7 +34145,10 @@ static s7_pointer object_to_string_truncated(s7_scheme *sc, s7_pointer obj)
     s7_pointer result = s7_object_to_string(sc, obj, false);
     sc->objstr_max_len = old_max_len;
     if (string_length(result) > len)
-      truncate_string(string_value(result), len, p_display); /* only use of truncate_string */
+      {
+	truncate_string(string_value(result), len, p_display); /* only use of truncate_string */
+	string_length(result) = strlen(string_value(result));
+      }
     return(result);
   }
 }
@@ -34708,7 +34362,9 @@ static bool call_begin_hook(s7_scheme *sc)
    *     set begin_hook, eval-string(...), unset begin_hook
    */
   const opcode_t op = sc->cur_op;
+  const s7_pointer saved_value = sc->value;
   push_stack_direct(sc, OP_BARRIER);
+  gc_protect_via_stack(sc, saved_value); /* the hook can clobber sc->value and trigger GC, so saved_value needs GC protection */
   sc->begin_hook(sc, &result);
   if (result)
     {
@@ -34740,8 +34396,10 @@ static bool call_begin_hook(s7_scheme *sc)
       s7_quit(sc);     /* don't call gc here -- eval_c_string is the context -- allows interrupt of infinite loop */
       return(true);
     }
+  if (stack_top_op(sc) == OP_GC_PROTECT) unstack_gc_protect(sc);
   pop_stack_no_op(sc);
   sc->cur_op = op;     /* for better error handling.  otherwise we get "barrier" as the offending function name in syntax_error */
+  sc->value = saved_value;
   return(false);
 }
 
@@ -36109,7 +35767,7 @@ fx_iterate_s_any(fx_iterate_T, T_lookup)
 
 static s7_pointer fx_read_char_0(s7_scheme *sc, s7_pointer arg)
 {
-  s7_pointer port = input_port_if_not_loading(sc);
+  s7_pointer port = s7_current_input_port(sc);
   if (!port) return(eof_object);
   if (!is_input_port(port))
     return(method_or_bust_p(sc, port, sc->read_char_symbol, an_input_port_string));
@@ -52156,6 +51814,30 @@ static s7_pointer g_apply_values(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- quasiquote -------------------------------- */
+static bool is_simple_code(s7_scheme *sc, s7_pointer form);
+
+static bool vector_is_simple_code(s7_scheme *sc, s7_pointer vec)
+{
+  s7_int len = vector_length(vec);
+  for (s7_int i = 0; i < len; i++)
+    {
+      s7_pointer elt = vector_element(vec, i);
+      if (is_pair(elt))
+	{
+	  if (!is_simple_code(sc, elt))
+	    return(false);
+	}
+      else if (is_t_vector(elt))
+	{
+	  if (!vector_is_simple_code(sc, elt))
+	    return(false);
+	}
+      else if (elt == sc->unquote_symbol)
+	return(false);
+    }
+  return(true);
+}
+
 static bool is_simple_code(s7_scheme *sc, s7_pointer form)
 {
   /* if nested with quasiquotes say 20 levels, this is really slow, but to tag intermediate results burns up 2 type bits */
@@ -52167,22 +51849,39 @@ static bool is_simple_code(s7_scheme *sc, s7_pointer form)
 	  if (!is_simple_code(sc, car(lst)))
 	    return(false);
 	}
+      else if (is_t_vector(car(lst)))
+	{
+	  if (!vector_is_simple_code(sc, car(lst)))
+	    return(false);
+	}
       else
 	if (car(lst) == sc->unquote_symbol)
 	  return(false);
       lst = cdr(lst);
-      if (!is_pair(lst)) return(is_null(lst));
+      if (!is_pair(lst))
+	{
+	  if (is_null(lst)) return(true);
+	  if (is_t_vector(lst)) return(vector_is_simple_code(sc, lst));
+	  return(false);
+	}
       if (lst == slow) return(false);
       if (is_pair(car(lst)))
 	{
 	  if (!is_simple_code(sc, car(lst)))
 	    return(false);
 	}
+      else if (is_t_vector(car(lst)))
+	{
+	  if (!vector_is_simple_code(sc, car(lst)))
+	    return(false);
+	}
       else
 	if (car(lst) == sc->unquote_symbol)
 	  return(false);
     }
-  return(is_null(lst));
+  if (is_null(lst)) return(true);
+  if (is_t_vector(lst)) return(vector_is_simple_code(sc, lst));
+  return(false);
 }
 
 static s7_pointer g_quasiquote_1(s7_scheme *sc, s7_pointer form, bool check_cycles)
@@ -52191,6 +51890,28 @@ static s7_pointer g_quasiquote_1(s7_scheme *sc, s7_pointer form, bool check_cycl
 comma (\"unquote\") and comma-atsign (\"apply values\") to pre-evaluate portions of the list. \
 unquoted expressions are evaluated and plugged into the list, apply-values evaluates the expression \
 and splices the resultant list into the outer list. `(1 ,(+ 1 1) ,@(list 3 4)) -> (1 2 3 4)."
+
+  if ((check_cycles) && (tree_is_cyclic(sc, form)))
+    return(list_2(sc, sc->quote_function, form));
+
+  if (is_t_vector(form))
+    {
+      if (vector_is_simple_code(sc, form))
+	return(form);
+      {
+	s7_pointer lst, qq_lst, result;
+	gc_protect_via_stack(sc, form);
+	lst = s7_vector_to_list(sc, form);
+	gc_protect_via_stack(sc, lst);
+	qq_lst = g_quasiquote_1(sc, lst, false);
+	gc_protect_via_stack(sc, qq_lst);
+	result = list_2(sc, initial_value(sc->list_to_vector_symbol), qq_lst);
+	unstack_gc_protect(sc); /* qq_lst */
+	unstack_gc_protect(sc); /* lst */
+	unstack_gc_protect(sc); /* form */
+	return(result);
+      }
+    }
 
   if (!is_pair(form))
     {
@@ -52216,8 +51937,7 @@ and splices the resultant list into the outer list. `(1 ,(+ 1 1) ,@(list 3 4)) -
    *    we try to support dotted lists which makes the code much messier.
    * if no element of the list is a list or unquote, just return the original quoted
    */
-  if (((check_cycles) && (tree_is_cyclic(sc, form))) ||
-      (is_simple_code(sc, form)))
+  if (is_simple_code(sc, form))
     return(list_2(sc, sc->quote_function, form));
 
   {
@@ -77389,7 +77109,7 @@ static s7_pointer starlet_make_iterator(s7_scheme *sc, s7_pointer iter)
   return(iter);
 }
 
-static no_return void starlet_wrong_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer arg, s7_pointer typ)
+no_return void starlet_wrong_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer arg, s7_pointer typ)
 {
   error_nr(sc, sc->wrong_type_arg_symbol,
 	   set_elist_5(sc, wrap_string(sc, "(set! (*s7* '~A) ~S): new value is ~A but should be ~A", 54),
@@ -77476,64 +77196,6 @@ static s7_pointer sl_set_history_size(s7_scheme *sc, s7_pointer sym, s7_pointer 
   return(val);
 }
 
-
-static no_return void sl_stacktrace_wrong_type_error_nr(s7_scheme *sc, s7_int num, s7_pointer arg, s7_pointer typ, s7_pointer val)
-{
-  set_elist_6(sc, wrap_string(sc, "(set! (*s7* 'stacktrace-defaults) '~S): the ~:D list element ~S is ~A but should be ~A", 86),
-	      val, wrap_integer(sc, num), arg, object_type_name(sc, arg), typ);
-  error_nr(sc, sc->wrong_type_arg_symbol, sc->elist_6);
-}
-
-static no_return void sl_stacktrace_out_of_range_error_nr(s7_scheme *sc, s7_pointer accessor, s7_pointer lst, s7_pointer arg, s7_pointer descr)
-{
-  error_nr(sc, sc->out_of_range_symbol,
-	   set_elist_5(sc, wrap_string(sc, "(set! (*s7* 'stacktrace-defaults) '~S): ~S => ~S is out of range (~A)", 69), lst, accessor, arg, descr));
-}
-
-static s7_pointer sl_set_stacktrace_defaults(s7_scheme *sc, s7_pointer sym, s7_pointer val)
-{
-  s7_int code_cols;
-  if (!is_pair(val))
-    starlet_wrong_type_error_nr(sc, sym, val, sc->type_names[T_PAIR]);
-  if (s7_list_length(sc, val) != 5)
-    starlet_wrong_type_error_nr(sc, sym, val, wrap_string(sc, "a list with 5 entries", 21));
-
-  if (!s7_is_integer(car(val)))          /* max_frames, default 30 */
-    sl_stacktrace_wrong_type_error_nr(sc, 1, car(val), wrap_string(sc, "an integer (max stack frames)", 29), val);
-  {
-    s7_int i = s7_integer_clamped_if_gmp(sc, car(val));
-    if ((i <= 0) || (i > S7_INT32_MAX)) /* keep these in sync with g_stacktrace */
-      sl_stacktrace_out_of_range_error_nr(sc, sc->car_symbol, val, car(val), wrap_string(sc, "should be 0 < max-frames <= 2^32", 32));
-  }
-  if (!s7_is_integer(cadr(val)))         /* code_cols, default 45 */
-    sl_stacktrace_wrong_type_error_nr(sc, 2, cadr(val), wrap_string(sc, "an integer (code columns)", 25), val);
-  code_cols = s7_integer_clamped_if_gmp(sc, cadr(val));
-  if ((code_cols <= 8) || (code_cols > 1024))
-    sl_stacktrace_out_of_range_error_nr(sc, sc->cadr_symbol, val, cadr(val), wrap_string(sc, "should be 8 < code-columns <= 1024", 34));
-
-  if (!s7_is_integer(caddr(val)))        /* total_cols, default 80 */
-    sl_stacktrace_wrong_type_error_nr(sc, 3, caddr(val), wrap_string(sc, "an integer (total columns)", 26), val);
-  {
-    s7_int i = s7_integer_clamped_if_gmp(sc, caddr(val));
-    if ((i <= code_cols) || (i > S7_INT32_MAX))
-      {
-	int bytes = snprintf(sc->strbuf, sc->strbuf_size, "should be %" ld64 " < total-columns <= 2^32", code_cols);
-	sl_stacktrace_out_of_range_error_nr(sc, sc->caddr_symbol, val, caddr(val), wrap_string(sc, sc->strbuf, bytes));
-      }}
-
-  if (!s7_is_integer(cadddr(val)))       /* notes_start_col, default max(45, code_cols) */
-    sl_stacktrace_wrong_type_error_nr(sc, 4, cadddr(val), wrap_string(sc, "an integer (comment position)", 29), val);
-  {
-    s7_int i = s7_integer_clamped_if_gmp(sc, cadddr(val));
-    if ((i <= 0) || (i > S7_INT32_MAX))
-      sl_stacktrace_out_of_range_error_nr(sc, sc->cadddr_symbol, val, cadddr(val), wrap_string(sc, "should be 0 < comment-position <= 2^32", 38));
-  }
-  if (!is_boolean(s7_list_ref(sc, val, 4)))  /* as_comment, default #f */
-    sl_stacktrace_wrong_type_error_nr(sc, 5, s7_list_ref(sc, val, 4), wrap_string(sc, "a boolean (output-as-comment)", 29), val);
-
-  sc->stacktrace_defaults = copy_proper_list(sc, val);
-  return(val);
-}
 
 static s7_pointer sl_set_gc_stats(s7_scheme *sc, s7_pointer sym, s7_pointer val)
 {
@@ -80028,6 +79690,7 @@ in the file, or by the function."
   sc->list_values_symbol =           defun("list-values",       list_values,            0, 0, true);  set_is_saver(sc->list_values_symbol);
   copy_initial_value(sc, sc->apply_values_symbol);
   copy_initial_value(sc, sc->list_values_symbol);
+  copy_initial_value(sc, sc->list_to_vector_symbol);
   /* are these three names necessary? */
 
   sc->documentation_symbol =         defun("documentation",     documentation,          1, 0, false);
