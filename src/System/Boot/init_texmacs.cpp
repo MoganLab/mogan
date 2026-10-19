@@ -831,29 +831,27 @@ TeXmacs_main (int argc, char** argv) {
                             scm_quote (as_string (out)) * ")";
             }
             else {
-              // In headless mode there is no active view, so export-buffer
-              // cannot safely use current-buffer after load-buffer.  Load and
-              // export the buffer addressed by the input URL explicitly.
-              // Formats such as latex are only registered once their plugin is
-              // loaded, and the output file usually does not exist yet, so
-              // force the plugins first and take the target format from the
-              // suffix; url-format would answer "generic" and drop the markup.
+              // headless 无活动 view，export-buffer 依赖
+              // current-buffer 不可靠，改为按 URL 显式加载/导出；
+              // latex/tmu 等格式由插件注册，lazy-plugin-force
+              // 须先于格式解析（目标文件尚不存在，目标格式取自
+              // 后缀，url-format 只会答 generic）；headless 下
+              // scheme 输出进日志，错误写 current-error-port 到终端。
               my_init_cmds=
                   my_init_cmds * " " *
                   "(let* ((dummy (lazy-plugin-force)) (source (system->url " *
                   scm_quote (as_string (in)) * ")) " *
                   "       (target (system->url " * scm_quote (as_string (out)) *
-                  ")) " * "       (source-format (url-format source)) " *
+                  ")) " *
                   "       (target-format (format-from-suffix (url-suffix "
                   "target)))) " *
-                  "  (plugin-initialize (string->symbol source-format)) " *
-                  "  (plugin-initialize (string->symbol target-format)) " *
                   "  (if (buffer-load source) " *
-                  "      (display* \"TeXmacs] Could not load \" " *
-                  "(url->system source) \"\\n\") " *
+                  "      (display (string-append \"TeXmacs] Could not load "
+                  "\" " *
+                  "(url->system source) \"\\n\") (current-error-port)) " *
                   "      (when (buffer-export source target target-format) " *
-                  "        (display* \"TeXmacs] Could not export \" " *
-                  "(url->system target) \"\\n\"))))";
+                  "        (display (string-append \"TeXmacs] Could not export "
+                  "\" (url->system target) \"\\n\") (current-error-port)))))";
             }
           }
           // -c 默认隐含 -q：转换完成后自动退出
