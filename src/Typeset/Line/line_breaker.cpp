@@ -68,7 +68,7 @@ struct line_breaker_rep {
 
   inline lb_info get_lb_info (path pos) {
     if (is_atom (pos) && pos->item <= end) return atom_best[pos->item];
-    return best (pos);
+    return best[pos];
   }
 
   void        empty_line_fix (line_item& first, path& pos, int& cur_nr);
@@ -266,6 +266,9 @@ line_breaker_rep::compute_ragged_breaks () {
 void
 line_breaker_rep::test_better (path new_pos, path old_pos, int pen,
                                PEN pen_spc) {
+  // lb_info 是引用语义，哈希表新条目共享同一个默认值，须为每个断字位置单独分配
+  if ((!is_atom (new_pos) || new_pos->item > end) && !best->contains (new_pos))
+    best (new_pos)= lb_info ();
   lb_info cur= get_lb_info (new_pos);
   // cout << "Test " << new_pos << " vs " << old_pos
   //      << ", " << pen << " vs " << cur->pen
