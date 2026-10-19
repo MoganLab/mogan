@@ -49,10 +49,13 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Download & install goldfish (latest)
+      # 固定 goldfish 版本，不用 latest：新版本可能改变格式化行为，导致全部
+      # 未重排的 open PR 及 main 突然挂掉（如 v18.11.40 发布后 #4745 的 CI 失败）。
+      # 升级 goldfish 并用新版本重排仓库时，在同一提交里同步修改这里的版本。
+      - name: Download & install goldfish (pinned)
         run: |
-          TAG=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/MoganLab/goldfish/releases/latest | sed 's|.*/tag/||')
-          echo "Latest goldfish release: $TAG"
+          TAG=v18.11.40
+          echo "Pinned goldfish release: $TAG"
           curl -fsSL -o /tmp/gf.deb "https://github.com/MoganLab/goldfish/releases/download/$TAG/goldfish-scheme-x86_64-$TAG.deb"
           dpkg -i /tmp/gf.deb
           gf version
