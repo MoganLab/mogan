@@ -14,6 +14,8 @@
 #include "scheme.hpp"    // scheme_cmd + exec_delayed
 #include "tm_server.hpp" // is_server_started
 
+#include <QCoreApplication>
+#include <QFileDialog>
 #include <QVariantList>
 
 namespace {
@@ -38,6 +40,7 @@ GoMenuBridge::loadMeta () {
   m_meta.clear ();
   // 默认兜底值
   m_meta["label_recent"]= qt_translate ("Recent");
+  m_meta["label_open"]  = qt_translate ("Open file");
   m_meta["recent"]      = QVariantList ();
 
   if (!is_server_started ()) return;
@@ -53,6 +56,9 @@ GoMenuBridge::loadMeta () {
 
     if (key == "label_recent") {
       m_meta["label_recent"]= tmscm_to_qstring (val);
+    }
+    else if (key == "label_open") {
+      m_meta["label_open"]= tmscm_to_qstring (val);
     }
     else if (key == "recent" && tmscm_is_list (val)) {
       QVariantList recs;
@@ -80,6 +86,34 @@ GoMenuBridge::closeMenu () {
   if (m_host) {
     m_host->close ();
   }
+}
+
+void
+GoMenuBridge::openFile () {
+  QWidget* parent= m_host ? m_host->parentWidget () : nullptr;
+  if (!parent) parent= m_host;
+  // 原生对话框会运行嵌套事件循环，返回前仅隐藏菜单，避免销毁仍在回调的 QML。
+  if (m_host) m_host->hide ();
+
+  QString filter = QStringLiteral ("Documents (*.pdf *.tmu *.stem);;PDF "
+                                    "(*.pdf);;TeXmacs (*.tmu);;STEM (*.stem)");
+  QString caption= m_meta.value ("label_open").toString ();
+  if (caption.isEmpty ()) caption= qt_translate ("Open file");
+
+  QString file;
+  QString preset= qEnvironmentVariable ("MOGAN_TEST_OPEN_FILE");
+  if (preset == "event-loop-cancel") {
+    QCoreApplication::processEvents ();
+  }
+  else if (!preset.isEmpty () && preset != "cancel") {
+    file= preset;
+  }
+  else if (preset.isEmpty ()) {
+    file= QFileDialog::getOpenFileName (parent, caption, QString (), filter);
+  }
+
+  if (!file.isEmpty ()) loadBuffer (file);
+  else closeMenu ();
 }
 
 void

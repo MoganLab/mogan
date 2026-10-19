@@ -558,6 +558,7 @@
 
 (tm-define (go-menu-meta)
   (list (cons "label_recent" (translate "Recent"))
+    (cons "label_open" (translate "Open file"))
     (cons "recent"
       (map (lambda (name) (list (url->system name) (short-file-name name)))
         (recent-file-list 15)
