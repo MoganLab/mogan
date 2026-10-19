@@ -110,7 +110,7 @@
         (let* ((r (tree-search t (cut tree-is? <> l))) (x (and (pair? r) (car r))))
           (cond
            ((not x)
-            (tree-insert! t pos `((doc-inactive (,l ,""))))
+            (tree-insert! t pos `((doc-inactive (,l ""))))
             (tree-go-to t pos 0 0 0)
            ) ;
            (else
@@ -121,7 +121,7 @@
         ) ;let*
        ) ;
        (else
-         (tree-insert! t pos `((,l ,"")))
+         (tree-insert! t pos `((,l "")))
          (tree-go-to t pos 0 0)
        ) ;else
       ) ;cond
@@ -140,7 +140,7 @@
         (tree-go-to t pos 0 0 0)
        ) ;
        (else
-         (tree-insert! t pos `((,l ,"")))
+         (tree-insert! t pos `((,l "")))
          (tree-go-to t pos 0 0)
        ) ;else
       ) ;cond
@@ -159,7 +159,7 @@
     'abstract-data
     (with pos
       (1+ (tree-down-index t))
-      (tree-insert! t pos `((,l ,"")))
+      (tree-insert! t pos `((,l "")))
       (tree-go-to t pos 0 0)
     ) ;with
   ) ;with-innermost
@@ -1079,32 +1079,32 @@
 (tm-define (titled-toggle-name t)
   (cond
    ((tree-in? t (numbered-unnumbered-append (theorem-tag-list)))
-    (tree-set! t `(render-theorem ,"" ,(tree-ref t 0)))
+    (tree-set! t `(render-theorem "" ,(tree-ref t 0)))
    ) ;
    ((tree-in? t (numbered-unnumbered-append (remark-tag-list)))
-    (tree-set! t `(render-remark ,"" ,(tree-ref t 0)))
+    (tree-set! t `(render-remark "" ,(tree-ref t 0)))
    ) ;
    ((tree-in? t '(question answer))
-    (tree-set! t `(render-remark ,"" ,(tree-ref t 0)))
+    (tree-set! t `(render-remark "" ,(tree-ref t 0)))
    ) ;
    ((tree-in? t (numbered-unnumbered-append (exercise-tag-list)))
-    (tree-set! t `(render-exercise ,"" ,(tree-ref t 0)))
+    (tree-set! t `(render-exercise "" ,(tree-ref t 0)))
    ) ;
    ((tree-in? t (numbered-unnumbered-append (solution-tag-list)))
-    (tree-set! t `(render-exercise ,"" ,(tree-ref t 0)))
+    (tree-set! t `(render-exercise "" ,(tree-ref t 0)))
    ) ;
-   ((tree-in? t '(proof)) (tree-set! t `(render-proof ,"" ,(tree-ref t 0))))
+   ((tree-in? t '(proof)) (tree-set! t `(render-proof "" ,(tree-ref t 0))))
    ((tree-in? t (numbered-unnumbered-append (small-figure-tag-list)))
-    (tree-set! t `(render-small-figure ,"" ,"" ,(tree-ref t 0) ,(tree-ref t 1)))
+    (tree-set! t `(render-small-figure "" "" ,(tree-ref t 0) ,(tree-ref t 1)))
    ) ;
    ((tree-in? t (numbered-unnumbered-append (big-figure-tag-list)))
-    (tree-set! t `(render-big-figure ,"" ,"" ,(tree-ref t 0) ,(tree-ref t 1)))
+    (tree-set! t `(render-big-figure "" "" ,(tree-ref t 0) ,(tree-ref t 1)))
    ) ;
    ((tree-in? t (numbered-unnumbered-append (small-table-tag-list)))
-    (tree-set! t `(render-small-table ,"" ,"" ,(tree-ref t 0) ,(tree-ref t 1)))
+    (tree-set! t `(render-small-table "" "" ,(tree-ref t 0) ,(tree-ref t 1)))
    ) ;
    ((tree-in? t (numbered-unnumbered-append (big-table-tag-list)))
-    (tree-set! t `(render-big-table ,"" ,"" ,(tree-ref t 0) ,(tree-ref t 1)))
+    (tree-set! t `(render-big-table "" "" ,(tree-ref t 0) ,(tree-ref t 1)))
    ) ;
    ((tree-is? t 'render-theorem) (tree-set! t `(theorem ,(tree-ref t 1))))
    ((tree-is? t 'render-remark) (tree-set! t `(remark ,(tree-ref t 1))))
@@ -1141,7 +1141,7 @@
    ((tree-in? t (frame-tag-list))
     (with l
       (symbol-append (tree-label t) '-titled)
-      (tree-set! t `(,l ,(tree-ref t 0) ,""))
+      (tree-set! t `(,l ,(tree-ref t 0) ""))
       (tree-go-to t 1 :end)
     ) ;with
    ) ;
@@ -1356,8 +1356,8 @@
     ) ;when
     (with f
       (if (with-wide? t)
-        `(wide-float ,"float" ,"thb" ,(tree-ref t 2))
-        `(float ,"float" ,"thb" ,t)
+        `(wide-float "float" "thb" ,(tree-ref t 2))
+        `(float "float" "thb" ,t)
       ) ;if
       (tree-set! t f)
       (tree-go-to t :start)
@@ -1383,7 +1383,7 @@
     (with body
       (tree-copy (tree-ref t :last))
       (when (tree-is? t 'wide-float)
-        (set! body (tm->tree `(with ,"par-columns" ,"1" ,body)))
+        (set! body (tm->tree `(with "par-columns" "1" ,body)))
       ) ;when
       (when (not (tree-is? body 'document))
         (set! body (tm->tree `(document ,body)))
@@ -1424,7 +1424,7 @@
     (tree-up t)
     (if (with-wide? w)
       (tree-set w (tree-ref w 2))
-      (tree-set t `(with ,"par-columns" ,"1" ,t))
+      (tree-set t `(with "par-columns" "1" ,t))
     ) ;if
   ) ;and-with
 ) ;tm-define

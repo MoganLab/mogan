@@ -217,7 +217,7 @@
                           (,_i (,_- ,_len ,len))
                           (,_res (,_quote ,())))
                          (,_if
-                          (,_>= ,0 ,_i)
+                          (,_>= 0 ,_i)
                           ,(lp `(,(cddr p) (,(car p) ,(car (cdr p))))
                              `(,_cons
                                ,_ls
@@ -227,7 +227,7 @@
                              k)
                           (,_lp
                            (,_cdr ,_ls)
-                           (,_- ,_i ,1)
+                           (,_- ,_i 1)
                            (,_cons (,_car ,_ls) ,_res))))))
                    ) ;let
                  ) ;else

@@ -268,9 +268,7 @@
 
 (define-public (telemetry-meta-add-entry filename)
   (let* ((entries (telemetry-read-meta))
-         (new-entry
-           `((,"filename" . ,filename) (,"timestamp" . ,(telemetry-now)))
-         ) ;new-entry
+         (new-entry `(("filename" . ,filename) ("timestamp" . ,(telemetry-now))))
          (updated (cons new-entry entries))
         ) ;
     (if (> (length updated) telemetry-meta-max-entries)
@@ -302,15 +300,15 @@
 ) ;define-public
 
 (define-public (telemetry-make-event event-type properties)
-  `((,"eventType" . ,event-type)
-    (,"timestamp" . ,(telemetry-now))
-    (,"distinctId" . ,(telemetry-device-id))
-    (,"sessionId" . ,(telemetry-session-id))
-    (,"eventId" . ,(uuid4))
-    (,"appVersion" . ,(telemetry-app-version))
-    (,"deviceId" . ,(telemetry-device-id))
-    (,"platform" . ,(telemetry-platform))
-    (,"language" . ,(telemetry-language))
-    (,"timezone" . ,(telemetry-timezone))
-    (,"properties" . ,(if (null? properties) '(()) properties)))
+  `(("eventType" . ,event-type)
+    ("timestamp" . ,(telemetry-now))
+    ("distinctId" . ,(telemetry-device-id))
+    ("sessionId" . ,(telemetry-session-id))
+    ("eventId" . ,(uuid4))
+    ("appVersion" . ,(telemetry-app-version))
+    ("deviceId" . ,(telemetry-device-id))
+    ("platform" . ,(telemetry-platform))
+    ("language" . ,(telemetry-language))
+    ("timezone" . ,(telemetry-timezone))
+    ("properties" . ,(if (null? properties) '(()) properties)))
 ) ;define-public

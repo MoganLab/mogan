@@ -135,7 +135,7 @@
 ) ;define
 
 (tm-define (insert-new-chunk tag)
-  (insert-go-to `(,tag ,"" ,"false" ,"false" (document "")) '(0 0))
+  (insert-go-to `(,tag "" "false" "false" (document "")) '(0 0))
 ) ;tm-define
 
 (tm-define (insert-next-chunk name)
@@ -144,7 +144,7 @@
     (get-all-chunks)
     (with tag
       (similar-chunk-tag name all-chunks)
-      (insert-go-to `(,tag ,name ,"true" ,"false" (document "")) '(3 0))
+      (insert-go-to `(,tag ,name "true" "false" (document "")) '(3 0))
       (update-chunk-states name all-chunks)
     ) ;with
   ) ;with

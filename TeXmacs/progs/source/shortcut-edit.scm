@@ -29,7 +29,7 @@
 (define user-shortcuts-version 1)
 
 (define (make-shortcut-entry sh cmd)
-  `((,"shortcut" . ,sh) (,"command" . ,cmd))
+  `(("shortcut" . ,sh) ("command" . ,cmd))
 ) ;define
 
 (define (shortcut-entry-shortcut entry)
@@ -74,10 +74,8 @@
 ) ;define
 
 (define (make-user-shortcuts-json entries)
-  `((,"meta"
-     (,"version" . ,user-shortcuts-version)
-     (,"total" . ,(length entries)))
-    (,"shortcuts" . ,(list->vector entries)))
+  `(("meta" ("version" . ,user-shortcuts-version) ("total" . ,(length entries)))
+    ("shortcuts" . ,(list->vector entries)))
 ) ;define
 
 (define (make-empty-user-shortcuts-json)

@@ -524,7 +524,7 @@
      ($input (form-named-set form-name ,field answer)
        (with nr
          (number->string (length form-text-entries))
-         (string-append ,field ,"#form-" form-name ,"-" nr ,":" ,type))
+         (string-append ,field "#form-" form-name "-" nr ":" ,type))
        (form-proposals form-name ,field ,proposals)
        ,width))
 ) ;tm-define-macro
@@ -616,11 +616,11 @@
   ) ;with
 ) ;tm-define
 
-(tm-define-macro ($textual . l) `(markup-build-document ($list ,@l) ,#f))
+(tm-define-macro ($textual . l) `(markup-build-document ($list ,@l) #f))
 
-(tm-define-macro ($inline . l) `(markup-build-document ($list ,@l) ,#f))
+(tm-define-macro ($inline . l) `(markup-build-document ($list ,@l) #f))
 
-(tm-define-macro ($block . l) `(markup-build-document ($list ,@l) ,#t))
+(tm-define-macro ($block . l) `(markup-build-document ($list ,@l) #t))
 
 (define (replace-unquotes x)
   (cond ((npair? x) x)
@@ -679,7 +679,7 @@
 
 (tm-define-macro ($ismall . l)
   ($quote
-    `(small (with ,"font-shape" ,"italic" ($unquote ($inline ,@l))))
+    `(small (with "font-shape" "italic" ($unquote ($inline ,@l))))
   ) ;$quote
 ) ;tm-define-macro
 
@@ -693,7 +693,7 @@
 
 (tm-define-macro ($color col . l)
   ($quote
-    `(with ,"color" ,col ($unquote ($inline ,@l)))
+    `(with "color" ,col ($unquote ($inline ,@l)))
   ) ;$quote
 ) ;tm-define-macro
 
@@ -714,7 +714,7 @@
     (get-output-language)
     ($quote
       `(document (TeXmacs ,(texmacs-version))
-         (style (tuple ,"tmdoc" ,lan))
+         (style (tuple "tmdoc" ,lan))
          (body ($unquote ($block ,@l))))
     ) ;$quote
   ) ;with
@@ -783,7 +783,7 @@
 ) ;tm-define-macro
 
 (tm-define-macro ($tmdoc-link dest . l)
-  `(with s (string-append ,"$TEXMACS_DOC_PATH/" ,dest ,".en.tm") ($link s ,@l))
+  `(with s (string-append "$TEXMACS_DOC_PATH/" ,dest ".en.tm") ($link s ,@l))
 ) ;tm-define-macro
 
 (tm-define-macro ($menu . l) `(list 'menu ,@l))
@@ -802,22 +802,22 @@
 
 (tm-define-macro ($geometry w h unit . l)
   `(list 'with
-     ,"gr-geometry"
-     (list 'tuple ,"geometry" ,w ,h ,"center")
-     ,"gr-frame"
-     (list 'tuple ,"scale" ,unit (list 'tuple "0.5gw" "0.5gh"))
+     "gr-geometry"
+     (list 'tuple "geometry" ,w ,h "center")
+     "gr-frame"
+     (list 'tuple "scale" ,unit (list 'tuple "0.5gw" "0.5gh"))
      ($inline ,@l))
 ) ;tm-define-macro
 
 (tm-define-macro ($auto-crop . l)
-  `(list 'with ,"gr-auto-crop" ,"true" ($inline ,@l))
+  `(list 'with "gr-auto-crop" "true" ($inline ,@l))
 ) ;tm-define-macro
 
 (tm-define-macro ($grid unit . l)
   `(list 'with
-     ,"gr-grid"
+     "gr-grid"
      (list 'tuple
-       ,"cartesian"
+       "cartesian"
        (list 'point "0" "0")
        ,(markup-build-coordinate unit))
      ($inline ,@l))
@@ -917,30 +917,30 @@
 
 (tm-define-macro ($line-width w . l)
   ($quote
-    `(with ,"line-width" ,w ($unquote ($graphical ,@l)))
+    `(with "line-width" ,w ($unquote ($graphical ,@l)))
   ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($pen-color col . l)
   ($quote
-    `(with ,"color" ,col ($unquote ($graphical ,@l)))
+    `(with "color" ,col ($unquote ($graphical ,@l)))
   ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($fill-color col . l)
   ($quote
-    `(with ,"fill-color" ,col ($unquote ($graphical ,@l)))
+    `(with "fill-color" ,col ($unquote ($graphical ,@l)))
   ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($text-align h v . l)
   ($quote
-    `(with ,"text-at-halign" ,h ,"text-at-valign" ,v ($unquote ($inline ,@l)))
+    `(with "text-at-halign" ,h "text-at-valign" ,v ($unquote ($inline ,@l)))
   ) ;$quote
 ) ;tm-define-macro
 
 (tm-define-macro ($graph2d x1 x2 steps fun)
-  `($line ($for (_k_ (.. ,0 (+ ,steps ,1)))
+  `($line ($for (_k_ (.. 0 (+ ,steps 1)))
             ($let* ((f ,fun)
                     (dx (/ (- ,x2 ,x1) ,steps))
                     (x (+ ,x1 (* _k_ dx)))
@@ -949,7 +949,7 @@
 ) ;tm-define-macro
 
 (tm-define-macro ($curve2d t1 t2 steps xt yt)
-  `($line ($for (_k_ (.. ,0 (+ ,steps ,1)))
+  `($line ($for (_k_ (.. 0 (+ ,steps 1)))
             ($let* ((fx ,xt)
                     (fy ,yt)
                     (dt (/ (- ,t2 ,t1) ,steps))

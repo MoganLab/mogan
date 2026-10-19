@@ -53,7 +53,7 @@
     (or (connection-defined? lan)
       (begin
         (set-message
-          `(concat ,"undefined plugin: " (verbatim ,lan))
+          `(concat "undefined plugin: " (verbatim ,lan))
           ""
         ) ;set-message
         #f
@@ -95,7 +95,7 @@
     (or (scripts-defined? lan) (session-defined? lan))
     (when (not ok?)
       (with m
-        `(concat ,"Error: " (verbatim ,lan) ," is not a scripting language")
+        `(concat "Error: " (verbatim ,lan) " is not a scripting language")
         (set-message m "Evaluate")
       ) ;with
     ) ;when
@@ -144,7 +144,7 @@
   (if (url-exists? (url-unix "$TEXMACS_STYLE_PATH" (string-append lan ".stem")))
     (add-style-package lan)
   ) ;if
-  (insert-go-to `(script-input ,lan ,ses ,"" ,"") '(2 0))
+  (insert-go-to `(script-input ,lan ,ses "" "") '(2 0))
 ) ;tm-define
 
 (tm-define (make-script-input)
@@ -318,7 +318,7 @@
 
 (tm-define (widget->script cas-var id)
   (with cmd
-    `(concat ,cas-var ,":" ,(tree->stree (widget-ref id)))
+    `(concat ,cas-var ":" ,(tree->stree (widget-ref id)))
     ;; FIXME: only works for Maxima for the moment
     (script-background-eval cmd :math-input :simplify-output)
   ) ;with
@@ -353,63 +353,63 @@
 (tm-define (script-plot-command lan t)
   (cond
    ((== (car t) 'plot-curve)
-    `(concat ,"set samples 1000 \n"
-       ,"set xrange ["
+    `(concat "set samples 1000 \n"
+       "set xrange ["
        ,(tm-ref t 1)
-       ,":"
+       ":"
        ,(tm-ref t 2)
-       ,"] \n"
-       ,"plot "
+       "] \n"
+       "plot "
        ,(tm-ref t 0))
    ) ;
    ((== (car t) 'plot-curve*)
-    `(concat ,"set samples 1000 \n"
-       ,"set parametric \n"
-       ,"set trange ["
+    `(concat "set samples 1000 \n"
+       "set parametric \n"
+       "set trange ["
        ,(tm-ref t 2)
-       ,":"
+       ":"
        ,(tm-ref t 3)
-       ,"] \n"
-       ,"plot "
+       "] \n"
+       "plot "
        ,(tm-ref t 0)
-       ,", "
+       ", "
        ,(tm-ref t 1))
    ) ;
    ((== (car t) 'plot-surface)
-    `(concat ,"set samples 50 \n set isosamples 50 \n set hidden3d \n"
-       ,"set pm3d \n"
-       ,"set xrange ["
+    `(concat "set samples 50 \n set isosamples 50 \n set hidden3d \n"
+       "set pm3d \n"
+       "set xrange ["
        ,(tm-ref t 1)
-       ,":"
+       ":"
        ,(tm-ref t 2)
-       ,"] \n"
-       ,"set yrange ["
+       "] \n"
+       "set yrange ["
        ,(tm-ref t 3)
-       ,":"
+       ":"
        ,(tm-ref t 4)
-       ,"] \n"
-       ,"splot "
+       "] \n"
+       "splot "
        ,(tm-ref t 0))
    ) ;
    ((== (car t) 'plot-surface*)
-    `(concat ,"set samples 50 \n set isosamples 50 \n set hidden3d \n"
-       ,"set parametric \n"
-       ,"set pm3d \n"
-       ,"set urange ["
+    `(concat "set samples 50 \n set isosamples 50 \n set hidden3d \n"
+       "set parametric \n"
+       "set pm3d \n"
+       "set urange ["
        ,(tm-ref t 3)
-       ,":"
+       ":"
        ,(tm-ref t 4)
-       ,"] \n"
-       ,"set vrange ["
+       "] \n"
+       "set vrange ["
        ,(tm-ref t 5)
-       ,":"
+       ":"
        ,(tm-ref t 6)
-       ,"] \n"
-       ,"splot "
+       "] \n"
+       "splot "
        ,(tm-ref t 0)
-       ,", "
+       ", "
        ,(tm-ref t 1)
-       ,", "
+       ", "
        ,(tm-ref t 2))
    ) ;
   ) ;cond
@@ -420,7 +420,7 @@
          (session "default")
          (in (script-plot-command lan (tree->stree t)))
         ) ;
-    (tree-set! t `(plot-output ,t ,""))
+    (tree-set! t `(plot-output ,t ""))
     (script-eval-at (tree-ref t 1) lan session in :math-correct :math-input)
     (tree-go-to t 1 :end)
   ) ;let*

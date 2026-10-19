@@ -44,7 +44,7 @@
                       (if (pair? arg)
                         `(unless (,(cadr arg) ,(car arg))
                            (error 'type-error
-                             ,"~S is not ~S~%"
+                             "~S is not ~S~%"
                              (quote ,(car arg))
                              (quote ,(cadr arg))))
                         (values)))

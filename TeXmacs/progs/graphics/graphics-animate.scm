@@ -92,11 +92,11 @@
     (with t*
       (tm->stree t)
       (tree-set! t
-        `(anim-edit (morph (tuple ,"0" ,t*) (tuple ,"1" ,t*))
+        `(anim-edit (morph (tuple "0" ,t*) (tuple "1" ,t*))
            ,t*
-           ,"1s"
-           ,"0.1s"
-           ,"0s")
+           "1s"
+           "0.1s"
+           "0s")
       ) ;tree-set!
       t
     ) ;with
@@ -109,7 +109,7 @@
          (decode-anim-type val)
          (let* ((t1 (add-with var val1 t*)) (t2 (add-with var val2 t*)))
            (tree-set! t
-             `(anim-static (morph (tuple ,"0" ,t1) (tuple ,"1" ,t2))
+             `(anim-static (morph (tuple "0" ,t1) (tuple "1" ,t2))
                 ,@(anim-parameters (tm->stree t)))
            ) ;tree-set!
            t

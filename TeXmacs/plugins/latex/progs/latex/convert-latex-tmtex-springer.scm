@@ -167,7 +167,7 @@
           (tmtex-concat-Sep (map cadr names))
           (cond ((and (null? names) (null? emails)) '())
                 ((or (null? names) (null? emails)) `(!concat ,@names ,@emails))
-                (else `(!concat ,@names ," " ,@emails))
+                (else `(!concat ,@names " " ,@emails))
           ) ;cond
         ) ;with
       ) ;lambda

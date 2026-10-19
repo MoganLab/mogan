@@ -125,7 +125,7 @@
         ) ;
     `(active* (document (src-title (document (,tag
                                               ,(string-append name "-macros")
-                                              ,"1.0")
+                                              "1.0")
                                      (src-purpose ,purpose)))))
   ) ;let*
 ) ;define

@@ -331,7 +331,7 @@
            (obj
              `(text-at ,the-graphics-drop-object (point ,x ,y))
            ) ;obj
-           (rich `(with ,"text-at-halign" ,ha ,"text-at-valign" ,va ,obj))
+           (rich `(with "text-at-halign" ,ha "text-at-valign" ,va ,obj))
           ) ;
       (tree-insert gt n (list rich))
       (tree-go-to gt n 0 :end)

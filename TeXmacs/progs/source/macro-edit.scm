@@ -89,11 +89,11 @@
            ) ;if
          ) ;body*
         ) ;
-    `(with ,"par-first"
-       ,"0em"
-       ,"par-par-sep"
-       ,"0.5em"
-       (document (concat (inline-tag ,name* ,@args*) ," " (math "<assign>"))
+    `(with "par-first"
+       "0em"
+       "par-par-sep"
+       "0.5em"
+       (document (concat (inline-tag ,name* ,@args*) " " (math "<assign>"))
          ,body*))
   ) ;let*
 ) ;tm-define

@@ -522,7 +522,7 @@
   (:mode elsevier-style?)
   (with args
     (list-intersperse (map tmtex (cdr t)) '(!concat (sep) " "))
-    `(!concat (MSC) ," " (!concat ,@args))
+    `(!concat (MSC) " " (!concat ,@args))
   ) ;with
 ) ;tm-define
 
@@ -530,7 +530,7 @@
   (:mode elsevier-style?)
   (with args
     (list-intersperse (map tmtex (cdr t)) '(!concat (sep) " "))
-    `(!concat (PACS) ," " (!concat ,@args))
+    `(!concat (PACS) " " (!concat ,@args))
   ) ;with
 ) ;tm-define
 

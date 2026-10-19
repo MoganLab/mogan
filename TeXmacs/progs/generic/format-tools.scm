@@ -925,7 +925,7 @@
           "60px"
           (texmacs-input
             `(document ,(initial-get-tree u var))
-            `(style (tuple ,@style ,"gui-base"))
+            `(style (tuple ,@style "gui-base"))
             (header-buffer win var)
           ) ;texmacs-input
         ) ;resize

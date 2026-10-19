@@ -71,7 +71,7 @@
          ) ;vv
          (ll (if (bib-null? (list-ref x 3)) "" (bib-purify (list-ref x 3))))
          (jj
-           (if (bib-null? (list-ref x 4)) "" `(concat ,", " ,(list-ref x 4)))
+           (if (bib-null? (list-ref x 4)) "" `(concat ", " ,(list-ref x 4)))
          ) ;jj
         ) ;
     `(concat ,ff ,vv ,ll ,jj)
@@ -81,7 +81,7 @@
 (define (bib-format-names-rec n lim a)
   (if (equal? n lim)
     ""
-    `(concat ,", "
+    `(concat ", "
        ,(bib-format-name (list-ref a n))
        ,(bib-format-names-rec (+ n 1) lim a))
   ) ;if
@@ -145,11 +145,11 @@
     (if (bib-null? b)
       ""
       (if (bib-null? e)
-        `(concat ,(bib-translate "in ") (with ,"font-shape" ,"italic" ,b))
+        `(concat ,(bib-translate "in ") (with "font-shape" "italic" ,b))
         `(concat ,(bib-translate "in ")
            ,(bib-format-editor x)
-           ,", "
-           (with ,"font-shape" ,"italic" ,b))
+           ", "
+           (with "font-shape" "italic" ,b))
       ) ;if
     ) ;if
   ) ;let*
@@ -164,7 +164,7 @@
               (if (bib-null? s)
                 ""
                 `(concat ,(bib-translate " of ")
-                   (with ,"font-shape" ,"italic" ,s))
+                   (with "font-shape" "italic" ,s))
               ) ;if
             ) ;series
             (sep (if (< (bib-text-length v) 3) '(nbsp) " "))
@@ -221,10 +221,10 @@
       (bib-format-pages x)
       (let ((type (if (bib-null? t) (bib-translate "chapter") (bib-locase t)))
             (pages
-              `(concat ,", " ,(bib-format-pages x))
+              `(concat ", " ,(bib-format-pages x))
             ) ;pages
            ) ;
-        `(concat ,type ," " ,c ,pages)
+        `(concat ,type " " ,c ,pages)
       ) ;let
     ) ;if
   ) ;let*
@@ -237,15 +237,15 @@
          (p (bib-field x "pages"))
          (vol (if (bib-null? v) "" v))
          (num
-           (if (bib-null? n) "" `(concat ,"(" ,n ,")"))
+           (if (bib-null? n) "" `(concat "(" ,n ")"))
          ) ;num
          (pag
            (if (or (bib-null? p) (nlist? p))
              ""
              (cond ((equal? 1 (length p)) "")
-                   ((equal? 2 (length p)) `(concat ,":" ,(list-ref p 1)))
+                   ((equal? 2 (length p)) `(concat ":" ,(list-ref p 1)))
                    (else
-                     `(concat ,":"
+                     `(concat ":"
                         ,(list-ref p 1)
                         ,bib-range-symbol
                         ,(list-ref p 2))
@@ -265,7 +265,7 @@
   (let* ((y (bib-field x "year")) (m (bib-field x "month")))
     (if (bib-null? y)
       (if (bib-null? m) "" m)
-      (if (bib-null? m) y `(concat ,m ," " ,y))
+      (if (bib-null? m) y `(concat ,m " " ,y))
     ) ;if
   ) ;let*
 ) ;tm-define

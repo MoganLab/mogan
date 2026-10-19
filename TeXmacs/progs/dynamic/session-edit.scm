@@ -723,7 +723,7 @@
     (or (== lan "scheme")
       (connection-defined? lan)
       (begin
-        (if err-flag? (set-message `(concat ,"undefined plugin: "
+        (if err-flag? (set-message `(concat "undefined plugin: "
                                       (verbatim ,lan)) ""))
         #f
       ) ;begin

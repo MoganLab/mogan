@@ -215,9 +215,9 @@
   (if (and (string? name) (> (string-length name) 0))
     (if dup?
       `(concat (verbatim ,name)
-         ," "
-         (with ,"color"
-           ,"dark grey"
+         " "
+         (with "color"
+           "dark grey"
            (verbatim ,(string-append "("
                         (substring uuid 0 (min 4 (string-length uuid)))
                         ")"))))
@@ -545,8 +545,8 @@
         (set! fm "texmacs")
       ) ;when
       (if (buffer-export (current-buffer) new-name fm)
-        (set-message `(concat ,"Could not save " ,vname) "Save file")
-        (set-message `(concat ,"Saved " ,vname) "Save file")
+        (set-message `(concat "Could not save " ,vname) "Save file")
+        (set-message `(concat "Saved " ,vname) "Save file")
       ) ;if
     ) ;with
   ) ;with

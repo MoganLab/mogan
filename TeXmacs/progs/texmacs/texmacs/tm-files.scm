@@ -440,13 +440,13 @@
     (if (buffer-save name)
       (begin
         (buffer-pretend-modified name)
-        (set-message `(concat ,"Could not save " ,vname) "Save file")
+        (set-message `(concat "Could not save " ,vname) "Save file")
       ) ;begin
       (begin
         (if (== (url-suffix name) "ts") (style-clear-cache))
         (buffer-notify-recent name)
         (remember-file-dialog-directory name)
-        (set-message `(concat ,"Saved " ,vname) "Save file")
+        (set-message `(concat "Saved " ,vname) "Save file")
         (when (defined? 'auto-backup-trig)
           (auto-backup-trig name kind)
         ) ;when
@@ -519,7 +519,7 @@
      ((and (not (url-test? name "f")) (url-exists? name))
       (with msg
         "The file cannot be created:"
-        (notify-now `(concat ,msg ,"<br>" ,vname))
+        (notify-now `(concat ,msg "<br>" ,vname))
       ) ;with
       #t
      ) ;
@@ -587,7 +587,7 @@
      ) ;
      ((not (buffer-exists? name))
       (with msg
-        `(concat ,"The buffer " ,vname ," does not exist")
+        `(concat "The buffer " ,vname " does not exist")
         (set-message msg "Save file")
       ) ;with
      ) ;
@@ -734,9 +734,9 @@
   (with vto
     `(verbatim ,(url->system to))
     (if (buffer-export name to fm)
-      (set-message `(concat ,"Could not save " ,vto) "Export file")
+      (set-message `(concat "Could not save " ,vto) "Export file")
       (begin
-        (set-message `(concat ,"Exported to " ,vto) "Export file")
+        (set-message `(concat "Exported to " ,vto) "Export file")
         (when (not (headless?))
           (let ((export-kind (string-append fm "_export")))
             (save-buffer-save name opts export-kind)
@@ -888,7 +888,7 @@
           ) ;
           ((url-exists? name)
            (if (buffer-load name)
-             (set-message `(concat ,"Could not load " ,vname) "Load file")
+             (set-message `(concat "Could not load " ,vname) "Load file")
              (load-buffer-open name opts)
            ) ;if
           ) ;
@@ -897,7 +897,7 @@
               "The file or buffer does not exist:"
               (begin
                 (debug-message "debug-io" (string-append msg "\n" path))
-                (notify-now `(concat ,msg ,"<br>" ,vname))
+                (notify-now `(concat ,msg "<br>" ,vname))
               ) ;begin
             ) ;with
           ) ;else
@@ -914,13 +914,13 @@
         "The file cannot be loaded or created:"
         (begin
           (debug-message "debug-io" (string-append msg "\n" path))
-          (notify-now `(concat ,msg ,"<br>" ,vname))
+          (notify-now `(concat ,msg "<br>" ,vname))
         ) ;begin
       ) ;with
      ) ;
      ((and (url-test? name "f") (not (url-test? name "r")))
       (with msg
-        `(concat ,(translate "You do not have read access to") ," " ,vname)
+        `(concat ,(translate "You do not have read access to") " " ,vname)
         (show-message msg "Load file")
       ) ;with
      ) ;
@@ -1063,13 +1063,13 @@
     (cond
      ((not (url-test? name "f"))
       (with msg
-        `(concat ,"The file " ,vname ," does not exist")
+        `(concat "The file " ,vname " does not exist")
         (set-message msg "Import file")
       ) ;with
      ) ;
      ((not (url-test? name "r"))
       (with msg
-        `(concat ,(translate "You do not have read access to") ," " ,vname)
+        `(concat ,(translate "You do not have read access to") " " ,vname)
         (show-message msg "Import file")
       ) ;with
      ) ;

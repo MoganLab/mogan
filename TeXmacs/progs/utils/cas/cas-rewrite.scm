@@ -184,8 +184,8 @@
 (tm-define (cas-product<=? x y)
   "Ordering for @x and @y in products"
   (cond
-   ((and (func? x '^ 2) (not (func? y '^ 2))) (cas-product<=? x `(^ ,y ,1)))
-   ((and (func? y '^ 2) (not (func? x '^ 2))) (cas-product<=? `(^ ,x ,1) y))
+   ((and (func? x '^ 2) (not (func? y '^ 2))) (cas-product<=? x `(^ ,y 1)))
+   ((and (func? y '^ 2) (not (func? x '^ 2))) (cas-product<=? `(^ ,x 1) y))
    ((or (cas->number x) (cas->number y))
     (cond ((not (cas->number y)) #t)
           ((not (cas->number x)) #f)

@@ -77,7 +77,7 @@
       (let* ((doc (tm->stree (car l))) (p (path-start doc '())))
         (insert-go-to `(mirror ,id ,name ,doc) (cons 2 p))
       ) ;let*
-      (insert-go-to `(mirror ,id ,name ,"") (list 2 0))
+      (insert-go-to `(mirror ,id ,name "") (list 2 0))
     ) ;if
   ) ;let*
 ) ;tm-define

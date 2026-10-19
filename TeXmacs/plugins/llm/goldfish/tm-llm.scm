@@ -38,22 +38,22 @@
 ) ;define
 
 (define (reasoning-title-tree)
-  `(with ,"color"
-     ,"dark grey"
-     ,"font-size"
-     ,"0.92"
-     ,"font-series"
-     ,"medium"
-     (concat (math "<blacktriangledown>") ," " ,(localized "View reasoning")))
+  `(with "color"
+     "dark grey"
+     "font-size"
+     "0.92"
+     "font-series"
+     "medium"
+     (concat (math "<blacktriangledown>") " " ,(localized "View reasoning")))
 ) ;define
 
 (define (reasoning-body-tree content)
-  `(with ,"color"
-     ,"dark grey"
-     ,"font-size"
-     ,"0.92"
-     ,"font-shape"
-     ,"italic"
+  `(with "color"
+     "dark grey"
+     "font-size"
+     "0.92"
+     "font-shape"
+     "italic"
      (document ,content))
 ) ;define
 
@@ -188,7 +188,7 @@
   (flush-scheme
     `(document (unfolded-explain ,(reasoning-title-tree)
                  ,(reasoning-body-tree text))
-       ,"")
+       "")
   ) ;flush-scheme
 ) ;define
 

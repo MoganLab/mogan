@@ -956,24 +956,24 @@
   `(smart-table latex-texmacs-environment
      (,env
       ((!begin "itemize")
-       (!append ,"\\renewcommand{\\labelitemi}{"
+       (!append "\\renewcommand{\\labelitemi}{"
          ,lab
-         ,"}"
-         ,"\\renewcommand{\\labelitemii}{"
+         "}"
+         "\\renewcommand{\\labelitemii}{"
          ,lab
-         ,"}"
-         ,"\\renewcommand{\\labelitemiii}{"
+         "}"
+         "\\renewcommand{\\labelitemiii}{"
          ,lab
-         ,"}"
-         ,"\\renewcommand{\\labelitemiv}{"
+         "}"
+         "\\renewcommand{\\labelitemiv}{"
          ,lab
-         ,"}"
+         "}"
          ---))))
 ) ;define-macro
 
 (define-macro (latex-texmacs-enumerate env lab)
   `(smart-table latex-texmacs-environment
-     (,env ((!begin ,"enumerate" (!option ,lab)) ---)))
+     (,env ((!begin "enumerate" (!option ,lab)) ---)))
 ) ;define-macro
 
 (define-macro (latex-texmacs-description env)
@@ -1164,12 +1164,12 @@
 (define-macro (latex-texmacs-long prim x l m r)
   `(smart-table latex-texmacs-preamble
      (,(string->symbol (substring prim 1 (string-length prim)))
-      (!append ,"\\providecommand{"
+      (!append "\\providecommand{"
         ,prim
-        ,"}[2][]{"
-        ,"\\mathop{"
+        "}[2][]{"
+        "\\mathop{"
         ,x
-        ,"}\\limits_{#1}^{#2}}\n")))
+        "}\\limits_{#1}^{#2}}\n")))
 ) ;define-macro
 
 (latex-texmacs-long "\\xminus" "-" "\\DOTSB\\relbar" "\\relbar"
@@ -1212,17 +1212,17 @@
     `(smart-table latex-texmacs-env-preamble
        ,@head
        (,prim
-        (!append ,@before (newtheorem ,prim (!translate ,name)) ,@after ,"\n"))
+        (!append ,@before (newtheorem ,prim (!translate ,name)) ,@after "\n"))
        (,prim*
         (!append (newcounter ,nonum)
-          ,"\n"
-          ,"\\def"
+          "\n"
+          "\\def"
           ,thenonum
-          ,"{\\unskip}\n"
+          "{\\unskip}\n"
           ,@before
           (newtheorem ,prim* (!option ,nonum) (!translate ,name))
           ,@after
-          ,"\n")))
+          "\n")))
   ) ;let*
 ) ;tm-define-macro
 

@@ -155,7 +155,7 @@
                                                                            0)))
    ((== (tree-arity t) 2)
     (insert-go-to
-      `(,(tree-label t) ,"" (document ""))
+      `(,(tree-label t) "" (document ""))
       '(0 0)
     ) ;insert-go-to
    ) ;
@@ -223,7 +223,7 @@
       (tree-up f)
       (if (block-wide? t)
         (tree-set w (tree-ref w 2))
-        (tree-set f `(with ,"par-columns" ,"1" ,f))
+        (tree-set f `(with "par-columns" "1" ,f))
       ) ;if
     ) ;and-with
   ) ;and-with

@@ -433,10 +433,10 @@
           (append vals (list rc))
           `(begin
              ,@(%go-worker-prelude libs)
-             (catch ,#t
+             (catch #t
                (lambda ,() (chan-send! ,rc-sym (list 'ok (begin ,@body))))
                (lambda (tag args)
-                 (catch ,#t
+                 (catch #t
                    (lambda ,() (chan-send! ,rc-sym (list 'error tag args)))
                    (lambda (t2 a2) (*go-err-handler* t2 a2))))))
         ) ;g_go-spawn
@@ -549,11 +549,11 @@
              (code
                `(begin
                   ,@(%go-worker-prelude libs)
-                  (catch ,#t
+                  (catch #t
                     (lambda ,()
                       (chan-send! ,ch-sym (list 'ok (,src ,@arg-names))))
                     (lambda (tag args)
-                      (catch ,#t
+                      (catch #t
                         (lambda ,() (chan-send! ,ch-sym (list 'error tag args)))
                         (lambda (t2 a2)
                           (chan-send! ,ch-sym

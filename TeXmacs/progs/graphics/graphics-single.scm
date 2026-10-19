@@ -623,9 +623,9 @@
   (set-texmacs-pointer 'graphics-cross)
   (edit-clean-up)
   (object-set!
-    `(with ,"point style"
-       ,"disk"
-       ,"point-size"
+    `(with "point style"
+       "disk"
+       "point-size"
        ,(graphics-get-property "line-width")
        (point ,x ,y))
     'new

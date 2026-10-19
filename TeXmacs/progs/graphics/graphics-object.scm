@@ -217,9 +217,7 @@
 (define (create-graphical-embedding-box o ha0 va0 halign valign w hm pp mag)
   (define (create-text-at-handle o)
     (cond ((func? o 'with) (create-text-at-handle (cAr o)))
-          ((graphical-text-at-context? o) `((with ,"point-style"
-                                              ,"disk"
-                                              ,(cAr o))))
+          ((graphical-text-at-context? o) `((with "point-style" "disk" ,(cAr o))))
           (else '())
     ) ;cond
   ) ;define
@@ -233,20 +231,20 @@
   (let* ((o1
            (with res
              (if (or (graphical-text-at-context? o) (== (car o) 'gr-group))
-               `(with ,"text-at-halign"
+               `(with "text-at-halign"
                   ,ha0
                   ,(graphics-valign-var o)
                   ,va0
-                  ,"doc-at-width"
+                  "doc-at-width"
                   ,w
-                  ,"doc-at-hmode"
+                  "doc-at-hmode"
                   ,hm
-                  ,"doc-at-ppsep"
+                  "doc-at-ppsep"
                   ,pp
                   ,o)
                o
              ) ;if
-             `(with ,"magnify" ,(if (== mag "default") "1" mag) ,res)
+             `(with "magnify" ,(if (== mag "default") "1" mag) ,res)
            ) ;with
          ) ;o1
          (info0 (cdr (box-info o1 "lbLB")))
@@ -301,7 +299,7 @@
          (va (get-graphical-prop 'basic (graphics-valign-var o)))
          (o1
            (if (graphical-text-at-context? o)
-             `(with ,"text-at-halign" ,ha ,(graphics-valign-var o) ,va ,o)
+             `(with "text-at-halign" ,ha ,(graphics-valign-var o) ,va ,o)
              o
            ) ;if
          ) ;o1
@@ -386,7 +384,7 @@
                    (== (+ no 1) (length (cdr o)))
                  ) ;and
                  (cons
-                   `(with ,"point-style"
+                   `(with "point-style"
                       ,(if sticky-point "square" "disk")
                       ,(car h))
                    (cdr h)
@@ -404,12 +402,12 @@
                      (if edge
                        (with l2
                          (list-head l 2)
-                         (if sticky-point `(with ,"point-style"
-                                             ,"square"
+                         (if sticky-point `(with "point-style"
+                                             "square"
                                              (concat ,@(cdr l2))) l2)
                        ) ;with
                        (cons
-                         `(with ,"point-style" ,"square" ,(list-ref l 1))
+                         `(with "point-style" "square" ,(list-ref l 1))
                          (curp (list-head l 1))
                        ) ;cons
                      ) ;if
@@ -455,11 +453,11 @@
 (define (add-selections-colors op color fill-color)
   (if (not color) (set! color "none"))
   (if (not fill-color) (set! fill-color "none"))
-  `((with ,"color"
+  `((with "color"
       ,color
-      ,"point-style"
-      ,"square"
-      ,"fill-color"
+      "point-style"
+      "square"
+      "fill-color"
       ,fill-color
       (concat ,@op)))
 ) ;define
@@ -571,10 +569,10 @@
              (if (and selected-point-no path0 (sketch-in? (path->tree path0)))
                (append
                  (asc curscol #f (compress* (list-remove (cdr o) selected-point-no)))
-                 `((with ,"fill-color"
+                 `((with "fill-color"
                      ,default-color-selected-points
-                     ,"point-style"
-                     ,"square"
+                     "point-style"
+                     "square"
                      (concat ,(list-ref (cdr o) selected-point-no))))
                ) ;append
                (asc curscol default-color-selected-points (compress* (cdr o)))
@@ -628,7 +626,7 @@
                   ) ;if
            ) ;props
            (mag-o
-             `(with ,"magnify" ,(get-local-magnify) ,o)
+             `(with "magnify" ,(get-local-magnify) ,o)
            ) ;mag-o
           ) ;
       ;; (display* "-------\n")
@@ -645,7 +643,7 @@
           ;; group 模式（如绘制完成后自动进入的 edit-props
           ;; 选择态）悬停线段时也显示中点绿点；标尺等绘制
           ;; 辅助装饰不在此渲染
-          `(with ,"magnify"
+          `(with "magnify"
              ,(number->string (magnify->number (graphics-get-property "magnify")))
              (concat ,@(create-graphical-contours (map (lambda (x)
                                                          (if (tree? x)

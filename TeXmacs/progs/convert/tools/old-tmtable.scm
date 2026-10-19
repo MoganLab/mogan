@@ -58,18 +58,14 @@
 
 ;; NOTE: if this list gets too long, we might define region arithmetic.
 ;; This might also be needed for format simplification.
-(tm-define (tmformat-table name value) `(cwith ,1 ,-1 ,1 ,-1 ,name ,value))
-(tm-define (tmformat-table-but-top name value)
-  `(cwith ,2 ,-1 ,1 ,-1 ,name ,value)
-) ;tm-define
+(tm-define (tmformat-table name value) `(cwith 1 -1 1 -1 ,name ,value))
+(tm-define (tmformat-table-but-top name value) `(cwith 2 -1 1 -1 ,name ,value))
 (tm-define (tmformat-table-but-bottom name value)
-  `(cwith ,1 ,-2 ,1 ,-1 ,name ,value)
+  `(cwith 1 -2 1 -1 ,name ,value)
 ) ;tm-define
-(tm-define (tmformat-table-but-left name value)
-  `(cwith ,1 ,-1 ,2 ,-1 ,name ,value)
-) ;tm-define
+(tm-define (tmformat-table-but-left name value) `(cwith 1 -1 2 -1 ,name ,value))
 (tm-define (tmformat-table-but-right name value)
-  `(cwith ,1 ,-1 ,1 ,-2 ,name ,value)
+  `(cwith 1 -1 1 -2 ,name ,value)
 ) ;tm-define
 (tm-define (tmformat-cell i j name value) `(cwith ,i ,i ,j ,j ,name ,value))
 
@@ -427,6 +423,6 @@
     '((cwith "1" "-1" "2" "-2" "cell-halign" "c")
       (cwith "1" "-1" "1" "1" "cell-halign" "r")
       (cwith "1" "-1" "-1" "-1" "cell-halign" "l"))
-    `((cwith ,"1" ,"-1" ,"1" ,"-1" ,"cell-halign" ,x))
+    `((cwith "1" "-1" "1" "-1" "cell-halign" ,x))
   ) ;if
 ) ;tm-define

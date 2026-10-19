@@ -317,7 +317,7 @@
             (let* ((env (opt-export (string-append "export PATH=" path) opts))
                    (rem (string-quote (string-append env "; " c)))
                    (cmd (string-append "ssh " where " " rem))
-                   (val `(tuple ,"pipe" ,cmd))
+                   (val `(tuple "pipe" ,cmd))
                   ) ;
               (ahash-set! remote-launch-table (cons p variant) val)
             ) ;let*
@@ -627,24 +627,24 @@
     (ahash-set! plugin-data-table (list name :prioritary) (cadr cmd))
    ) ;
    ((func? cmd :initialize 1) ((second cmd)))
-   ((func? cmd :launch 1) (connection-setup name `(tuple ,"pipe" ,(second cmd))))
+   ((func? cmd :launch 1) (connection-setup name `(tuple "pipe" ,(second cmd))))
    ((func? cmd :launch 2)
-    (connection-setup name `(tuple ,"pipe" ,(third cmd)) (cadr cmd))
+    (connection-setup name `(tuple "pipe" ,(third cmd)) (cadr cmd))
    ) ;
    ((func? cmd :socket 2)
-    (connection-setup name `(tuple ,"socket" ,(second cmd) ,(third cmd)))
+    (connection-setup name `(tuple "socket" ,(second cmd) ,(third cmd)))
    ) ;
    ((func? cmd :socket 3)
-    (connection-setup name `(tuple ,"socket" ,(third cmd) ,(fourth cmd)) (cadr cmd))
+    (connection-setup name `(tuple "socket" ,(third cmd) ,(fourth cmd)) (cadr cmd))
    ) ;
    ((func? cmd :link 3)
     (connection-setup name
-      `(tuple ,"dynlink" ,(second cmd) ,(third cmd) ,(fourth cmd))
+      `(tuple "dynlink" ,(second cmd) ,(third cmd) ,(fourth cmd))
     ) ;connection-setup
    ) ;
    ((func? cmd :link 4)
     (connection-setup name
-      `(tuple ,"dynlink" ,(third cmd) ,(fourth cmd) ,(fifth cmd))
+      `(tuple "dynlink" ,(third cmd) ,(fourth cmd) ,(fifth cmd))
       (cadr cmd)
     ) ;connection-setup
    ) ;
@@ -708,7 +708,7 @@
        (define (,supports-name?)
          (or (ahash-ref plugin-data-table ,name)
            (remote-connection-defined? ,name)))
-       (if reconfigure-flag? (ahash-set! plugin-data-table ,name ,#t))
+       (if reconfigure-flag? (ahash-set! plugin-data-table ,name #t))
        (plugin-configure-cmds ,name
          ,(list 'quasiquote (map plugin-configure-sub options))))
   ) ;let*

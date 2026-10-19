@@ -101,8 +101,8 @@
               ) ;
           (loop (cdr lines)
             (cons
-              `(with ,"color"
-                 ,"green"
+              `(with "color"
+                 "green"
                  (line (point ,x_start ,y_start) (point ,x_end ,y_end)))
               res
             ) ;cons
@@ -119,11 +119,7 @@
 (define (midpoint-decorations pts)
   (map
     (lambda (p)
-      `(with ,"color"
-         ,"green"
-         ,"point-style"
-         ,"disk"
-         (point ,(car p) ,(cadr p)))
+      `(with "color" "green" "point-style" "disk" (point ,(car p) ,(cadr p)))
     ) ;lambda
     pts
   ) ;map

@@ -38,7 +38,7 @@
 (tm-define-macro (lazy-keyboard module . modes)
   (for-each (lambda (mode) (lazy-keyboard-do module mode)) modes)
   `(delayed (:idle 250)
-     (ahash-set! lazy-keyboard-done (quote ,module) ,#t)
+     (ahash-set! lazy-keyboard-done (quote ,module) #t)
      (module-provide (quote ,module)))
 ) ;tm-define-macro
 
@@ -497,7 +497,7 @@
         (if (null? opt) "" (car opt))
         `(kbd-binding (list ,@conds) ,key ,action ,help)
       ) ;with
-      `(kbd-binding (list ,@conds) ,key (lambda ,() ,action ,@opt) ,"")
+      `(kbd-binding (list ,@conds) ,key (lambda ,() ,action ,@opt) "")
     ) ;if
   ) ;with
 ) ;define
@@ -541,7 +541,7 @@
         (if (null? opt) "" (car opt))
         `(utf8-kbd-binding (list ,@conds) ,key ,action ,help)
       ) ;with
-      `(utf8-kbd-binding (list ,@conds) ,key (lambda ,() ,action ,@opt) ,"")
+      `(utf8-kbd-binding (list ,@conds) ,key (lambda ,() ,action ,@opt) "")
     ) ;if
   ) ;with
 ) ;define

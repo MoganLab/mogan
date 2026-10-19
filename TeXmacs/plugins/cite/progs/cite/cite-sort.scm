@@ -56,7 +56,7 @@
                  (list (caar present)
                    `(concat ,@(map get-write present)
                       ,@(cddar (cdar present))
-                      ,"-"
+                      "-"
                       ,@(cddar (cdAr present)))
                  ) ;list
                ) ;list

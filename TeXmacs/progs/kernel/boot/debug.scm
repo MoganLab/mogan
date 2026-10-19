@@ -30,7 +30,7 @@
 ) ;define-public
 
 (define-public (tm-display-error . l)
-  (apply display-err* `(,"TeXmacs] " ,@l ,"\n"))
+  (apply display-err* `("TeXmacs] " ,@l "\n"))
 ) ;define-public
 
 (define-public (write* . l)
@@ -57,7 +57,7 @@
 (define-macro (benchmark message . args)
   `(let ((start (texmacs-time)))
      (begin ,@args)
-     (display* ,message ," " (- (texmacs-time) start) ,"msec\n"))
+     (display* ,message " " (- (texmacs-time) start) "msec\n"))
 ) ;define-macro
 
 (define-public (write-diff t u)
@@ -155,7 +155,7 @@
 
 (define-public (wrap-catch-list expr)
   ;; Similar to wrap-catch for a scheme expression in list form.
-  `(lazy-catch ,#t
+  `(lazy-catch #t
      (lambda ,() ,expr)
      (lambda err
        (tm-display-error "Guile error: " (list err))
@@ -185,9 +185,7 @@
 (define-public-macro (trace-variables . vars)
   ;; Use trace-display to show the name and value of some variables.
   (define (trace-one-variable v)
-    `(trace-display (string-append ,(symbol->string v)
-                      ,": "
-                      (object->string ,v)))
+    `(trace-display (string-append ,(symbol->string v) ": " (object->string ,v)))
   ) ;define
   `(begin ,@(map trace-one-variable vars))
 ) ;define-public-macro
@@ -204,10 +202,10 @@
       (if (null? args)
         (string-append "[" name "]")
         (apply string-append
-          `(,"["
+          `("["
             ,name
             ,@(map (lambda (x) (string-append " " (object->string x))) args)
-            ,"]")
+            "]")
         ) ;apply
       ) ;if
     ) ;trace-display
@@ -234,7 +232,7 @@
               `(if (not (procedure-property ,name 'trace-wrapped))
                  (begin
                    (set! ,name (wrap-trace ,(symbol->string name) ,name))
-                   (set-procedure-property! ,name 'trace-wrapped ,#t))))
+                   (set-procedure-property! ,name 'trace-wrapped #t))))
          names))
 ) ;define-public-macro
 

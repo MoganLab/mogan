@@ -173,7 +173,7 @@
                (worker-src
                  `(lambda (chunk)
                     (vector-for-each ,src-f (vector-ref chunk 1))
-                    ,#t)
+                    #t)
                ) ;worker-src
               ) ;
           (%par-spawn-chunks worker-src env chunks done-ch)
@@ -197,7 +197,7 @@
                (chan-send! res-ch
                  (cons (vector-ref chunk 0)
                    (vector-map ,src-f (vector-ref chunk 1))))
-               ,#t)
+               #t)
             f
             vec
             (if (pair? opt) (car opt) (go-worker-count))

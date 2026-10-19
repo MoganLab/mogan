@@ -100,9 +100,8 @@
      ((== n 4)
       ;; (foreach-number (i i0 [< <= > >=] iN) body[i])
       (if (in? (caddr what) '(< <=))
-        `(for (,(car what) ,(cadr what) ,(cadddr what) ,1 ,(caddr what)) ,@body)
-        `(for (,(car what) ,(cadr what) ,(cadddr what) ,-1 ,(caddr what))
-           ,@body)
+        `(for (,(car what) ,(cadr what) ,(cadddr what) 1 ,(caddr what)) ,@body)
+        `(for (,(car what) ,(cadr what) ,(cadddr what) -1 ,(caddr what)) ,@body)
       ) ;if
      ) ;
      ((== n 5)
@@ -342,28 +341,28 @@
 (tm-define (make-graphics . init)
   (when (null? init)
     (set! init
-      `(,"gr-mode"
-        ,"point"
-        ,"gr-frame"
-        (tuple ,"scale" ,(graphics-default-unit) (tuple "0.5gw" "0.5gh"))
-        ,"gr-geometry"
+      `("gr-mode"
+        "point"
+        "gr-frame"
+        (tuple "scale" ,(graphics-default-unit) (tuple "0.5gw" "0.5gh"))
+        "gr-geometry"
         (tuple "geometry" "1par" "0.6par")
-        ,"gr-grid"
+        "gr-grid"
         (tuple "cartesian" (point "0" "0") "1")
-        ,"gr-edit-grid-aspect"
+        "gr-edit-grid-aspect"
         (tuple (tuple "axes" "none") (tuple "1" "none") (tuple "10" "none"))
-        ,"gr-edit-grid"
+        "gr-edit-grid"
         (tuple "cartesian" (point "0" "0") "1")
-        ,"gr-props-text-at"
+        "gr-props-text-at"
         (tuple "text-at-halign" "center" "text-at-valign" "center")
-        ,"gr-props-math-at"
+        "gr-props-math-at"
         (tuple "text-at-halign" "center" "text-at-valign" "center")
-        ,"gr-props-document-at"
+        "gr-props-document-at"
         (tuple "text-at-halign" "center" "doc-at-valign" "center"))
     ) ;set!
   ) ;when
   (graphics-reset-context 'begin)
-  (insert-raw-go-to `(with ,@init (graphics "")) `(,(length init) ,1))
+  (insert-raw-go-to `(with ,@init (graphics "")) `(,(length init) 1))
   ;; 默认缩放 200%
   (graphics-zoom 2.0)
 ) ;tm-define

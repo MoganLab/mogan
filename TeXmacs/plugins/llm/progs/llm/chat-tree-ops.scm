@@ -39,10 +39,10 @@
          (with chat-tab-focus-ok?
            (and (or (url? ,name) (string? ,name))
              (buffer-exists? ,name)
-             (buffer-focus ,name ,#f))
+             (buffer-focus ,name #f))
            (with ,res
              (begin ,@body)
-             (when chat-tab-focus-ok? (buffer-focus ,old ,#f))
+             (when chat-tab-focus-ok? (buffer-focus ,old #f))
              ,res))))
   ) ;let*
 ) ;define-public-macro

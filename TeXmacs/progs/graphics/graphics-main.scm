@@ -120,7 +120,7 @@
   (let* ((geo (graphics-geometry))
          (align (if (>= (length geo) 5) (cAr geo) "center"))
          (new-geo
-           `(tuple ,"geometry" ,w ,(cadddr geo) ,align)
+           `(tuple "geometry" ,w ,(cadddr geo) ,align)
          ) ;new-geo
         ) ;
     (graphics-set-property "gr-geometry" new-geo)
@@ -132,7 +132,7 @@
   (let* ((geo (graphics-geometry))
          (align (if (>= (length geo) 5) (cAr geo) "center"))
          (new-geo
-           `(tuple ,"geometry" ,(caddr geo) ,h ,align)
+           `(tuple "geometry" ,(caddr geo) ,h ,align)
          ) ;new-geo
         ) ;
     (graphics-set-property "gr-geometry" new-geo)
@@ -150,7 +150,7 @@
   (:check-mark "*" geo-valign-has-value?)
   (let* ((geo (graphics-geometry))
          (new-geo
-           `(tuple ,"geometry" ,(caddr geo) ,(cadddr geo) ,a)
+           `(tuple "geometry" ,(caddr geo) ,(cadddr geo) ,a)
          ) ;new-geo
         ) ;
     (graphics-set-property "gr-geometry" new-geo)
@@ -162,7 +162,7 @@
   (:argument h "Height of the graphics")
   (let* ((geo (graphics-geometry))
          (align (if (>= (length geo) 5) (cAr geo) "center"))
-         (new-geo `(tuple ,"geometry" ,w ,h ,align))
+         (new-geo `(tuple "geometry" ,w ,h ,align))
         ) ;
     (graphics-set-property "gr-geometry" new-geo)
   ) ;let*
@@ -173,7 +173,7 @@
     (tree->stree (get-env-tree "gr-frame"))
     (if (match? frame '(tuple "scale" :%2))
       frame
-      `(tuple ,"scale" ,(graphics-default-unit) (tuple "0.5gw" "0.5gh"))
+      `(tuple "scale" ,(graphics-default-unit) (tuple "0.5gw" "0.5gh"))
     ) ;if
   ) ;with
 ) ;tm-define
@@ -190,7 +190,7 @@
   (with frame
     (graphics-cartesian-frame)
     (with new-frame
-      `(tuple ,"scale" ,u ,(cAr frame))
+      `(tuple "scale" ,u ,(cAr frame))
       (graphics-set-property "gr-frame" new-frame)
     ) ;with
   ) ;with
@@ -289,7 +289,7 @@
          (x5 (if (and (string? x4) (string-ends? x4 "gw")) x4 x1))
          (y5 (if (and (string? y4) (string-ends? y4 "gh")) y4 y1))
          (newfr
-           `(tuple ,"scale" ,newu (tuple ,x4 ,y4))
+           `(tuple "scale" ,newu (tuple ,x4 ,y4))
          ) ;newfr
         ) ;
     ;; (display* "old fr= " fr "\n")
@@ -331,7 +331,7 @@
            (x (cadr (cadddr fr)))
            (y (caddr (cadddr fr)))
            (newfr
-             `(tuple ,"scale" ,(caddr fr) (tuple ,(add x dx) ,(add y dy)))
+             `(tuple "scale" ,(caddr fr) (tuple ,(add x dx) ,(add y dy)))
            ) ;newfr
           ) ;
       (graphics-decorations-reset)
@@ -623,15 +623,12 @@
          (the-grid #f)
         ) ;
     (cond ((== type 'empty) (set! the-grid '(tuple "empty")))
-          ((== type 'cartesian) (set! the-grid `(tuple ,"cartesian"
+          ((== type 'cartesian) (set! the-grid `(tuple "cartesian"
                                                   ,center
                                                   ,step)))
-          ((== type 'polar) (set! the-grid `(tuple ,"polar"
-                                              ,center
-                                              ,step
-                                              ,astep)))
+          ((== type 'polar) (set! the-grid `(tuple "polar" ,center ,step ,astep)))
           ((== type 'logarithmic)
-           (set! the-grid `(tuple ,"logarithmic" ,center ,step ,base))
+           (set! the-grid `(tuple "logarithmic" ,center ,step ,base))
           ) ;
     ) ;cond
     (if the-grid
@@ -834,7 +831,7 @@
   (:argument s2 "Subdivisions per unit")
   (:argument c2 "Color subdivisions")
   (with aspect
-    `(tuple (tuple ,"axes" ,c0) (tuple ,"1" ,c1) (tuple ,s2 ,c2))
+    `(tuple (tuple "axes" ,c0) (tuple "1" ,c1) (tuple ,s2 ,c2))
     (graphics-set-property "gr-grid-aspect" aspect)
     (graphics-set-property "gr-grid-aspect-props" aspect)
   ) ;with
@@ -943,7 +940,7 @@
     (with aspect
       `(tuple (tuple "axes" "none")
          (tuple "1" "none")
-         (tuple ,(number->string nsubd) ,"none"))
+         (tuple ,(number->string nsubd) "none"))
       (if (not nsubd)
         (set-car! (cdr (list-ref aspect 3))
           (cadr (list-ref (get-default-val "gr-edit-grid-aspect") 3))
@@ -1268,7 +1265,7 @@
     (graphics-get-pen-enhance-strength)
     (with v
       (cond ((== strength "1") val)
-            ((== val "default") `(tuple ,"gaussian" ,strength))
+            ((== val "default") `(tuple "gaussian" ,strength))
             (else `(tuple ,val ,strength))
       ) ;cond
       (graphics-set-property "gr-pen-enhance" v)
