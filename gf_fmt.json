@@ -6,6 +6,7 @@
     "binary-macos": ["/opt/homebrew/opt/llvm@19/bin/clang-format", "/usr/local/opt/llvm@19/bin/clang-format"],
     "exclude": [
       {"path": "build", "reason": "构建产物目录（含各子模块下的 build），无需格式化"},
+      {"path": "TeXmacs/plugins/goldfish/src/*", "reason": "s7 C 解释器与 Goldfish 胶水上游源码，不格式化"},
       {"path": "TeXmacs/plugins/goldfish/src/s7.c", "reason": "s7 C 解释器上游源码，不格式化"},
       {"path": "TeXmacs/plugins/goldfish/src/s7.h", "reason": "s7 C 解释器上游头文件，不格式化"}
     ]
@@ -65,6 +66,7 @@
       "TeXmacs/progs/version"
     ],
     "exclude": [
+      {"path": "TeXmacs/plugins/goldfish/src/*", "reason": "s7 C 解释器与 Goldfish 胶水上游源码，不格式化"},
       {"path": "TeXmacs/plugins/goldfish/src/s7.c", "reason": "s7 C 解释器上游源码，不格式化"},
       {"path": "TeXmacs/plugins/goldfish/src/s7.h", "reason": "s7 C 解释器上游头文件，不格式化"},
       {"path": "TeXmacs/plugins/goldfish/goldfish/liii/match/match-core.scm", "reason": "外部引入的卫生模式匹配器实现，不纳入格式化"},
