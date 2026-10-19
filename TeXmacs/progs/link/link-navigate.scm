@@ -472,8 +472,8 @@
          (text (automatic-link-text back))
         ) ;
     (if (not text)
-      `(with ,"color" ,"red" ,broken-text)
-      `(locus (id ,id) (link ,"automatic" (id ,id) ,back) ,text)
+      `(with "color" "red" ,broken-text)
+      `(locus (id ,id) (link "automatic" (id ,id) ,back) ,text)
     ) ;if
   ) ;let*
 ) ;tm-define
@@ -481,7 +481,7 @@
 (tm-define (build-enumeration l)
   (if (<= (length l) 1)
     l
-    `((enumerate (document ,@(map (lambda (x) `(surround (item) ,"" ,x)) l))))
+    `((enumerate (document ,@(map (lambda (x) `(surround (item) "" ,x)) l))))
   ) ;if
 ) ;tm-define
 
@@ -754,7 +754,7 @@
       (execute-at cmd opt-location)
      ) ;
      ((== (get-preference "security") "prompt on scripts")
-      (user-confirm `(concat ,"Execute " ,s ,"?")
+      (user-confirm `(concat "Execute " ,s "?")
         #f
         (lambda (answ) (when answ (execute-at cmd opt-location)))
       ) ;user-confirm
@@ -777,7 +777,7 @@
       (exec-delayed cmd)
      ) ;
      ((== (get-preference "security") "prompt on scripts")
-      (user-confirm `(concat ,"Execute " ,s ,"?")
+      (user-confirm `(concat "Execute " ,s "?")
         #f
         (lambda (answ) (when answ (exec-delayed cmd)))
       ) ;user-confirm

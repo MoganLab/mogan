@@ -57,14 +57,14 @@
 
 (tm-define (make-with var val)
   (cond ((selection-active-table?) (cell-set-format var val))
-        ((nstring? val) (insert-go-to `(with ,var ,val ,"") '(2 0)))
+        ((nstring? val) (insert-go-to `(with ,var ,val "") '(2 0)))
         (else (cpp-make-with var val))
   ) ;cond
 ) ;tm-define
 
 (tm-define (make lab . opt-arity)
   (:require
-    (with-like? `(,lab ,""))
+    (with-like? `(,lab ""))
   ) ;:require
   (if (selection-active-any?)
     (let* ((selection (selection-tree))

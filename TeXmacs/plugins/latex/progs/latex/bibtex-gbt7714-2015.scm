@@ -128,9 +128,9 @@
     (if (or (bib-null? edition-field) (equal? edition-field ""))
       ""
       (if chinese?
-        `(concat ,"<#7B2C>" ,edition-field ,"<#7248>")
+        `(concat "<#7B2C>" ,edition-field "<#7248>")
         ;; 第X版
-        `(concat ,edition-field ," edition")
+        `(concat ,edition-field " edition")
       ) ;if
     ) ;if
   ) ;let
@@ -316,12 +316,12 @@
       (let* ((names (bib-format-names e)) (count (- (length e) 1)))
         (if chinese?
           (if (= count 1)
-            `(concat ,names ,",<#7F16>")
+            `(concat ,names ",<#7F16>")
             ;; 编
-            `(concat ,names ,",<#4E3B><#7F16>")
+            `(concat ,names ",<#4E3B><#7F16>")
           ) ;if
           ;; 主编
-          (if (= count 1) `(concat ,names ,", ed.") `(concat ,names ,", eds."))
+          (if (= count 1) `(concat ,names ", ed.") `(concat ,names ", eds."))
         ) ;if
       ) ;let*
     ) ;if
@@ -414,7 +414,7 @@
         ) ;
     (cond
      ((and (not (equal? addr "")) (not (equal? inst-val "")))
-      `(concat ,addr ,": " ,inst-val)
+      `(concat ,addr ": " ,inst-val)
      ) ;
      ((not (equal? addr "")) addr)
      ((not (equal? inst-val "")) inst-val)
@@ -455,14 +455,14 @@
             ;; 没有姓，返回名
             ((bib-null? first-name-raw) last-name-raw)
             ;; 没有名，返回姓
-            (else `(concat ,last-name ," " ,first-name))
+            (else `(concat ,last-name " " ,first-name))
       ) ;cond
       ;; 正常格式化
       ;; 中文姓名处理：保持原有逻辑
       (if (bib-null? last-name)
         first-name
         (if (bib-null? first-name) last-name `(concat ,last-name
-                                                ," "
+                                                " "
                                                 ,first-name))
       ) ;if
     ) ;if
@@ -477,16 +477,16 @@
   ;; 如果有pages字段，则格式为"年份:页码"
   (let* ((d (bib-field x "date")) (y (bib-field x "year")) (p (bib-field x "pages")))
     (cond
-     ((not (bib-null? d)) `(concat ,"(" ,d ,")"))
+     ((not (bib-null? d)) `(concat "(" ,d ")"))
      ((not (bib-null? y))
       (let* ((year y)
              (pag
                (if (or (bib-null? p) (nlist? p))
                  ""
                  (cond ((equal? 1 (length p)) "")
-                       ((equal? 2 (length p)) `(concat ,": " ,(list-ref p 1)))
+                       ((equal? 2 (length p)) `(concat ": " ,(list-ref p 1)))
                        (else
-                         `(concat ,": "
+                         `(concat ": "
                             ,(list-ref p 1)
                             ,bib-range-symbol
                             ,(list-ref p 2))
@@ -522,15 +522,15 @@
          (year (if (bib-null? y) "" y))
          (vol (if (bib-null? v) "" v))
          (num
-           (if (bib-null? n) "" `(concat ,"(" ,n ,")"))
+           (if (bib-null? n) "" `(concat "(" ,n ")"))
          ) ;num
          (pag
            (if (or (bib-null? p) (nlist? p))
              ""
              (cond ((equal? 1 (length p)) "")
-                   ((equal? 2 (length p)) `(concat ,": " ,(list-ref p 1)))
+                   ((equal? 2 (length p)) `(concat ": " ,(list-ref p 1)))
                    (else
-                     `(concat ,": "
+                     `(concat ": "
                         ,(list-ref p 1)
                         ,bib-range-symbol
                         ,(list-ref p 2))
@@ -544,7 +544,7 @@
       (if (bib-null? year)
         `(concat ,vol ,num ,pag)
         (if (not (== vol ""))
-          `(concat ,year ,", " ,vol ,num ,pag)
+          `(concat ,year ", " ,vol ,num ,pag)
           `(concat ,year ,num ,pag)
         ) ;if
       ) ;if
@@ -575,13 +575,13 @@
     (cond
       (has-doi
         ;; 有 DOI（优先使用，忽略 URL）：添加https://doi.org/前缀
-        (let ((doi-url `(concat ,"https://doi.org/" ,doi)))
-          (if has-urldate `(concat ,"[" ,urldate ,"]. " ,doi-url) doi-url)
+        (let ((doi-url `(concat "https://doi.org/" ,doi)))
+          (if has-urldate `(concat "[" ,urldate "]. " ,doi-url) doi-url)
         ) ;let
       ) ;has-doi
       (has-url
         ;; 只有 URL（没有 DOI）
-        (if has-urldate `(concat ,"[" ,urldate ,"]. " ,url) `(concat ,url))
+        (if has-urldate `(concat "[" ,urldate "]. " ,url) `(concat ,url))
       ) ;has-url
       (else "")
     ) ;cond
@@ -667,17 +667,17 @@
                                                                                   "title")
                                                                          ,(bib-document-type-identifier x
                                                                             "book")
-                                                                         ,"//"
+                                                                         "//"
                                                                          ,bookauthor-names
-                                                                         ,". "
+                                                                         ". "
                                                                          ,(bib-format-field-preserve-case x
                                                                             "booktitle")
                                                                          ,(if (equal? edition-str
                                                                                 "")
                                                                             ""
-                                                                            `(concat ,": "
+                                                                            `(concat ": "
                                                                                ,edition-str))
-                                                                         ,".")))
+                                                                         ".")))
                                                     (has-editor (let ((editor-names (cond ((bib-null? editor-field)
                                                                                            "")
                                                                                           ((nlist? editor-field)
@@ -687,30 +687,30 @@
                                                                               "title")
                                                                      ,(bib-document-type-identifier x
                                                                         "book")
-                                                                     ,"//"
+                                                                     "//"
                                                                      ,editor-names
-                                                                     ,". "
+                                                                     ". "
                                                                      ,(bib-format-field-preserve-case x
                                                                         "booktitle")
                                                                      ,(if (equal? edition-str
                                                                             "")
                                                                         ""
-                                                                        `(concat ,": "
+                                                                        `(concat ": "
                                                                            ,edition-str))
-                                                                     ,".")))
+                                                                     ".")))
                                                     (else `(concat ,(bib-format-field-preserve-case x
                                                                       "title")
                                                              ,(bib-document-type-identifier x
                                                                 "book")
-                                                             ,"//. "
+                                                             "//. "
                                                              ,(bib-format-field-preserve-case x
                                                                 "booktitle")
                                                              ,(if (equal? edition-str
                                                                     "")
                                                                 ""
-                                                                `(concat ,": "
+                                                                `(concat ": "
                                                                    ,edition-str))
-                                                             ,".")))))
+                                                             ".")))))
                             ,(gbt-new-smart-block-with-url `(,(bib-format-number-series x)
                                                              ,(bib-format-address-institution x)
                                                              ,(bib-format-date x))
@@ -728,10 +728,10 @@
                                                       "title")
                                              ,(bib-document-type-identifier x
                                                 "inproceedings")
-                                             ,"//"
+                                             "//"
                                              ,(bib-format-field-preserve-case x
                                                 "booktitle")
-                                             ,"."))
+                                             "."))
                           ,(gbt-new-smart-block-with-url `(,(bib-format-address-institution x)
                                                            ,(bib-format-date x))
                              x))))
@@ -863,7 +863,7 @@
                                                                       "")
                                                                   number
                                                                   `(concat ,date-str
-                                                                     ,": "
+                                                                     ": "
                                                                      ,number)))))
                              x))))
 ) ;tm-define
@@ -906,7 +906,7 @@
                                               (if (bib-null? number)
                                                 `(concat ,title ,identifier)
                                                 `(concat ,title
-                                                   ,": "
+                                                   ": "
                                                    ,number
                                                    ,identifier))))
                             ,(gbt-new-smart-block-with-url `(,date-str) x))))
@@ -930,7 +930,7 @@
                                             (if (bib-null? std-num)
                                               `(concat ,title ,identifier)
                                               `(concat ,std-num
-                                                 ," "
+                                                 " "
                                                  ,title
                                                  ,identifier))))
                           ,(gbt-new-smart-block-with-url (let ((address-institution (bib-format-address-institution x))
@@ -1015,7 +1015,7 @@
            ) ;if
          ) ;pag
          (date-pages-str
-           (if (== pag "") date-str `(concat ,date-str ,"(" ,pag ,")"))
+           (if (== pag "") date-str `(concat ,date-str "(" ,pag ")"))
          ) ;date-pages-str
         ) ;
     `(concat ,(bib-format-bibitem n x)
@@ -1070,20 +1070,20 @@
                                                             "title")
                                                    ,(bib-document-type-identifier x
                                                       "collection")
-                                                   ,"//"
+                                                   "//"
                                                    ,editor-names
-                                                   ,". "
+                                                   ". "
                                                    ,(bib-format-field-preserve-case x
                                                       "booktitle")
-                                                   ,"."))
+                                                   "."))
                                               `(concat ,(bib-format-field-preserve-case x
                                                           "title")
                                                  ,(bib-document-type-identifier x
                                                     "collection")
-                                                 ,"//"
+                                                 "//"
                                                  ,(bib-format-field-preserve-case x
                                                     "booktitle")
-                                                 ,"."))))
+                                                 "."))))
                           ,(gbt-new-smart-block-with-url `(,(bib-format-address-institution x)
                                                            ,(bib-format-date x))
                              x))))
@@ -1107,7 +1107,7 @@
                                                                   '())
                                                                  ((bib-null? version)
                                                                   `(,date))
-                                                                 (else `((concat ,"Version "
+                                                                 (else `((concat "Version "
                                                                            ,version)
                                                                          ,date))))
                              x))))
@@ -1131,7 +1131,7 @@
                                                                   '())
                                                                  ((bib-null? version)
                                                                   `(,date))
-                                                                 (else `((concat ,"Version "
+                                                                 (else `((concat "Version "
                                                                            ,version)
                                                                          ,date))))
                              x))))
@@ -1151,7 +1151,7 @@
                                             (if (bib-null? number)
                                               `(concat ,title ,identifier)
                                               `(concat ,title
-                                                 ,": "
+                                                 ": "
                                                  ,number
                                                  ,identifier))))
                           ,(gbt-new-smart-block-with-url `(,(bib-format-address-institution x)

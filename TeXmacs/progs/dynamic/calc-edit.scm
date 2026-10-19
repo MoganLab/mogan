@@ -189,7 +189,7 @@
                  ((tm-equal? val "") (string->tree "0"))
                  ((== lan "scheme") (tm->tree val))
                  (else
-                   (tm->tree `(concat ,"(" ,val ,")"))
+                   (tm->tree `(concat "(" ,val ")"))
                  ) ;else
            ) ;cond
          ) ;let*
@@ -430,37 +430,37 @@
 
 (tm-define (make-calc-inert)
   (insert-go-to
-    `(calc-inert ,(calc-auto) ,"")
+    `(calc-inert ,(calc-auto) "")
     '(1 0)
   ) ;insert-go-to
 ) ;tm-define
 
 (tm-define (make-calc-input)
   (insert-go-to
-    `(calc-input ,(calc-auto) ,"" ,"")
+    `(calc-input ,(calc-auto) "" "")
     '(1 0)
   ) ;insert-go-to
 ) ;tm-define
 
 (tm-define (make-calc-generate)
   (insert-go-to
-    `(calc-generate-command ,(calc-auto) ,"" ,"")
+    `(calc-generate-command ,(calc-auto) "" "")
     '(1 0)
   ) ;insert-go-to
 ) ;tm-define
 
 (tm-define (make-calc-answer)
   (insert-go-to
-    `(calc-answer-command ,(calc-auto) ,"" ,"" ,"")
+    `(calc-answer-command ,(calc-auto) "" "" "")
     '(1 0)
   ) ;insert-go-to
 ) ;tm-define
 
 (tm-define (make-calc-check)
   (with sug
-    `(calc-suggest ,(calc-auto) ,"" ,"")
+    `(calc-suggest ,(calc-auto) "" "")
     (insert-go-to
-      `(calc-check-predicate ,(calc-auto) ,"" ,"" ,"" ,sug)
+      `(calc-check-predicate ,(calc-auto) "" "" "" ,sug)
       '(1 0)
     ) ;insert-go-to
   ) ;with

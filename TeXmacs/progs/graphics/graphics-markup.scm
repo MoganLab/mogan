@@ -180,12 +180,12 @@
       (if (eq? clockwise >)
         `(superpose (std-arc ,c ,p ,m)
            (std-arc ,c ,m ,x)
-           (with ,"color" ,"none" (line ,p ,c ,x ,m ,p)))
+           (with "color" "none" (line ,p ,c ,x ,m ,p)))
         `(superpose (std-arc-counterclockwise ,c ,p ,m)
            (std-arc-counterclockwise ,c ,m ,x)
-           (with ,"color" ,"none" (line ,p ,c ,x ,m ,p)))
+           (with "color" "none" (line ,p ,c ,x ,m ,p)))
       ) ;if
-      `(superpose (with ,"color" ,"none" (line ,p ,c ,x)) (arc ,p ,m ,x))
+      `(superpose (with "color" "none" (line ,p ,c ,x)) (arc ,p ,m ,x))
     ) ;if
   ) ;let*
 ) ;define-graphics
@@ -239,7 +239,7 @@
     `(superpose (line ,p1 ,(complex->point v1))
        ,(graphics-transform rescaler im)
        (line ,(complex->point v2) ,p2)
-       (with ,"point-style" ,"none" ,p3))
+       (with "point-style" "none" ,p3))
   ) ;let*
 ) ;tm-define
 
@@ -323,10 +323,10 @@
          (p (complex->point (/ (+ z1 z2 z3) 3)))
         ) ;
     `(superpose (cline ,p1 ,p2 ,p3)
-       (with ,"text-at-halign"
-         ,"center"
-         ,"text-at-valign"
-         ,"center"
+       (with "text-at-halign"
+         "center"
+         "text-at-valign"
+         "center"
          (text-at ,(tm-ref t 0) ,p)))
   ) ;let*
 ) ;define-graphics
@@ -397,9 +397,9 @@
          (va (directional-valign n))
         ) ;
     `(superpose (line ,p1 ,p2)
-       (with ,"text-at-halign"
+       (with "text-at-halign"
          ,ha
-         ,"text-at-valign"
+         "text-at-valign"
          ,va
          (math-at (small ,(tm-ref t 0)) ,(complex->point c))))
   ) ;let*

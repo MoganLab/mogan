@@ -108,7 +108,7 @@
            ) ;filter
          ) ;valid-image-format-list
         ) ;
-    (eval `(define-preference-names ,"texmacs->image:format"
+    (eval `(define-preference-names "texmacs->image:format"
              ,@valid-image-format-list)
     ) ;eval
     (apply map list valid-image-format-list)

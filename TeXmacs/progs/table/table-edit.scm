@@ -329,7 +329,7 @@
   (:synopsis "Set minimal table width")
   (:argument w "Minimal table width")
   (:check-mark "o" table-test-minimal-width?)
-  (table-set-format-list '("table-width" "table-hmode") `(,w ,"max"))
+  (table-set-format-list '("table-width" "table-hmode") `(,w "max"))
 ) ;tm-define
 (tm-define (table-ia-minimal-width)
   (:interactive #t)
@@ -346,7 +346,7 @@
   (:synopsis "Set table width")
   (:argument w "Table width")
   (:check-mark "o" table-test-exact-width?)
-  (table-set-format-list '("table-width" "table-hmode") `(,w ,"exact"))
+  (table-set-format-list '("table-width" "table-hmode") `(,w "exact"))
 ) ;tm-define
 (tm-define (table-ia-exact-width)
   (:interactive #t)
@@ -361,7 +361,7 @@
   (:synopsis "Set maximal table width")
   (:argument w "Maximal table width")
   (:check-mark "o" table-test-maximal-width?)
-  (table-set-format-list '("table-width" "table-hmode") `(,w ,"min"))
+  (table-set-format-list '("table-width" "table-hmode") `(,w "min"))
 ) ;tm-define
 (tm-define (table-ia-maximal-width)
   (:interactive #t)
@@ -402,7 +402,7 @@
   (:synopsis "Set minimal table height")
   (:argument h "Minimal table height")
   (:check-mark "o" table-test-minimal-height?)
-  (table-set-format-list '("table-height" "table-vmode") `(,h ,"max"))
+  (table-set-format-list '("table-height" "table-vmode") `(,h "max"))
 ) ;tm-define
 (tm-define (table-ia-minimal-height)
   (:interactive #t)
@@ -417,7 +417,7 @@
   (:synopsis "Set table height")
   (:argument h "Table height")
   (:check-mark "o" table-test-exact-height?)
-  (table-set-format-list '("table-height" "table-vmode") `(,h ,"exact"))
+  (table-set-format-list '("table-height" "table-vmode") `(,h "exact"))
 ) ;tm-define
 (tm-define (table-ia-exact-height)
   (:interactive #t)
@@ -432,7 +432,7 @@
   (:synopsis "Set maximal table height")
   (:argument h "Maximal table height")
   (:check-mark "o" table-test-maximal-height?)
-  (table-set-format-list '("table-height" "table-vmode") `(,h ,"min"))
+  (table-set-format-list '("table-height" "table-vmode") `(,h "min"))
 ) ;tm-define
 (tm-define (table-ia-maximal-height)
   (:interactive #t)
@@ -611,7 +611,7 @@
   (:synopsis "Set minimal cell width")
   (:argument w "Minimal cell width")
   (:check-mark "o" cell-test-minimal-width?)
-  (cell-set-format-list '("cell-width" "cell-hmode") `(,w ,"max"))
+  (cell-set-format-list '("cell-width" "cell-hmode") `(,w "max"))
 ) ;tm-define
 (tm-define (cell-ia-minimal-width)
   (:interactive #t)
@@ -626,7 +626,7 @@
   (:synopsis "Set cell width")
   (:argument w "Cell width")
   (:check-mark "o" cell-test-exact-width?)
-  (cell-set-format-list '("cell-width" "cell-hmode") `(,w ,"exact"))
+  (cell-set-format-list '("cell-width" "cell-hmode") `(,w "exact"))
 ) ;tm-define
 (tm-define (cell-ia-exact-width)
   (:interactive #t)
@@ -641,7 +641,7 @@
   (:synopsis "Set maximal cell width")
   (:argument w "Maximal cell width")
   (:check-mark "o" cell-test-maximal-width?)
-  (cell-set-format-list '("cell-width" "cell-hmode") `(,w ,"min"))
+  (cell-set-format-list '("cell-width" "cell-hmode") `(,w "min"))
 ) ;tm-define
 (tm-define (cell-ia-maximal-width)
   (:interactive #t)
@@ -673,7 +673,7 @@
   (:synopsis "Set minimal cell height")
   (:argument h "Minimal cell height")
   (:check-mark "o" cell-test-minimal-height?)
-  (cell-set-format-list '("cell-height" "cell-vmode") `(,h ,"max"))
+  (cell-set-format-list '("cell-height" "cell-vmode") `(,h "max"))
 ) ;tm-define
 (tm-define (cell-ia-minimal-height)
   (:interactive #t)
@@ -688,7 +688,7 @@
   (:synopsis "Set cell height")
   (:argument h "Cell height")
   (:check-mark "o" cell-test-exact-height?)
-  (cell-set-format-list '("cell-height" "cell-vmode") `(,h ,"exact"))
+  (cell-set-format-list '("cell-height" "cell-vmode") `(,h "exact"))
 ) ;tm-define
 (tm-define (cell-ia-exact-height)
   (:interactive #t)
@@ -703,7 +703,7 @@
   (:synopsis "Set maximal cell height")
   (:argument h "Maximal cell height")
   (:check-mark "o" cell-test-maximal-height?)
-  (cell-set-format-list '("cell-height" "cell-vmode") `(,h ,"min"))
+  (cell-set-format-list '("cell-height" "cell-vmode") `(,h "min"))
 ) ;tm-define
 (tm-define (cell-ia-maximal-height)
   (:interactive #t)

@@ -148,13 +148,13 @@
      ) ;
      ((== n 3)
       ;; range over values from start to end with step 1
-      `(do ((,(car what) ,(cadr what) (+ ,(car what) ,1)))
+      `(do ((,(car what) ,(cadr what) (+ ,(car what) 1)))
          ((>= ,(car what) ,(caddr what)) (noop))
          ,@body)
      ) ;
      ((== n 4)
       ;; range over values from start to end with step
-      `(if (> ,(cadddr what) ,0)
+      `(if (> ,(cadddr what) 0)
          (do ((,(car what) ,(cadr what) (+ ,(car what) ,(cadddr what))))
            ((>= ,(car what) ,(caddr what)) (noop))
            ,@body)
@@ -175,7 +175,7 @@
 
 (define-public-macro (repeat n . body)
   (let ((x (gensym)))
-    `(for (,x ,0 ,n) ,@body)
+    `(for (,x 0 ,n) ,@body)
   ) ;let
 ) ;define-public-macro
 

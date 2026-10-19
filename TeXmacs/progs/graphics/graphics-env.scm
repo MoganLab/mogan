@@ -82,7 +82,7 @@
 
 (tm-define (new-state) (make-vector (state-len)))
 
-(define-public-macro (state-slot-ref i) `(- (length (memq ,i ,state-slots)) ,1))
+(define-public-macro (state-slot-ref i) `(- (length (memq ,i ,state-slots)) 1))
 
 (define-public-macro (state-ref st var) `(vector-ref ,st (state-slot-ref ,var)))
 

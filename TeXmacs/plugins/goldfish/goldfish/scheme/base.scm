@@ -545,7 +545,7 @@
 
     (define-macro (guard results . body)
       `(let ((,(car results)
-              (catch ,#t
+              (catch #t
                 (lambda ,() ,@body)
                 (lambda (type info)
                   (if (pair? (*s7* 'catches))

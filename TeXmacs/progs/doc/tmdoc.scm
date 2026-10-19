@@ -291,8 +291,8 @@
      ((or (== file "") (not (url-exists? root)))
       `(document (TeXmacs ,(texmacs-version))
          (style "tmdoc")
-         (body (document ,"Broken link."
-                 (concat ,"File " (tt ,root) ," does not exist"))))
+         (body (document "Broken link."
+                 (concat "File " (tt ,root) " does not exist"))))
      ) ;
      ((== (url-suffix root) "html")
       (with doc
@@ -319,7 +319,7 @@
        (let* ((body (tmdoc-expand root root 'tmdoc-title)) (lan (tmdoc-language root)))
          (tm->stree
            `(document (TeXmacs ,(texmacs-version))
-              (style (tuple ,"tmdoc" ,lan))
+              (style (tuple "tmdoc" ,lan))
               (body ,body))
          ) ;tm->stree
        ) ;let*

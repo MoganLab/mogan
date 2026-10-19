@@ -326,7 +326,7 @@
       "60px"
       (texmacs-input
         `(document ,(get-tag-arg u 'set-this-page-header))
-        `(style (tuple ,@style ,"gui-base"))
+        `(style (tuple ,@style "gui-base"))
         (header-buffer)
       ) ;texmacs-input
     ) ;resize
@@ -338,7 +338,7 @@
       "60px"
       (texmacs-input
         `(document ,(get-tag-arg u 'set-this-page-footer))
-        `(style (tuple ,@style ,"gui-base"))
+        `(style (tuple ,@style "gui-base"))
         (footer-buffer)
       ) ;texmacs-input
     ) ;resize

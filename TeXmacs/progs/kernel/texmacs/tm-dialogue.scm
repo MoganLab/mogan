@@ -58,7 +58,7 @@
 (define-public (delayed-sub body)
   (cond
    ((or (npair? body) (nlist? (car body)) (not (keyword? (caar body))))
-    `(lambda ,() ,@body ,#t)
+    `(lambda ,() ,@body #t)
    ) ;
    ((== (caar body) :pause)
     `(let* ((start (texmacs-time)) (proc ,(delayed-sub (cdr body))))
@@ -86,10 +86,10 @@
    ((== (caar body) :refresh)
     (with sym
       (gensym)
-      `(let* ((,sym ,#f) (proc ,(delayed-sub (cdr body))))
+      `(let* ((,sym #f) (proc ,(delayed-sub (cdr body))))
          (lambda ,()
            (if (!= ,sym (change-time))
-             ,0
+             0
              (with left
                (- ,(cadar body) (idle-time))
                (if (> left 0) left (begin (set! ,sym (change-time)) (proc)))))))
@@ -98,21 +98,19 @@
    ((== (caar body) :require)
     `(with proc
        ,(delayed-sub (cdr body))
-       (lambda ,() (if (not ,(cadar body)) ,0 (proc))))
+       (lambda ,() (if (not ,(cadar body)) 0 (proc))))
    ) ;
    ((== (caar body) :while)
     `(with proc
        ,(delayed-sub (cdr body))
        (lambda ,()
-         (if (not ,(cadar body))
-           ,#t
-           (with left (proc) (if (== left #t) 0 left)))))
+         (if (not ,(cadar body)) #t (with left (proc) (if (== left #t) 0 left)))))
    ) ;
    ((== (caar body) :clean)
     `(with proc
        ,(delayed-sub (cdr body))
        (lambda ,()
-         (with left (proc) (if (!= left #t) left (begin ,(cadar body) ,#t)))))
+         (with left (proc) (if (!= left #t) left (begin ,(cadar body) #t)))))
    ) ;
    ((== (caar body) :permanent)
     `(with proc
@@ -180,7 +178,7 @@
 (define-public (make-empty-state kind)
   (case kind
    ((interactive-arg)
-    `((,"meta" (,"version" . ,interactive-arg-version)) ("commands" ()))
+    `(("meta" ("version" . ,interactive-arg-version)) ("commands" ()))
    ) ;
    ((recent-file) '(("meta" ("version" . 1) ("total" . 0)) ("files" . #())))
    (else '(()))
@@ -373,12 +371,11 @@
 (define (recent-files-add recent-files path name)
   (let* ((files (json-ref recent-files "files"))
          (idx (if (vector? files) (vector-length files) 0))
-         (item
-           `((,"path" . ,path)
-             (,"name" . ,name)
-             (,"last_open" . ,(time-second (current-time)))
-             (,"open_count" . ,1)
-             (,"show" . ,#t))
+         (item `(("path" . ,path)
+                 ("name" . ,name)
+                 ("last_open" . ,(time-second (current-time)))
+                 ("open_count" . 1)
+                 ("show" . #t))
          ) ;item
          (total (json-ref recent-files "meta" "total"))
          (total (if (number? total) total 0))
@@ -395,12 +392,11 @@
          (name* (json-ref item "name"))
          (count* (json-ref item "open_count"))
          (count* (if (number? count*) count* 0))
-         (new-item
-           `((,"path" . ,path*)
-             (,"name" . ,name*)
-             (,"last_open" . ,(time-second (current-time)))
-             (,"open_count" . ,(+ count* 1))
-             (,"show" . ,#t))
+         (new-item `(("path" . ,path*)
+                     ("name" . ,name*)
+                     ("last_open" . ,(time-second (current-time)))
+                     ("open_count" . ,(+ count* 1))
+                     ("show" . #t))
          ) ;new-item
          (r1 (json-set recent-files "files" idx new-item))
         ) ;
@@ -1000,12 +996,11 @@
 
 (define (append-recent-file-entry recent-files path last-open)
   (let* ((name (url->system (url-tail (system->url path))))
-         (item
-           `((,"path" . ,path)
-             (,"name" . ,name)
-             (,"last_open" . ,last-open)
-             (,"open_count" . ,1)
-             (,"show" . ,#t))
+         (item `(("path" . ,path)
+                 ("name" . ,name)
+                 ("last_open" . ,last-open)
+                 ("open_count" . 1)
+                 ("show" . #t))
          ) ;item
          (files (json-ref recent-files "files"))
          (idx (if (vector? files) (vector-length files) 0))

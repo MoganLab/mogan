@@ -273,7 +273,7 @@
              (mirror-id (create-unique-id))
              (by (utf8->cork (get-user-name)))
              (date (number->string (current-time)))
-             (tree `(,lab ,id ,mirror-id ,type ,by ,date ,"" ,""))
+             (tree `(,lab ,id ,mirror-id ,type ,by ,date "" ""))
             ) ;
         (insert-go-to tree pos)
         (notify-comments-editor)

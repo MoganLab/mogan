@@ -24,7 +24,7 @@
           ) ;
       (if correct
         `(,(packrat-parse "minimal" symbol tree)
-          ,#t
+          #t
           ,(packrat-context "minimal" symbol tree cursor))
         '(rejected #f ())
       ) ;if

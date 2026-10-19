@@ -296,7 +296,7 @@
 
 (define (gui-make-plain-style x)
   (require-format x '(plain-style :*))
-  `($widget-style ,0 ,@(map gui-make (cdr x)))
+  `($widget-style 0 ,@(map gui-make (cdr x)))
 ) ;define
 
 (define (gui-make-inert x)
@@ -358,7 +358,7 @@
   (require-format x '(minibar :*))
   (if use-minibars?
     `(gui$minibar ,@(map gui-make (cdr x)))
-    `($when ,#t ,@(map gui-make (cdr x)))
+    `($when #t ,@(map gui-make (cdr x)))
   ) ;if
 ) ;define
 
@@ -419,7 +419,7 @@
   (require-format x '(mini :%1 :*))
   (if use-minibars?
     `($mini ,(cadr x) ,@(map gui-make (cddr x)))
-    `($when ,#t ,@(map gui-make (cddr x)))
+    `($when #t ,@(map gui-make (cddr x)))
   ) ;if
 ) ;define
 
@@ -660,7 +660,7 @@
 (define (make-section-tab* name key ts i j)
   (let* ((t (list-ref ts j)) (title (cadr t)))
     (if (== i j)
-      `(class ,"section-active-tab" (,title (noop)))
+      `(class "section-active-tab" (,title (noop)))
       `(,title (section-tab-set ,name ,key ,j))
     ) ;if
   ) ;let*
@@ -671,7 +671,7 @@
     (list-ref ts i)
     (require-format t '(section-tab :%1 :*))
     `(assuming (== (section-tab-ref ,name ,key) ,i)
-       (division ,"section-tabs"
+       (division "section-tabs"
          ===
          (hlist ,@(map (lambda (j) (make-section-tab* name key ts i j))
                     (.. 0 (length ts)))

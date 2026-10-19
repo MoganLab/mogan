@@ -171,12 +171,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (standard-selector-text)
-  `(with ,"par-par-sep"
-     ,"0.2em"
-     (document ,"Lowercase: abcdefghijklmnopqrstuvwxyz"
-       ,"Uppercase: ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-       ,"Numbers: 0123456789 +-*/^=<less><gtr>"
-       ,"Special: ([{|}]) \"`,.:;!?'\" @#$%&_\\~"
+  `(with "par-par-sep"
+     "0.2em"
+     (document "Lowercase: abcdefghijklmnopqrstuvwxyz"
+       "Uppercase: ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+       "Numbers: 0123456789 +-*/^=<less><gtr>"
+       "Special: ([{|}]) \"`,.:;!?'\" @#$%&_\\~"
        ,(string-append "Accented: <#E0><#E1><#E4><#E2><#E3><#E8><#E9><#EB><#EA><#EC><#ED><#EF>"
           "<#EE><#F2><#F3><#F6><#F4><#F5><#F9><#FA><#FC><#FB>")
        ,(string-append
@@ -205,37 +205,37 @@
 ) ;define
 
 (define (math-selector-text)
-  `(with ,"par-par-sep"
-     ,"0.2em"
+  `(with "par-par-sep"
+     "0.2em"
      (document (concat "Lowercase Roman: "
                  (math "a b c d e f g h i j k l m n o p q r s t u v w x y z"))
        (concat "Uppercase Roman: "
          (math "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z"))
-       (concat ,"Lowercase Greek: "
+       (concat "Lowercase Greek: "
          (math ,(string-append
                   "<alpha> <beta> <gamma> <delta> <varepsilon> <zeta> <eta>"
                   " <theta> <iota> <kappa> <lambda> <mu> <nu> <xi> <omicron>"
                   " <pi> <rho> <sigma> <tau> <upsilon> <varphi> <psi>"
                   " <chi> <omega>")))
-       (concat ,"Uppercase Greek: "
+       (concat "Uppercase Greek: "
          (math ,(string-append
                   "<Alpha> <Beta> <Gamma> <Delta> <Epsilon> <Zeta> <Eta>"
                   " <Theta> <Iota> <Kappa> <Lambda> <Mu> <Nu> <Xi> <Omicron>"
                   " <Pi> <Rho> <Sigma> <Tau> <Upsilon> <Phi> <Psi>"
                   " <Chi> <Omega>")))
-       (concat ,"Blackboard bold: "
+       (concat "Blackboard bold: "
          (math ,(string-append
                   "<bbb-A> <bbb-B> <bbb-C> <bbb-D> <bbb-E> <bbb-F> <bbb-G>"
                   " <bbb-H> <bbb-I> <bbb-J> <bbb-K> <bbb-L> <bbb-M> <bbb-N>"
                   " <bbb-O> <bbb-P> <bbb-Q> <bbb-R> <bbb-S> <bbb-T> <bbb-U>"
                   " <bbb-V> <bbb-W> <bbb-X> <bbb-Y> <bbb-Z>")))
-       (concat ,"Calligraphic: "
+       (concat "Calligraphic: "
          (math ,(string-append
                   "<cal-A> <cal-B> <cal-C> <cal-D> <cal-E> <cal-F> <cal-G>"
                   " <cal-H> <cal-I> <cal-J> <cal-K> <cal-L> <cal-M> <cal-N>"
                   " <cal-O> <cal-P> <cal-Q> <cal-R> <cal-S> <cal-T> <cal-U>"
                   " <cal-V> <cal-W> <cal-X> <cal-Y> <cal-Z>")))
-       (concat ,"Fraktur: "
+       (concat "Fraktur: "
          (math ,(string-append
                   "<frak-A> <frak-B> <frak-C> <frak-D> <frak-E> <frak-F>"
                   " <frak-G> <frak-H> <frak-I> <frak-J> <frak-K> <frak-L>"
@@ -408,17 +408,17 @@
     ;;          ", " (logical-font-series fn)
     ;;          ", " (logical-font-shape fn)
     ;;          ", " (selector-get specs :size) "\n")
-    `(document (with ,"font"
+    `(document (with "font"
                  ,(logical-font-family* specs fn)
-                 ,"font-family"
+                 "font-family"
                  ,(logical-font-variant fn)
-                 ,"font-series"
+                 "font-series"
                  ,(logical-font-series fn)
-                 ,"font-shape"
+                 "font-shape"
                  ,(logical-font-shape fn)
-                 ,"font-base-size"
+                 "font-base-size"
                  ,(selector-get specs :size)
-                 ,"font-effects"
+                 "font-effects"
                  ,(selector-font-effects specs)
                  ,sample-text))
   ) ;with
@@ -1142,12 +1142,12 @@
     (font-selector-lookup-specs key)
     (cpp-rasterize-widget
       (widget-texmacs-output
-        `(with ,"bg-color"
+        `(with "bg-color"
            ,(font-sample-bg-color)
-           ,"color"
+           "color"
            ,(font-sample-fg-color)
-           ,"magnification"
-           ,"1.6"
+           "magnification"
+           "1.6"
            ,(selector-font-demo-text specs))
         '(style "generic")
       ) ;widget-texmacs-output

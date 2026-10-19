@@ -129,7 +129,7 @@
     (if (not m)
       stms
       (list
-        `(document (with ,"par-mode"
+        `(document (with "par-mode"
                      ,m
                      ,(stm-remove-unary-document (htmltm-serial (htmltm-preserve-space? env)
                                                    stms))))
@@ -196,28 +196,28 @@
   ) ;define
 
   (define frame-values-alist
-    `((,"void" ,(delay (format-frame)))
-      (,"above" ,(delay (format-frame "table-tborder")))
-      (,"below" ,(delay (format-frame "table-bborder")))
-      (,"hsides" ,(delay (format-frame "table-tborder" "table-bborder")))
-      (,"lhs" ,(delay (format-frame "table-lborder")))
-      (,"rhs" ,(delay (format-frame "table-rborder")))
-      (,"vsides" ,(delay (format-frame "table-lborder" "table-rborder")))
-      (,"box"
+    `(("void" ,(delay (format-frame)))
+      ("above" ,(delay (format-frame "table-tborder")))
+      ("below" ,(delay (format-frame "table-bborder")))
+      ("hsides" ,(delay (format-frame "table-tborder" "table-bborder")))
+      ("lhs" ,(delay (format-frame "table-lborder")))
+      ("rhs" ,(delay (format-frame "table-rborder")))
+      ("vsides" ,(delay (format-frame "table-lborder" "table-rborder")))
+      ("box"
        ,(delay (format-frame "table-tborder" "table-bborder" "table-lborder"
                  "table-rborder")))
-      (,"border"
+      ("border"
        ,(delay (format-frame "table-tborder" "table-bborder" "table-lborder"
                  "table-rborder"))))
   ) ;define
   (define rules-values-alist
-    `((,"none" ,(delay '()))
-      (,"groups" ,(delay (rules-groups)))
-      (,"rows"
+    `(("none" ,(delay '()))
+      ("groups" ,(delay (rules-groups)))
+      ("rows"
        ,(delay (list (tmformat-table-but-bottom "cell-bborder" (tmlength 1 'px)))))
-      (,"cols"
+      ("cols"
        ,(delay (list (tmformat-table-but-right "cell-rborder" (tmlength 1 'px)))))
-      (,"all"
+      ("all"
        ,(delay (list (tmformat-table-but-bottom "cell-bborder" (tmlength 1 'px))
                  (tmformat-table-but-right "cell-rborder" (tmlength 1 'px))))))
   ) ;define
@@ -470,9 +470,9 @@
   (list
     (xmltm-label-decorate a
       'id
-      (htmltm-serial (htmltm-preserve-space? env)
-        `(,"``" ,@(htmltm-args env c) ,"''")
-      ) ;htmltm-serial
+      (htmltm-serial (htmltm-preserve-space? env) `("``"
+                                                    ,@(htmltm-args env c)
+                                                    "''"))
     ) ;xmltm-label-decorate
   ) ;list
 ) ;define
@@ -519,8 +519,8 @@
       (xmltm-label-decorate a
         'id
         (if (not (and (string-null? w) (string-null? h)))
-          `(image ,s ,w ,h ,"" ,"")
-          `(image ,s ,"0.6383w" ,"" ,"" ,"")
+          `(image ,s ,w ,h "" "")
+          `(image ,s "0.6383w" "" "" "")
         ) ;if
       ) ;xmltm-label-decorate
     ) ;list
@@ -551,7 +551,7 @@
                ) ;assoc
          ) ;mult
         ) ;
-    (if mult `(with ,"font-size" ,(second mult) ,x) x)
+    (if mult `(with "font-size" ,(second mult) ,x) x)
   ) ;let*
 ) ;define
 
@@ -561,7 +561,7 @@
     (and-let* ((html-color (shtml-attr-non-null a 'color))
                (tmcolor (html-color->tmcolor html-color))
               ) ;
-      `(with ,"color" ,(tmcolor->stm tmcolor) ,x)
+      `(with "color" ,(tmcolor->stm tmcolor) ,x)
     ) ;and-let*
     x
   ) ;or

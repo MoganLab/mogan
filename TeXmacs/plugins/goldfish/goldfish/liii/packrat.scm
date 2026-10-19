@@ -416,9 +416,9 @@
                    ;;           (('c) 'ok)))
                    (match pattern
                     ((('! fails ...) rest ...)
-                     `(packrat-unless (string-append ,"Nonterminal "
+                     `(packrat-unless (string-append "Nonterminal "
                                         (symbol->string (quote ,nt))
-                                        ," expected to fail "
+                                        " expected to fail "
                                         ,(object->external-representation fails))
                         ,(parse-pattern nt #t fails)
                         ,(parse-pattern nt body rest))
@@ -486,7 +486,7 @@
                    ,@(map (lambda (binding)
                             `(,binding
                               (cond ((assq (quote ,binding) bindings) => cdr)
-                                    (else (error ,"Missing binding"
+                                    (else (error "Missing binding"
                                             (quote ,binding))))))
                        bindings-list))
                ,@body)))

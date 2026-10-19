@@ -200,7 +200,7 @@
   (with e (bib-field x s) (if (bib-null? e) "" (bib-upcase-first (bib-locase e))))
 ) ;tm-define
 
-(tm-define (bib-emphasize x) `(with ,"font-shape" ,"italic" ,x))
+(tm-define (bib-emphasize x) `(with "font-shape" "italic" ,x))
 
 (tm-define (bib-string-upcase s)
   ;; goldfish string-upcase 假定 UTF-8，cork 串须往返转换
@@ -226,7 +226,7 @@
            (m (number->string i))
            (e (number->string (string-length s)))
           ) ;
-      (if (< i 0) t `(concat (range ,t ,"0" ,m) (name (range ,t ,m ,e))))
+      (if (< i 0) t `(concat (range ,t "0" ,m) (name (range ,t ,m ,e))))
     ) ;let*
   ) ;if
 ) ;tm-define

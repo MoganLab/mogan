@@ -35,10 +35,10 @@
                       `(concat ,prev (rsup ,s))
                     ) ;stats-role?
                     (stats-role?
-                      `(concat ,prev (around ,"(" ,s ,")"))
+                      `(concat ,prev (around "(" ,s ")"))
                     ) ;stats-role?
                     (stats-role?
-                      `(concat ,prev (around* ,"(" ,s ,")"))
+                      `(concat ,prev (around* "(" ,s ")"))
                     ) ;stats-role?
                   ) ;or
                   (speech-insert-symbol s)
