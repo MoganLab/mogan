@@ -287,6 +287,38 @@ private:
   QVariantMap m_meta;
 };
 
+class AttachMenuStubBridge : public QObject {
+  Q_OBJECT
+  Q_PROPERTY (QVariantMap meta READ meta CONSTANT)
+public:
+  explicit AttachMenuStubBridge (QObject* p= nullptr, bool emptyRecent= false)
+      : QObject (p) {
+    m_meta["label_recent"]= QString ("Recent");
+    m_meta["label_open"]  = QString ("Choose file");
+
+    QVariantList recs;
+    if (!emptyRecent) {
+      QVariantMap r1;
+      r1["url"]  = QString ("file:///tmp/recent.tm");
+      r1["title"]= QString ("recent.tm");
+      recs.append (r1);
+
+      QVariantMap r2;
+      r2["url"]  = QString ("file:///tmp/slides.PDF");
+      r2["title"]= QString ("slides.PDF");
+      recs.append (r2);
+    }
+    m_meta["recent"]= recs;
+  }
+  QVariantMap      meta () const { return m_meta; }
+  Q_INVOKABLE void attachFile (const QString&) {}
+  Q_INVOKABLE void chooseFiles () {}
+  Q_INVOKABLE void closeMenu () {}
+
+private:
+  QVariantMap m_meta;
+};
+
 class TestQmlLoad : public QObject {
   Q_OBJECT
 
@@ -320,6 +352,7 @@ private slots:
   void test_color_picker_loads ();
   void test_bibliography_loads ();
   void test_go_menu_loads ();
+  void test_attach_menu_loads ();
   void test_go_menu_hover ();
   void test_go_menu_type_tags ();
   void test_outline_sidebar_loads ();
@@ -1246,6 +1279,59 @@ TestQmlLoad::test_go_menu_loads () {
   QList<QQuickItem*> openItems=
       collect_items_by_name (qw->rootObject (), "goMenuOpenItem");
   QCOMPARE (openItems.size (), 1);
+}
+
+void
+TestQmlLoad::test_attach_menu_loads () {
+  // 1. 包含 recent 列表项时
+  {
+    QDialog              host;
+    AttachMenuStubBridge bridge (&host, false);
+    auto*                qw= new QQuickWidget (&host);
+    qw->setResizeMode (QQuickWidget::SizeViewToRootObject);
+    qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+    qw->rootContext ()->setContextProperty ("isDark", false);
+    qw->rootContext ()->setContextProperty ("attachBridge", &bridge);
+    qw->setSource (QUrl ("qrc:/qml/AttachMenu.qml"));
+    QCOMPARE (qw->status (), QQuickWidget::Ready);
+    QVERIFY (qw->rootObject ()->property ("implicitHeight").toDouble () > 50.0);
+    QCOMPARE (qw->rootObject ()->property ("menuWidth").toDouble (), 360.0);
+
+    QList<QQuickItem*> chooseItems=
+        collect_items_by_name (qw->rootObject (), "attachMenuChooseItem");
+    QCOMPARE (chooseItems.size (), 1);
+
+    QList<QQuickItem*> menuItems=
+        collect_items_by_name (qw->rootObject (), "attachMenuItem");
+    QCOMPARE (menuItems.size (), 2);
+
+    QList<QQuickItem*> emptyItems=
+        collect_items_by_name (qw->rootObject (), "attachMenuEmptyItem");
+    QCOMPARE (emptyItems.size (), 1);
+    QCOMPARE (emptyItems.first ()->isVisible (), false);
+  }
+
+  // 2. recent 为空时空态占位可见
+  {
+    QDialog              host;
+    AttachMenuStubBridge bridge (&host, true);
+    auto*                qw= new QQuickWidget (&host);
+    qw->setResizeMode (QQuickWidget::SizeViewToRootObject);
+    qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+    qw->rootContext ()->setContextProperty ("isDark", false);
+    qw->rootContext ()->setContextProperty ("attachBridge", &bridge);
+    qw->setSource (QUrl ("qrc:/qml/AttachMenu.qml"));
+    QCOMPARE (qw->status (), QQuickWidget::Ready);
+
+    QList<QQuickItem*> chooseItems=
+        collect_items_by_name (qw->rootObject (), "attachMenuChooseItem");
+    QCOMPARE (chooseItems.size (), 1);
+
+    QList<QQuickItem*> emptyItems=
+        collect_items_by_name (qw->rootObject (), "attachMenuEmptyItem");
+    QCOMPARE (emptyItems.size (), 1);
+    QCOMPARE (emptyItems.first ()->isVisible (), true);
+  }
 }
 
 static QList<QQuickItem*>

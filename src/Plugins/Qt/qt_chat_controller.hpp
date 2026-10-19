@@ -16,6 +16,7 @@
 #include "qt_chat_tab_widget.hpp"
 #include <QHash>
 #include <QObject>
+#include <QPointer>
 
 /**
  * @brief Chat Tab 的核心管理类。
@@ -176,15 +177,14 @@ public:
   static object attachment_items_to_scheme (const QList<AttachmentItem>& items);
 
   /**
-   * @brief 附件按钮点击时触发：文件多选 → 派发 %attachment ingest。
+   * @brief 附件按钮点击时触发：弹出 AttachMenu 悬浮窗（最近文档 +
+   * 选择文件入口）。
    *
-   * 选中附件以处理中状态入列并立即派发 ingest（path 只流向附件插件，
-   * 请求附带本轮已选累计 count/bytes 供插件预检）；违规与失败经插件
-   * error 事件 toast，ready/error 事件经 glue 回调 onAttachmentReady /
-   * onAttachmentError。
+   * 悬浮窗在附件按钮上方弹出并做屏幕边界钳制；重复点击附件按钮 toggle 关闭。
    * @param sessionId 目标会话 ID
+   * @param globalPos Attach 按钮左上角全局坐标
    */
-  void onAttachRequested (const string& sessionId);
+  void onAttachRequested (const string& sessionId, const QPoint& globalPos);
 
   /**
    * @brief 附件插件 ready 事件：回填 sha256、弹出 chip、按需解禁发送。
@@ -276,8 +276,16 @@ private:
   bool               firstOpen_= true; ///< 是否首次打开（首次时切换到新会话）
   string previousSessionId_; ///< 切入翻译/释义专属会话前的上一个活跃会话 ID
   QHash<QString, QString>
-      attachTaskSession_; ///< ingest taskId → sessionId（事件路由）
-  int attachTaskSeq_= 0;  ///< ingest 任务号自增序号（不透明）
+      attachTaskSession_;             ///< ingest taskId → sessionId（事件路由）
+  int attachTaskSeq_= 0;              ///< ingest 任务号自增序号（不透明）
+  QPointer<QWidget> attachMenuPopup_; ///< 附件菜单悬浮窗
+
+  /**
+   * @brief 批量附加文件到指定会话：去重、派发 ingest 并入列 chips。
+   * @param sessionId 目标会话 ID
+   * @param files     文件系统路径列表
+   */
+  void attachFiles (const string& sessionId, const QStringList& files);
 
   /**
    * @brief 按 ingest taskId 取出路由会话的面板（事件路由统一入口）。
@@ -443,6 +451,7 @@ private:
       string thinking, string search, string thinkingEffort);
   friend void qt_chat_notify_input_height ();
   friend void qt_chat_ai_send_selection (tree sel, string action);
+  friend class AttachMenuBridge;
   friend class TestChatController;
 };
 

@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "qt_chat_controller.hpp"
+#include "AttachMenuBridge.hpp"
 #include "qt_chat_tab_widget.hpp"
 #include "qt_floating_search_bar.hpp"
 #include "qt_floating_toast.hpp"
@@ -34,12 +35,16 @@
 #include <QLabel>
 #include <QMenu>
 #include <QPushButton>
+#include <QQmlContext>
+#include <QQuickWidget>
+#include <QScreen>
 #include <QSet>
 #include <QStandardPaths>
 #include <QStringList>
 #include <QStyle>
 #include <QTimer>
 #include <QToolButton>
+#include <QVBoxLayout>
 #include <cinttypes>
 #include <cstdio>
 
@@ -268,21 +273,17 @@ ChatController::onCancelRequested (const string& sessionId) {
 }
 
 void
-ChatController::onAttachRequested (const string& sessionId) {
-  if (!view_) return;
+ChatController::attachFiles (const string&      sessionId,
+                             const QStringList& files) {
+  if (!view_ || files.isEmpty ()) return;
   ChatSession* session= sessionManager_.getSession (sessionId);
   if (!session || session->state == ChatState::Generating) return;
   ChatConversationPanel* panel=
       static_cast<ChatConversationPanel*> (session->panel);
   if (!panel) return;
 
-  // 扩展名白名单在附件宿主侧（init-attachment.scm 加载 attachment-policy.scm
-  // 做终态预检，插件遵从同一文案），文件对话框不做类型过滤
-  QStringList files= QFileDialog::getOpenFileNames (
-      view_, qt_translate ("Add Attachment"), QString (),
-      qt_translate ("All files") + QString (" (*)"));
-  if (files.isEmpty ()) return;
-
+// 6225 移除了这里的 QFileDialog 调用（对话已改由 AttachMenuBridge 触发）；
+  // 文件对话框的 caption/filter 仍由 AttachMenuBridge::chooseFiles 提供。
   // 附件插件由启动 idle 延迟初始化（lazy-plugin-initialize），首次点击
   // 可能早于延迟触发，attachment-ingest 尚未定义会使 call 误报插件不可用；
   // llm 同款入口保障（plugin-initialize 幂等，插件数据缺失时为无操作，
@@ -329,6 +330,71 @@ ChatController::onAttachRequested (const string& sessionId) {
     totalBytes+= item.size;
   }
   panel->setAttachments (items);
+}
+
+void
+ChatController::onAttachRequested (const string& sessionId,
+                                   const QPoint& globalPos) {
+  if (!view_) return;
+  ChatSession* session= sessionManager_.getSession (sessionId);
+  if (!session || session->state == ChatState::Generating) return;
+  ChatConversationPanel* panel=
+      static_cast<ChatConversationPanel*> (session->panel);
+  if (!panel) return;
+
+  if (attachMenuPopup_ && attachMenuPopup_->isVisible ()) {
+    attachMenuPopup_->close ();
+    return;
+  }
+
+  qt_use_software_scene_graph ();
+
+  QWidget* mw   = view_->window ();
+  auto*    popup= new QWidget (mw, Qt::Popup | Qt::FramelessWindowHint |
+                                       Qt::NoDropShadowWindowHint);
+  popup->setAttribute (Qt::WA_TranslucentBackground);
+  popup->setAttribute (Qt::WA_DeleteOnClose);
+  attachMenuPopup_= popup;
+
+  auto* bridge= new AttachMenuBridge (popup, sessionId, this);
+
+  auto* quick= new QQuickWidget (popup);
+  quick->setResizeMode (QQuickWidget::SizeViewToRootObject);
+  quick->setClearColor (Qt::transparent);
+  quick->setStyleSheet ("background: transparent;");
+  qt_inject_theme_context (quick);
+  quick->rootContext ()->setContextProperty ("attachBridge", bridge);
+  quick->setSource (QUrl ("qrc:/qml/AttachMenu.qml"));
+
+  auto* layout= new QVBoxLayout (popup);
+  layout->setContentsMargins (0, 0, 0, 0);
+  layout->addWidget (quick);
+
+  popup->adjustSize ();
+
+  int    popupX= globalPos.x ();
+  int    popupY= globalPos.y () - popup->height () - 4;
+  QPoint menuPos (popupX, popupY);
+
+  QScreen* screen= QGuiApplication::screenAt (globalPos);
+  if (!screen && view_) screen= view_->screen ();
+  if (screen) {
+    QRect avail= screen->availableGeometry ();
+    if (menuPos.x () < avail.left () + 4) {
+      menuPos.setX (avail.left () + 4);
+    }
+    if (menuPos.x () + popup->width () > avail.right () - 4) {
+      menuPos.setX (avail.right () - popup->width () - 4);
+    }
+    if (menuPos.y () < avail.top () + 4) {
+      menuPos.setY (globalPos.y () + 36);
+    }
+    if (menuPos.y () + popup->height () > avail.bottom () - 4) {
+      menuPos.setY (avail.bottom () - popup->height () - 4);
+    }
+  }
+  popup->move (menuPos);
+  popup->show ();
 }
 
 ChatConversationPanel*

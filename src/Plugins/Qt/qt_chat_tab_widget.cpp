@@ -540,8 +540,10 @@ ChatConversationPanel::setup_ui () {
   attachButton_= make_toggle_btn (inputFrame, "chat-tab-attach-btn",
                                   qt_translate ("Add Attachment"));
   attachButton_->setCheckable (false);
-  connect (attachButton_, &QToolButton::clicked, this,
-           [this] () { emit attachRequested (sessionId_); });
+  connect (attachButton_, &QToolButton::clicked, this, [this] () {
+    emit attachRequested (sessionId_,
+                          attachButton_->mapToGlobal (QPoint (0, 0)));
+  });
   btnLayout->addWidget (attachButton_);
   btnLayout->addStretch ();
 
