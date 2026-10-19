@@ -247,10 +247,9 @@
 ) ;define
 
 (define (fake-attachment-ingest data)
-  ;; 入口先月度清理缓存（同真实插件约定），再做插件侧预检（可访问性 +
-  ;; count/bytes 为请求上报的本轮已选累计），通过则回 ready 事件；请求
-  ;; 非法或预检违规回 error 事件
-  (attachment-cache-sweep!)
+  ;; 入口先解析请求并取得 task-id；再将月度清理缓存、路径与 size 求值、
+  ;; 预检与 ready 缓存写入统一置于 catch #t 保护下，确保任何异常均返回
+  ;; 带原 task-id 的 error 事件，不向 REPL 外抛出导致前端持续等待
   (let ((j
           (catch #t
             (lambda ()
@@ -262,24 +261,33 @@
        ) ;
     (if (not (json-object? j))
       (fake-attachment-error-event "" "invalid ingest request")
-      (let* ((task-id (json-ref-string j "taskId" ""))
-             (file-path (json-ref-string j "path" ""))
-             (count (json-ref-number j "count" 0))
-             (bytes (json-ref-number j "bytes" 0))
-             ;; 文件名与大小在此单点计算，预检与 ready 事件共用；size 仅在
-             ;; 可访问时求值：path-getsize 内的 file-exists? 对存在但不可读
-             ;; 的文件抛 permission-error（boot.scm），且不可访问时预检必拒、
-             ;; size 无意义，取 0
-             (p (path file-path))
-             (filename (path->string (path-name p)))
-             (size (if (and (path-file? p) (access file-path 'R_OK)) (path-getsize p) 0))
-             (err (fake-attachment-precheck file-path filename size count bytes))
-            ) ;
-        (if err
-          (fake-attachment-error-event task-id err)
-          (fake-attachment-ready-event task-id file-path filename size)
-        ) ;if
-      ) ;let*
+      (let ((task-id (json-ref-string j "taskId" "")))
+        (catch #t
+          (lambda ()
+            (attachment-cache-sweep!)
+            (let* ((file-path (json-ref-string j "path" ""))
+                   (count (json-ref-number j "count" 0))
+                   (bytes (json-ref-number j "bytes" 0))
+                   ;; 文件名与大小在此单点计算，预检与 ready 事件共用；size 仅在
+                   ;; 可访问时求值：path-getsize 内的 file-exists? 对存在但不可读
+                   ;; 的文件抛 permission-error（boot.scm），且不可访问时预检必拒、
+                   ;; size 无意义，取 0
+                   (p (path file-path))
+                   (filename (path->string (path-name p)))
+                   (size (if (and (path-file? p) (access file-path 'R_OK)) (path-getsize p) 0))
+                   (err (fake-attachment-precheck file-path filename size count bytes))
+                  ) ;
+              (if err
+                (fake-attachment-error-event task-id err)
+                (fake-attachment-ready-event task-id file-path filename size)
+              ) ;if
+            ) ;let*
+          ) ;lambda
+          (lambda (tag . args)
+            (fake-attachment-error-event task-id "attachment ingest error")
+          ) ;lambda
+        ) ;catch
+      ) ;let
     ) ;if
   ) ;let
 ) ;define

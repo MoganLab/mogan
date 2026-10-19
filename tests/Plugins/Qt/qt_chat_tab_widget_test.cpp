@@ -5,6 +5,7 @@
  * COPYRIGHT  : (C) 2026 Mogan STEM
  ******************************************************************************/
 
+#include "Qt/QTMStateToolButton.hpp"
 #include "Qt/qt_chat_tab_widget.hpp"
 #include "Qt/qt_utilities.hpp"
 #include "base.hpp"
@@ -211,6 +212,48 @@ private slots:
     QVERIFY (it.sha256.isEmpty ());
     QVERIFY (it.taskId.isEmpty ());
     QCOMPARE (it.size, (qint64) 0);
+  }
+
+  void test_attachment_error_cleans_processing_state_and_emits_gate_signal () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    ChatConversationPanel*    panel= widget.createPanel ("test_sess");
+    QVERIFY (panel != nullptr);
+
+    QSignalSpy spy (panel, &ChatConversationPanel::attachmentProcessingChanged);
+
+    // 初始状态：无附件，按钮非处理中
+    QVERIFY (!panel->hasProcessingAttachments ());
+    QVERIFY (panel->attachButton () != nullptr);
+    QVERIFY (!panel->attachButton ()->processing ());
+
+    // 添加处理中附件
+    AttachmentItem it;
+    it.taskId  = "task-1";
+    it.filename= "noperm.pdf";
+    it.size    = 1024;
+    it.ready   = false;
+    panel->setAttachments ({it});
+
+    // 状态翻转为处理中：按钮动画开启，触发发送栅栏变更信号
+    QVERIFY (panel->hasProcessingAttachments ());
+    QVERIFY (panel->attachButton ()->processing ());
+    QCOMPARE (spy.count (), 1);
+    QCOMPARE (to_qstring (spy.takeFirst ().at (0).value<string> ()),
+              QString ("test_sess"));
+
+    // 收到匹配 taskId 的 error：条目移除、重算非处理中、按钮动画停止、再次触发信号
+    QVERIFY (panel->attachmentError ("task-1"));
+    QCOMPARE (panel->attachments ().size (), 0);
+    QVERIFY (!panel->hasProcessingAttachments ());
+    QVERIFY (!panel->attachButton ()->processing ());
+    QCOMPARE (spy.count (), 1);
+    QCOMPARE (to_qstring (spy.takeFirst ().at (0).value<string> ()),
+              QString ("test_sess"));
+
+    // 重复投递或不存在的 taskId：返回 false，不二次触发信号
+    QVERIFY (!panel->attachmentError ("task-1"));
+    QCOMPARE (spy.count (), 0);
   }
 
   // === setSidebarCollapsed / isSidebarCollapsed ===

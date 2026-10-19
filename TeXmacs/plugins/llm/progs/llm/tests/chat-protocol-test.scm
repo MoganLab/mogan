@@ -248,8 +248,10 @@
             ) ;
         (check (string? err) => #t)
         (check (string-contains? err "a.pdf") => #t)
+        (check (string-contains? err "不可读取") => #t)
         (check (json-ref-string j "event" #f) => "error")
         (check (json-ref-string j "taskId" #f) => "t-noperm")
+        (check (string-contains? (json-ref-string j "reason" "") "不可读取") => #t)
       ) ;let*
     ) ;if
     ;; 先恢复权限再清理：file-exists? 对存在但不可读的文件抛
@@ -441,6 +443,51 @@
   ) ;let*
 ) ;define
 
+;; 故障注入：缓存清理或 ready 缓存写入抛错，仍返回带原 taskId 的 error 事件而非向外抛异常
+
+(define (test-fake-attachment-ingest-fault-injection)
+  (let* ((path "/tmp/chat-protocol-test-fault.pdf")
+         (ignored (path-write-text path "x"))
+         (orig-sweep attachment-cache-sweep!)
+         (orig-put attachment-cache-put!)
+        ) ;
+    ;; 1. 故障注入：缓存清理抛错
+    (set! attachment-cache-sweep! (lambda () (error "simulated sweep failure")))
+    (let ((j (string->json (fake-attachment-ingest (make-ingest-line "t-fault-sweep" path 0 0))
+             ) ;string->json
+          ) ;j
+         ) ;
+      (check (json-ref-string j "event" #f) => "error")
+      (check (json-ref-string j "taskId" #f) => "t-fault-sweep")
+      (check (string? (json-ref-string j "reason" #f)) => #t)
+    ) ;let
+    (set! attachment-cache-sweep! orig-sweep)
+
+    ;; 2. 故障注入：ready 缓存写入抛错
+    (set! attachment-cache-put!
+      (lambda (sha filename content) (error "simulated put failure"))
+    ) ;set!
+    (let ((j (string->json (fake-attachment-ingest (make-ingest-line "t-fault-put" path 0 0))
+             ) ;string->json
+          ) ;j
+         ) ;
+      (check (json-ref-string j "event" #f) => "error")
+      (check (json-ref-string j "taskId" #f) => "t-fault-put")
+      (check (string? (json-ref-string j "reason" #f)) => #t)
+    ) ;let
+    (set! attachment-cache-put! orig-put)
+
+    ;; 3. 非法 JSON：无法取得 taskId 时回退 taskId 为 ""
+    (let ((j (string->json (fake-attachment-ingest "%attachment {bad-json"))))
+      (check (json-ref-string j "event" #f) => "error")
+      (check (json-ref-string j "taskId" #f) => "")
+      (check (json-ref-string j "reason" #f) => "invalid ingest request")
+    ) ;let
+
+    (path-unlink path #t)
+  ) ;let*
+) ;define
+
 ;;; ---------- 测试套件入口 ----------
 
 (tm-define (regtest-chat-protocol)
@@ -452,6 +499,7 @@
   (test-fake-attachment-ingest-error)
   (test-fake-attachment-precheck)
   (test-fake-attachment-precheck-unreadable)
+  (test-fake-attachment-ingest-fault-injection)
   (test-fake-attachment-ingest-precheck)
   (test-attachment-cache-sweep-and-refresh)
   (test-fake-llm-attachment-injection)

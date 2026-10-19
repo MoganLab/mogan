@@ -11,6 +11,7 @@
 #include "Qt/qt_chat_controller.hpp"
 #include "base.hpp"
 #include <QPushButton>
+#include <QToolButton>
 #include <QtTest/QtTest>
 
 #include "converter.hpp"
@@ -361,6 +362,47 @@ private slots:
     object itemCjk= as_array_object (scmCjk)[0];
     string vCjk   = as_string (cdr (car (cdr (itemCjk))));
     QVERIFY (vCjk == "<#5317><#5927><#8BBA><#6587>.pdf");
+  }
+
+  void test_on_attachment_error_cleans_processing_and_updates_send_gate () {
+    ChatController            ctrl;
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+    ctrl.view_= &widget;
+
+    string                 sid  = ctrl.sessionManager_.createSession ();
+    ChatConversationPanel* panel= widget.createPanel (sid);
+    ctrl.sessionManager_.setPanel (sid, panel);
+    ctrl.connectPanelSignals (panel);
+
+    // 添加处理中附件并登记 task
+    AttachmentItem it;
+    it.taskId  = "task-err-1";
+    it.filename= "noperm.pdf";
+    it.size    = 100;
+    it.ready   = false;
+    panel->setAttachments ({it});
+    ctrl.attachTaskSession_.insert ("task-err-1", to_qstring (sid));
+
+    // 处于处理中时，发送栅栏应禁用发送按钮
+    ctrl.updateSendGate (sid);
+    QVERIFY (panel->hasProcessingAttachments ());
+    QVERIFY (!panel->sendButton ()->isEnabled ());
+
+    // 路由 error 事件：面板移除条目、发送按钮解禁、task 登记被清除
+    ctrl.onAttachmentError ("task-err-1",
+                            utf8_to_cork ("附件文件不可读取： noperm.pdf"));
+    QCOMPARE (panel->attachments ().size (), 0);
+    QVERIFY (!panel->hasProcessingAttachments ());
+    QVERIFY (panel->sendButton ()->isEnabled ());
+    QVERIFY (!ctrl.attachTaskSession_.contains ("task-err-1"));
+
+    // 重复调用已消费的 task：无操作且不崩溃
+    ctrl.onAttachmentError ("task-err-1",
+                            utf8_to_cork ("附件文件不可读取： noperm.pdf"));
+
+    ctrl.view_= nullptr;
   }
 };
 

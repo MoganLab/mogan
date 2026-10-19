@@ -51,6 +51,21 @@
 ;; 每个 ingest 任务独占一个 pending 条目：(cb input task-id)；假插件单包
 ;; 回传 ready/error 事件（一个 flush-verbatim 包即任务完成）
 
+(define attachment-settled-tasks (make-ahash-table))
+
+(define (attachment-task-settled? task-id)
+  (and (string? task-id)
+    (nempty? task-id)
+    (ahash-ref attachment-settled-tasks task-id)
+  ) ;and
+) ;define
+
+(define (attachment-task-settle! task-id)
+  (when (and (string? task-id) (nempty? task-id))
+    (ahash-set! attachment-settled-tasks task-id #t)
+  ) ;when
+) ;define
+
 (define (attachment-session-do lan ses)
   (with l
     (pending-ref lan ses)
@@ -81,36 +96,82 @@
      ((== event "ready")
       ;; chip 展示用的 filename/size 在选择时已填入条目，事件只需 taskId
       ;; 定位与 sha256 回填
+      (attachment-task-settle! task-id)
       (exec-delayed (lambda () (qt-chat-attachment-ready task-id (json-ref-string j "sha256" "")))
       ) ;exec-delayed
+      #t
      ) ;
      ((== event "error")
+      (attachment-task-settle! task-id)
       (exec-delayed (lambda () (qt-chat-attachment-error task-id (json-ref-string j "reason" "")))
       ) ;exec-delayed
+      #t
      ) ;
+     (else #f)
     ) ;cond
   ) ;let
 ) ;define
 
 (define (attachment-session-notify lan ses ch t)
-  (when (== ch "output")
-    (with text
-      (string-trim (attachment-output->text t))
-      (when (string-starts? text "%attachment ")
-        (with j
-          (catch #t
-            (lambda ()
-              (string->json (string-trim (string-drop text (string-length "%attachment "))))
-            ) ;lambda
-            (lambda args #f)
-          ) ;catch
-          (when (json-object? j)
-            (attachment-event-dispatch j)
+  (with l
+    (pending-ref lan ses)
+    (when (nnull? l)
+      (with task-id
+        (third (car l))
+        (cond
+         ((== ch "output")
+          (with text
+            (string-trim (attachment-output->text t))
+            (let ((dispatched #f))
+              (when (string-starts? text "%attachment ")
+                (with j
+                  (catch #t
+                    (lambda ()
+                      (string->json (string-trim (string-drop text (string-length "%attachment "))))
+                    ) ;lambda
+                    (lambda args #f)
+                  ) ;catch
+                  (when (json-object? j)
+                    (set! dispatched (attachment-event-dispatch j))
+                  ) ;when
+                ) ;with
+              ) ;when
+              ;; 损坏协议输出兜底：输出非 %attachment、JSON 损坏或非终态事件时，
+              ;; 使用当前 pending 任务的 task-id 报错，避免静默等待导致按钮常驻旋转
+              (when (and (not dispatched) (not (attachment-task-settled? task-id)))
+                (attachment-task-settle! task-id)
+                (exec-delayed
+                  (lambda ()
+                    (qt-chat-attachment-error task-id
+                      (if (nempty? text) text "invalid attachment protocol output")
+                    ) ;qt-chat-attachment-error
+                  ) ;lambda
+                ) ;exec-delayed
+              ) ;when
+            ) ;let
+          ) ;with
+         ) ;
+         ((== ch "error")
+          ;; 插件 error 通道兜底：未收到终态事件时使用当前 pending 任务的
+          ;; task-id 报错，防止仅写 stderr 导致 UI 发送栅栏永久锁定
+          (when (not (attachment-task-settled? task-id))
+            (attachment-task-settle! task-id)
+            (with text
+              (string-trim (attachment-output->text t))
+              (exec-delayed
+                (lambda ()
+                  (qt-chat-attachment-error task-id
+                    (if (nempty? text) text "attachment plugin error")
+                  ) ;qt-chat-attachment-error
+                ) ;lambda
+              ) ;exec-delayed
+            ) ;with
           ) ;when
-        ) ;with
-      ) ;when
-    ) ;with
-  ) ;when
+         ) ;
+        ) ;cond
+      ) ;with
+    ) ;when
+  ) ;with
 ) ;define
 
 (define (attachment-session-next lan ses)
@@ -125,8 +186,11 @@
     (when (nnull? l)
       (with task-id
         (third (car l))
-        (exec-delayed (lambda () (qt-chat-attachment-error task-id "attachment plugin stopped"))
-        ) ;exec-delayed
+        (when (not (attachment-task-settled? task-id))
+          (attachment-task-settle! task-id)
+          (exec-delayed (lambda () (qt-chat-attachment-error task-id "attachment plugin stopped"))
+          ) ;exec-delayed
+        ) ;when
       ) ;with
     ) ;when
   ) ;with
