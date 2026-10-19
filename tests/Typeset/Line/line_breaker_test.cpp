@@ -29,8 +29,8 @@ public:
     y2= w;
   }
   string get_leaf_string () override { return str; }
-         operator tree () override { return tree ("mock"); }
-  void   display (renderer) override {}
+  operator tree () override { return tree ("mock"); }
+  void display (renderer) override {}
 };
 
 box
