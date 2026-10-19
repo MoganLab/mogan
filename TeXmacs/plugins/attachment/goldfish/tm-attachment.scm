@@ -247,10 +247,9 @@
 ) ;define
 
 (define (fake-attachment-ingest data)
-  ;; 入口先月度清理缓存（同真实插件约定），再做插件侧预检（可访问性 +
-  ;; count/bytes 为请求上报的本轮已选累计），通过则回 ready 事件；请求
-  ;; 非法或预检违规回 error 事件
-  (attachment-cache-sweep!)
+  ;; 先解析请求并取得 task-id，再在 catch #t 保护下执行缓存月度清理、
+  ;; 预检与 ready 缓存写入。每个能解析出 taskId 的合法请求无论发生何种
+  ;; 异常都必须返回带原 taskId 的 error 事件，不向 REPL 外抛出
   (let ((j
           (catch #t
             (lambda ()
@@ -262,24 +261,60 @@
        ) ;
     (if (not (json-object? j))
       (fake-attachment-error-event "" "invalid ingest request")
-      (let* ((task-id (json-ref-string j "taskId" ""))
-             (file-path (json-ref-string j "path" ""))
-             (count (json-ref-number j "count" 0))
-             (bytes (json-ref-number j "bytes" 0))
-             ;; 文件名与大小在此单点计算，预检与 ready 事件共用；size 仅在
-             ;; 可访问时求值：path-getsize 内的 file-exists? 对存在但不可读
-             ;; 的文件抛 permission-error（boot.scm），且不可访问时预检必拒、
-             ;; size 无意义，取 0
-             (p (path file-path))
-             (filename (path->string (path-name p)))
-             (size (if (and (path-file? p) (access file-path 'R_OK)) (path-getsize p) 0))
-             (err (fake-attachment-precheck file-path filename size count bytes))
-            ) ;
-        (if err
-          (fake-attachment-error-event task-id err)
-          (fake-attachment-ready-event task-id file-path filename size)
-        ) ;if
-      ) ;let*
+      (let ((task-id (json-ref-string j "taskId" "")))
+        (catch #t
+          (lambda ()
+            (attachment-cache-sweep!)
+            (let* ((file-path (json-ref-string j "path" ""))
+                   (count (json-ref-number j "count" 0))
+                   (bytes (json-ref-number j "bytes" 0))
+                   ;; 文件名与大小在此单点计算，预检与 ready 事件共用；size 仅在
+                   ;; 可访问时求值：path-getsize 内的 file-exists? 对存在但不可读
+                   ;; 的文件抛 permission-error（boot.scm），且不可访问时预检必拒、
+                   ;; size 无意义，取 0
+                   (p (path file-path))
+                   (filename (path->string (path-name p)))
+                   (size (if (and (path-file? p) (access file-path 'R_OK)) (path-getsize p) 0))
+                   (err (fake-attachment-precheck file-path filename size count bytes))
+                  ) ;
+              (if err
+                (fake-attachment-error-event task-id err)
+                (fake-attachment-ready-event task-id file-path filename size)
+              ) ;if
+            ) ;let*
+          ) ;lambda
+          (lambda (tag . rest)
+            (let ((detail
+                    (catch #t
+                      (lambda ()
+                        (cond ((null? rest) (object->string tag))
+                              ;; TeXmacs/Guile catch 风格：(key subr message args ...)
+                              ((and (>= (length rest) 2) (string? (cadr rest)))
+                               (let ((msg (cadr rest))
+                                     (args
+                                       (if (and (>= (length rest) 3) (pair? (caddr rest))) (caddr rest) '())
+                                     ) ;args
+                                    ) ;
+                                 (if (null? args) msg (apply format #f msg args))
+                               ) ;let
+                              ) ;
+                              ;; 原生 S7 风格：(tag ((format-string . format-args)))
+                              ((and (pair? (car rest)) (string? (caar rest))) (apply format #f (car rest)))
+                              ((string? (car rest)) (car rest))
+                              (else (object->string (car rest)))
+                        ) ;cond
+                      ) ;lambda
+                      (lambda _ (object->string tag))
+                    ) ;catch
+                  ) ;detail
+                 ) ;
+              (fake-attachment-error-event task-id
+                (string-append "附件处理异常： " detail)
+              ) ;fake-attachment-error-event
+            ) ;let
+          ) ;lambda
+        ) ;catch
+      ) ;let
     ) ;if
   ) ;let
 ) ;define

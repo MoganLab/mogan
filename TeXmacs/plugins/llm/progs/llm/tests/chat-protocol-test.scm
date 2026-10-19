@@ -248,8 +248,11 @@
             ) ;
         (check (string? err) => #t)
         (check (string-contains? err "a.pdf") => #t)
+        (check (string-contains? err "不可读取") => #t)
         (check (json-ref-string j "event" #f) => "error")
         (check (json-ref-string j "taskId" #f) => "t-noperm")
+        (check (string-contains? (json-ref-string j "reason" "") "不可读取") => #t)
+        (check (string-contains? (json-ref-string j "reason" "") "noperm.pdf") => #t)
       ) ;let*
     ) ;if
     ;; 先恢复权限再清理：file-exists? 对存在但不可读的文件抛
@@ -257,6 +260,59 @@
     (if (not (os-windows?)) (os-call (string-append "chmod 644 " noperm)))
     (path-unlink noperm #t)
   ) ;let
+) ;define
+
+;; 异常兜底测试：通过故障注入让缓存清理或 ready 缓存写入抛错，
+;; 仍返回带原 taskId 的 error 事件而不是向外抛出异常
+
+(define (test-fake-attachment-ingest-exception-fallback)
+  (let* ((ok-path "/tmp/chat-protocol-test-fallback.pdf")
+         (ignored (path-write-text ok-path "x"))
+         ;; 1. 注入缓存清理异常
+         (orig-sweep attachment-cache-sweep!)
+         (ignored-sweep (set! attachment-cache-sweep!
+                          (lambda () (error 'io-error "disk failure during sweep"))
+                        ) ;set!
+         ) ;ignored-sweep
+         (sweep-j (string->json (fake-attachment-ingest (make-ingest-line "t-sweep-err" ok-path 0 0))
+                  ) ;string->json
+         ) ;sweep-j
+         (ignored-restore-sweep (set! attachment-cache-sweep! orig-sweep))
+         ;; 2. 注入 ready 缓存写入异常
+         (orig-put attachment-cache-put!)
+         (ignored-put (set! attachment-cache-put!
+                        (lambda (sha name content) (error 'disk-full "cannot put cache"))
+                      ) ;set!
+         ) ;ignored-put
+         (put-j (string->json (fake-attachment-ingest (make-ingest-line "t-put-err" ok-path 0 0))
+                ) ;string->json
+         ) ;put-j
+         (ignored-restore-put (set! attachment-cache-put! orig-put))
+        ) ;
+    (check (json-ref-string sweep-j "event" #f) => "error")
+    (check (json-ref-string sweep-j "taskId" #f) => "t-sweep-err")
+    (check (string-contains? (json-ref-string sweep-j "reason" "") "附件处理异常")
+      =>
+      #t
+    ) ;check
+    (check (string-contains? (json-ref-string sweep-j "reason" "")
+             "disk failure during sweep"
+           ) ;string-contains?
+      =>
+      #t
+    ) ;check
+    (check (json-ref-string put-j "event" #f) => "error")
+    (check (json-ref-string put-j "taskId" #f) => "t-put-err")
+    (check (string-contains? (json-ref-string put-j "reason" "") "附件处理异常")
+      =>
+      #t
+    ) ;check
+    (check (string-contains? (json-ref-string put-j "reason" "") "cannot put cache")
+      =>
+      #t
+    ) ;check
+    (path-unlink ok-path #t)
+  ) ;let*
 ) ;define
 
 ;; 预检违规经 ingest 回 error 事件（mogan UI 原样 toast reason）
@@ -452,6 +508,7 @@
   (test-fake-attachment-ingest-error)
   (test-fake-attachment-precheck)
   (test-fake-attachment-precheck-unreadable)
+  (test-fake-attachment-ingest-exception-fallback)
   (test-fake-attachment-ingest-precheck)
   (test-attachment-cache-sweep-and-refresh)
   (test-fake-llm-attachment-injection)

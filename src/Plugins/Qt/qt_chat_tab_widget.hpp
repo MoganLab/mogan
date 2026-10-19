@@ -131,13 +131,14 @@ public:
    */
   void setToggleButtonsIconOnly (bool iconOnly);
 
-  QToolButton*  sendButton () const { return sendButton_; }
-  QToolButton*  thinkingButton () const { return thinkingButton_; }
-  QToolButton*  searchButton () const { return searchButton_; }
-  QToolButton*  modelButton () const { return modelButton_; }
-  QLabel*       sessionTitle () const { return sessionTitle_; }
-  const string& sessionId () const { return sessionId_; }
-  bool          conversationMode () const { return conversationMode_; }
+  QToolButton*        sendButton () const { return sendButton_; }
+  QToolButton*        thinkingButton () const { return thinkingButton_; }
+  QToolButton*        searchButton () const { return searchButton_; }
+  QToolButton*        modelButton () const { return modelButton_; }
+  QTMStateToolButton* attachButton () const { return attachButton_; }
+  QLabel*             sessionTitle () const { return sessionTitle_; }
+  const string&       sessionId () const { return sessionId_; }
+  bool                conversationMode () const { return conversationMode_; }
 
   /**
    * @name 附件 chips

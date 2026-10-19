@@ -71,6 +71,20 @@
   ) ;let
 ) ;define
 
+(define attachment-finalized-tasks (make-ahash-table))
+
+(define (attachment-task-finalized? task-id)
+  (ahash-ref attachment-finalized-tasks task-id)
+) ;define
+
+(define (attachment-mark-task-finalized! task-id)
+  (ahash-set! attachment-finalized-tasks task-id #t)
+) ;define
+
+(define (attachment-clear-task-finalized! task-id)
+  (ahash-remove! attachment-finalized-tasks task-id)
+) ;define
+
 (define (attachment-event-dispatch j)
   ;; ready/error 事件经 glue 投递回 C++ 面板（exec-delayed 避免在
   ;; connection-notify 上下文中重入 UI）
@@ -81,41 +95,109 @@
      ((== event "ready")
       ;; chip 展示用的 filename/size 在选择时已填入条目，事件只需 taskId
       ;; 定位与 sha256 回填
-      (exec-delayed (lambda () (qt-chat-attachment-ready task-id (json-ref-string j "sha256" "")))
-      ) ;exec-delayed
+      (when (and (string? task-id)
+              (not (string-null? task-id))
+              (not (attachment-task-finalized? task-id))
+            ) ;and
+        (attachment-mark-task-finalized! task-id)
+        (exec-delayed (lambda () (qt-chat-attachment-ready task-id (json-ref-string j "sha256" "")))
+        ) ;exec-delayed
+      ) ;when
      ) ;
      ((== event "error")
-      (exec-delayed (lambda () (qt-chat-attachment-error task-id (json-ref-string j "reason" "")))
-      ) ;exec-delayed
+      (when (and (string? task-id)
+              (not (string-null? task-id))
+              (not (attachment-task-finalized? task-id))
+            ) ;and
+        (attachment-mark-task-finalized! task-id)
+        (exec-delayed (lambda () (qt-chat-attachment-error task-id (json-ref-string j "reason" "")))
+        ) ;exec-delayed
+      ) ;when
      ) ;
     ) ;cond
   ) ;let
 ) ;define
 
+(define (attachment-session-fallback-error lan ses reason)
+  ;; 插件通道异常或损坏协议输出时的事件兜底：使用当前 pending 任务的
+  ;; taskId 投递 error 事件，避免 C++ 面板永久等待处理中动画与发送栅栏
+  (with l
+    (pending-ref lan ses)
+    (when (nnull? l)
+      (with task-id
+        (third (car l))
+        (when (and (string? task-id)
+                (not (string-null? task-id))
+                (not (attachment-task-finalized? task-id))
+              ) ;and
+          (attachment-mark-task-finalized! task-id)
+          (exec-delayed (lambda () (qt-chat-attachment-error task-id reason)))
+        ) ;when
+      ) ;with
+    ) ;when
+  ) ;with
+) ;define
+
 (define (attachment-session-notify lan ses ch t)
-  (when (== ch "output")
+  (cond
+   ((== ch "output")
     (with text
       (string-trim (attachment-output->text t))
-      (when (string-starts? text "%attachment ")
-        (with j
-          (catch #t
-            (lambda ()
-              (string->json (string-trim (string-drop text (string-length "%attachment "))))
-            ) ;lambda
-            (lambda args #f)
-          ) ;catch
-          (when (json-object? j)
-            (attachment-event-dispatch j)
-          ) ;when
-        ) ;with
-      ) ;when
+      (cond ((string-null? text) (noop))
+            ((== text "Attachment Plugin") (noop))
+            ((string-starts? text "%attachment ")
+             (with j
+               (catch #t
+                 (lambda ()
+                   (string->json (string-trim (string-drop text (string-length "%attachment "))))
+                 ) ;lambda
+                 (lambda args #f)
+               ) ;catch
+               (if (json-object? j)
+                 (attachment-event-dispatch j)
+                 (attachment-session-fallback-error lan
+                   ses
+                   (string-append "附件协议格式错误： " text)
+                 ) ;attachment-session-fallback-error
+               ) ;if
+             ) ;with
+            ) ;
+            (else (attachment-session-fallback-error lan
+                    ses
+                    (string-append "附件插件异常输出： " text)
+                  ) ;attachment-session-fallback-error
+            ) ;else
+      ) ;cond
     ) ;with
-  ) ;when
+   ) ;
+   ((== ch "error")
+    (with text
+      (string-trim (attachment-output->text t))
+      (attachment-session-fallback-error lan
+        ses
+        (if (string-null? text)
+          "附件插件异常"
+          (string-append "附件插件异常： " text)
+        ) ;if
+      ) ;attachment-session-fallback-error
+    ) ;with
+   ) ;
+  ) ;cond
 ) ;define
 
 (define (attachment-session-next lan ses)
-  ;; 出队与推进由 plugin-next 统一完成，附件任务无额外收尾
-  (noop)
+  ;; 出队与推进由 plugin-next 统一完成，清理已完成任务的终态标记
+  (with l
+    (pending-ref lan ses)
+    (when (nnull? l)
+      (with task-id
+        (third (car l))
+        (when (string? task-id)
+          (attachment-clear-task-finalized! task-id)
+        ) ;when
+      ) ;with
+    ) ;when
+  ) ;with
 ) ;define
 
 (define (attachment-session-cancel lan ses dead?)
@@ -125,8 +207,14 @@
     (when (nnull? l)
       (with task-id
         (third (car l))
-        (exec-delayed (lambda () (qt-chat-attachment-error task-id "attachment plugin stopped"))
-        ) ;exec-delayed
+        (when (and (string? task-id)
+                (not (string-null? task-id))
+                (not (attachment-task-finalized? task-id))
+              ) ;and
+          (attachment-mark-task-finalized! task-id)
+          (exec-delayed (lambda () (qt-chat-attachment-error task-id "attachment plugin stopped"))
+          ) ;exec-delayed
+        ) ;when
       ) ;with
     ) ;when
   ) ;with

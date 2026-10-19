@@ -5,6 +5,7 @@
  * COPYRIGHT  : (C) 2026 Mogan STEM
  ******************************************************************************/
 
+#include "Qt/QTMStateToolButton.hpp"
 #include "Qt/qt_chat_tab_widget.hpp"
 #include "Qt/qt_utilities.hpp"
 #include "base.hpp"
@@ -211,6 +212,35 @@ private slots:
     QVERIFY (it.sha256.isEmpty ());
     QVERIFY (it.taskId.isEmpty ());
     QCOMPARE (it.size, (qint64) 0);
+  }
+
+  void test_attachment_error_removes_processing_item_and_stops_animation () {
+    ChatConversationPanel panel ("test-session", url_none (), url_none (),
+                                 nullptr);
+    AttachmentItem        it;
+    it.path    = "/tmp/noperm.pdf";
+    it.filename= "noperm.pdf";
+    it.taskId  = "task-1";
+    it.ready   = false;
+    panel.setAttachments (QList<AttachmentItem>{it});
+
+    QVERIFY (panel.hasProcessingAttachments ());
+    QVERIFY (panel.attachButton ()->processing ());
+
+    QSignalSpy spy (&panel,
+                    &ChatConversationPanel::attachmentProcessingChanged);
+
+    // 收到匹配 taskId 的 error：条目被删除、动画停止并派发 processing 翻转信号
+    QVERIFY (panel.attachmentError ("task-1"));
+    QVERIFY (panel.attachments ().isEmpty ());
+    QVERIFY (!panel.hasProcessingAttachments ());
+    QVERIFY (!panel.attachButton ()->processing ());
+    QCOMPARE (spy.count (), 1);
+
+    // 再次调用或未知 taskId：安全返回 false，不触发二次翻转
+    QVERIFY (!panel.attachmentError ("task-1"));
+    QVERIFY (!panel.attachmentError ("unknown-task"));
+    QCOMPARE (spy.count (), 1);
   }
 
   // === setSidebarCollapsed / isSidebarCollapsed ===
