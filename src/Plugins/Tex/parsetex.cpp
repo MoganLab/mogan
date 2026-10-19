@@ -714,7 +714,7 @@ is_math_environment (tree t) {
     string bs= b[i][0]->label;
     string es= e[j][0]->label;
     bool   ok= starts (bs, "\\begin-") && starts (es, "\\end-") &&
-               bs (7, N (bs)) == es (5, N (es));
+             bs (7, N (bs)) == es (5, N (es));
     // cout << t[1] << " -> " << ok << "\n";
     return ok;
   }
