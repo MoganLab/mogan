@@ -15,8 +15,11 @@ Item {
     readonly property var meta: (typeof attachBridge !== "undefined" && attachBridge && attachBridge.meta) ? attachBridge.meta : ({})
     readonly property string labelRecent: meta.label_recent || qsTr("Recent")
     readonly property string labelOpen: {
+        // 临时剥离 <#XXXX> / <ldots> 等 cork 实体：qt_translate 漏掉
+        // cork→utf8，字典里 CJK 字与 U+2026 都会被原样进 QML。
         var raw = (meta && meta.label_open) ? meta.label_open : qsTr("Choose file");
-        return raw.endsWith("…") ? raw : (raw + "…");
+        var stripped= raw.replace(/<[^>]*>/g, "");
+        return stripped.endsWith("…") ? stripped : (stripped + "…");
     }
     readonly property var recent: meta.recent || []
 

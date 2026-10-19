@@ -282,7 +282,7 @@ ChatController::attachFiles (const string&      sessionId,
       static_cast<ChatConversationPanel*> (session->panel);
   if (!panel) return;
 
-// 6225 移除了这里的 QFileDialog 调用（对话已改由 AttachMenuBridge 触发）；
+  // 6225 移除了这里的 QFileDialog 调用（对话已改由 AttachMenuBridge 触发）；
   // 文件对话框的 caption/filter 仍由 AttachMenuBridge::chooseFiles 提供。
   // 附件插件由启动 idle 延迟初始化（lazy-plugin-initialize），首次点击
   // 可能早于延迟触发，attachment-ingest 尚未定义会使 call 误报插件不可用；

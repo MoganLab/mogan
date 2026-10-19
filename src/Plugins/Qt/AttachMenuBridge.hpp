@@ -29,8 +29,8 @@ class AttachMenuBridge : public QObject {
   Q_PROPERTY (QVariantMap meta READ meta CONSTANT)
 
 public:
-  explicit AttachMenuBridge (QWidget* host= nullptr,
-                             const string& sessionId= "",
+  explicit AttachMenuBridge (QWidget*        host      = nullptr,
+                             const string&   sessionId = "",
                              ChatController* controller= nullptr);
   virtual ~AttachMenuBridge ();
 

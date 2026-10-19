@@ -32,10 +32,8 @@ tmscm_to_qstring (tmscm v) {
 } // namespace
 
 AttachMenuBridge::AttachMenuBridge (QWidget* host, const string& sessionId,
-                                   ChatController* controller)
-    : QObject (host),
-      m_host (host),
-      m_sessionId (sessionId),
+                                    ChatController* controller)
+    : QObject (host), m_host (host), m_sessionId (sessionId),
       m_controller (controller) {
   loadMeta ();
 }
@@ -64,8 +62,9 @@ AttachMenuBridge::loadMeta () {
     if (key == "label_recent") {
       m_meta["label_recent"]= tmscm_to_qstring (val);
     }
-    // 注意：go-menu-meta 中的 label_open 是 "Open file"，而 AttachMenu 需要的是 "Choose file"，
-    // 故此处不覆盖 label_open，保持 qt_translate ("Choose file")。
+    // 注意：go-menu-meta 中的 label_open 是 "Open file"，而 AttachMenu 需要的是
+    // "Choose file"， 故此处不覆盖 label_open，保持 qt_translate ("Choose
+    // file")。
     else if (key == "recent" && tmscm_is_list (val)) {
       QVariantList recs;
       for (tmscm rcur= val; !tmscm_is_null (rcur); rcur= tmscm_cdr (rcur)) {
@@ -122,9 +121,8 @@ AttachMenuBridge::chooseFiles () {
     auto* ctrl= m_controller ? m_controller : get_chat_controller ();
     if (ctrl) {
       string sid= m_sessionId;
-      QTimer::singleShot (0, [ctrl, sid, files] () {
-        ctrl->attachFiles (sid, files);
-      });
+      QTimer::singleShot (
+          0, [ctrl, sid, files] () { ctrl->attachFiles (sid, files); });
     }
   }
   else {
