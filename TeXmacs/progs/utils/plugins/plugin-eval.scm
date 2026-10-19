@@ -517,7 +517,7 @@
   (define (result-wrap x)
     (cond ((== x :dead) '(script-dead))
           ((== x :interrupted) '(script-interrupted))
-          ((!= (tm-arity (cdr x)) 0) `(with ,"color" ,"red" ,(cdr x)))
+          ((!= (tm-arity (cdr x)) 0) `(with "color" "red" ,(cdr x)))
           (else (car x))
     ) ;cond
   ) ;define

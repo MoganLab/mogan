@@ -92,7 +92,7 @@
 
 (tm-menu (anim-fixed-menu t)
   (with setter
-    (lambda (portion) (accelerate-set-type* t `(tuple ,"fixed" ,portion)))
+    (lambda (portion) (accelerate-set-type* t `(tuple "fixed" ,portion)))
     ("Start" (setter "0"))
     ("10%" (setter "0.1"))
     ("20%" (setter "0.2"))

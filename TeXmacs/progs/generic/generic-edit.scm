@@ -2092,13 +2092,13 @@
       (with pos (tree-arity t) (tree-insert! t pos '("")) (tree-go-to t pos 0))
       (begin
         (set! t (tree-down t))
-        (tree-set! t `(tree ,t ,""))
+        (tree-set! t `(tree ,t ""))
         (tree-go-to t 1 0)
       ) ;begin
     ) ;if
     (begin
       (if (!= (tree-down-index t) 0) (set! t (tree-down t)))
-      (tree-set! t `(tree ,"" ,t))
+      (tree-set! t `(tree "" ,t))
       (tree-go-to t 0 0)
     ) ;begin
   ) ;if
@@ -2295,9 +2295,9 @@
 
 (tm-define (make-specific s)
   (if (or (== s "texmacs") (in-source?))
-    (insert-go-to `(specific ,s ,"") '(1 0))
+    (insert-go-to `(specific ,s "") '(1 0))
     (insert-go-to
-      `(inactive (specific ,s ,""))
+      `(inactive (specific ,s ""))
       '(0 1 0)
     ) ;insert-go-to
   ) ;if
@@ -2312,7 +2312,7 @@
       (set-message
         `(concat ,(translate "Unable to include file from another drive: ")
            (verbatim ,(url->string u))
-           ,"")
+           "")
         (translate "include file")
       ) ;set-message
     ) ;if
@@ -2330,7 +2330,7 @@
       (set-message
         `(concat ,(translate "Unable to link images from another drive: ")
            (verbatim ,(url->string (car l)))
-           ,"")
+           "")
         (translate "link image")
       ) ;set-message
     ) ;if
@@ -2342,7 +2342,7 @@
     (with selection
       (selection-tree)
       (clipboard-cut "graphics background")
-      (insert-go-to `(draw-over ,selection (graphics) ,"0cm") '(1 1))
+      (insert-go-to `(draw-over ,selection (graphics) "0cm") '(1 1))
     ) ;with
   ) ;when
 ) ;tm-define
@@ -2354,7 +2354,7 @@
       (with selection
         (selection-tree)
         (clipboard-cut "graphics background")
-        (insert-go-to `(draw-over ,selection ,g ,"2cm") '(1 2 1))
+        (insert-go-to `(draw-over ,selection ,g "2cm") '(1 2 1))
       ) ;with
     ) ;with
     (with g
@@ -2367,7 +2367,7 @@
          "gr-edit-grid"
          (tuple "cartesian" (point "0" "0") "1")
          (graphics))
-      (insert-go-to `(draw-over ,"" ,g ,"2cm") '(1 2 1))
+      (insert-go-to `(draw-over "" ,g "2cm") '(1 2 1))
       ;; 默认缩放 200%
       (graphics-zoom 2.0)
     ) ;with
@@ -2386,7 +2386,7 @@
         (clipboard-cut "graphics background")
         (insert-go-to `(,l ,selection ,duration) (cons 0 p))
       ) ;let*
-      (insert-go-to `(,l ,"" ,duration) (list 0 0))
+      (insert-go-to `(,l "" ,duration) (list 0 0))
     ) ;if
   ) ;with
 ) ;tm-define
@@ -2420,7 +2420,7 @@
 
 (tm-define (make-note-inline)
   (insert-go-to
-    `(note-inline ,"" ,(propose-note-id #f))
+    `(note-inline "" ,(propose-note-id #f))
     '(0 0)
   ) ;insert-go-to
 ) ;tm-define
@@ -2469,9 +2469,11 @@
          ) ;w
          (mapper
            (lambda (x)
-             (and-let* ((delta-unix (url->delta-unix x)))
-               `(image ,delta-unix ,w ,"" ,"" ,"")
-             ) ;and-let*
+             (and-let* ((delta-unix (url->delta-unix x))) `(image ,delta-unix
+                                                             ,w
+                                                             ""
+                                                             ""
+                                                             ""))
            ) ;lambda
          ) ;mapper
          (l1 (map mapper l))
@@ -2492,7 +2494,7 @@
       (set-message
         `(concat ,(translate "Unable to make thumbnail from another drive: ")
            (verbatim ,(url->string (car l)))
-           ,"")
+           "")
         (translate "make thumbnail")
       ) ;set-message
     ) ;if
@@ -2655,7 +2657,7 @@
       (set-message
         `(concat ,(translate "Unable to make sound which url is none: ")
            (verbatim ,(url->string u))
-           ,"")
+           "")
         (translate "make sound")
       ) ;set-message
      ) ;
@@ -2663,7 +2665,7 @@
       (set-message
         `(concat ,(translate "Unable to make sound from another drive: ")
            (verbatim ,(url->string u))
-           ,"")
+           "")
         (translate "make sound")
       ) ;set-message
      ) ;
@@ -2690,7 +2692,7 @@
       (set-message
         `(concat ,(translate "Unable to make animation from another drive: ")
            (verbatim ,(url->string u))
-           ,"")
+           "")
         (translate "make animation")
       ) ;set-message
     ) ;if

@@ -218,8 +218,8 @@
   (cond ((== impl :multiply) (insert "*") (insert x))
         ((== impl :space) (insert " ") (insert x))
         ((== impl :comma) (insert ",") (insert x))
-        ((== impl :apply) (insert `(around ,"(" ,x ,")")))
-        ((== impl :brackets) (insert `(around ,"[" ,x ,"]")))
+        ((== impl :apply) (insert `(around "(" ,x ")")))
+        ((== impl :brackets) (insert `(around "[" ,x "]")))
         ((== impl :subscript) (insert `(rsub ,x)))
         ((== impl :superscript) (insert `(rsup ,x)))
   ) ;cond
@@ -447,8 +447,8 @@
         ((== impl :multiply) (tmconcat prev "*" next))
         ((== impl :space) (tmconcat prev " " next))
         ((== impl :comma) (tmconcat prev "," next))
-        ((== impl :apply) (tmconcat prev `(around ,"(" ,next ,")")))
-        ((== impl :brackets) (tmconcat prev `(around ,"[" ,next ,"]")))
+        ((== impl :apply) (tmconcat prev `(around "(" ,next ")")))
+        ((== impl :brackets) (tmconcat prev `(around "[" ,next "]")))
         ((== impl :subscript) (tmconcat prev `(rsub ,next)))
         ((== impl :superscript) (tmconcat prev `(rsup ,next)))
         (else next)
@@ -801,10 +801,10 @@
      (stats-role? (tmconcat root "," x))
      (stats-role? (tmconcat root ";" x))
      (stats-role?
-       (tmconcat root `(around ,"(" ,x ,")"))
+       (tmconcat root `(around "(" ,x ")"))
      ) ;stats-role?
      (stats-role?
-       (tmconcat root `(around ,"[" ,x ,"]"))
+       (tmconcat root `(around "[" ,x "]"))
      ) ;stats-role?
    ) ;or
   ) ;and-let*
@@ -944,7 +944,7 @@
           (else
             (with sel
               (cut-before-cursor)
-              (insert-go-to `(frac ,sel ,"") (list 1 0))
+              (insert-go-to `(frac ,sel "") (list 1 0))
               (speech-enter :over)
             ) ;with
           ) ;else
@@ -956,8 +956,8 @@
   (with sel
     (cut-before-cursor)
     (if (inside? 'math)
-      (insert-go-to `(frac* ,sel ,"") (list 1 0))
-      (insert-go-to `(frac ,sel ,"") (list 1 0))
+      (insert-go-to `(frac* ,sel "") (list 1 0))
+      (insert-go-to `(frac ,sel "") (list 1 0))
     ) ;if
     (speech-enter :short-over)
   ) ;with

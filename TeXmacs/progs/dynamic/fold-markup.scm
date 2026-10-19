@@ -51,7 +51,7 @@
            (cmd (string-append "(screens-switch-to " s ")"))
            (act `(action ,nr ,cmd))
           ) ;
-      `(concat ,act ," ")
+      `(concat ,act " ")
     ) ;let*
   ) ;if
 ) ;define

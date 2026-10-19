@@ -23,7 +23,7 @@
 ;; Hello world
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (ext-hello t) (:secure #t) `(concat ,"Hello " ,t ,"!"))
+(tm-define (ext-hello t) (:secure #t) `(concat "Hello " ,t "!"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Highlighting

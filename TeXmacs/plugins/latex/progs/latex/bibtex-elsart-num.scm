@@ -35,7 +35,7 @@
          ) ;vv
          (ll (if (bib-null? (list-ref x 3)) "" (bib-purify (list-ref x 3))))
          (jj
-           (if (bib-null? (list-ref x 4)) "" `(concat ,", " ,(list-ref x 4)))
+           (if (bib-null? (list-ref x 4)) "" `(concat ", " ,(list-ref x 4)))
          ) ;jj
         ) ;
     `(concat ,f ,vv ,ll ,jj)
@@ -59,7 +59,7 @@
 
 (define (bib-format-edition x)
   (let* ((e (bib-field x "edition")))
-    (if (bib-null? e) "" `(concat ,e ," Edition"))
+    (if (bib-null? e) "" `(concat ,e " Edition"))
   ) ;let*
 ) ;define
 
@@ -76,7 +76,7 @@
               ) ;series
               (sep (if (< (bib-text-length n) 3) '(nbsp) " "))
              ) ;
-          `(concat ,"No." ,sep ,n ,series)
+          `(concat "No." ,sep ,n ,series)
         ) ;let
       ) ;if
       (let ((series
@@ -84,7 +84,7 @@
             ) ;series
             (sep (if (< (bib-text-length v) 3) '(nbsp) " "))
            ) ;
-        `(concat ,"Vol." ,sep ,v ,series)
+        `(concat "Vol." ,sep ,v ,series)
       ) ;let
     ) ;if
   ) ;let*
@@ -115,7 +115,7 @@
          (v (bib-field x "volume"))
          (n (bib-field x "number"))
          (y
-           `(concat ,"(" ,(bib-field x "year") ,")")
+           `(concat "(" ,(bib-field x "year") ")")
          ) ;y
          (p
            (let* ((pp (bib-field x "pages")))
@@ -132,7 +132,7 @@
          ) ;p
         ) ;
     (when (not (bib-null? n))
-      (set! v `(concat ,v (nbsp) ,"(" ,n ,")"))
+      (set! v `(concat ,v (nbsp) "(" ,n ")"))
     ) ;when
     (bib-new-list " " `(,j ,v ,y ,p))
   ) ;let*
@@ -191,10 +191,10 @@
                                                                        "note")
                                                                    ""
                                                                    `(concat ,(bib-format-note x)
-                                                                      ," "))
-                                                          ,"("
+                                                                      " "))
+                                                          "("
                                                           ,(bib-format-date x)
-                                                          ,")")))))
+                                                          ")")))))
 ) ;tm-define
 
 (tm-define (bib-format-inbook n x)
@@ -263,10 +263,10 @@
                                          (concat ,(if (bib-empty? x "note")
                                                     ""
                                                     `(concat ,(bib-format-note x)
-                                                       ," "))
-                                           ,"("
+                                                       " "))
+                                           "("
                                            ,(bib-format-date x)
-                                           ,")")))))
+                                           ")")))))
 ) ;tm-define
 
 (tm-define (bib-format-mastersthesis n x)
@@ -283,10 +283,10 @@
                                          (concat ,(if (bib-empty? x "note")
                                                     ""
                                                     `(concat ,(bib-format-note x)
-                                                       ," "))
-                                           ,"("
+                                                       " "))
+                                           "("
                                            ,(bib-format-date x)
-                                           ,")")))))
+                                           ")")))))
 ) ;tm-define
 
 (tm-define (bib-format-misc n x)
@@ -300,10 +300,10 @@
                                          (concat ,(if (bib-empty? x "note")
                                                     ""
                                                     `(concat ,(bib-format-note x)
-                                                       ," "))
-                                           ,"("
+                                                       " "))
+                                           "("
                                            ,(bib-format-date x)
-                                           ,")")))))
+                                           ")")))))
 ) ;tm-define
 
 (tm-define (bib-format-phdthesis n x)
@@ -341,10 +341,10 @@
                                          (concat ,(if (bib-empty? x "note")
                                                     ""
                                                     `(concat ,(bib-format-note x)
-                                                       ," "))
-                                           ,"("
+                                                       " "))
+                                           "("
                                            ,(bib-format-date x)
-                                           ,")")))))
+                                           ")")))))
 ) ;tm-define
 
 (tm-define (bib-format-unpublished n x)
@@ -357,8 +357,8 @@
                                          (concat ,(if (bib-empty? x "note")
                                                     ""
                                                     `(concat ,(bib-format-note x)
-                                                       ," "))
-                                           ,"("
+                                                       " "))
+                                           "("
                                            ,(bib-format-date x)
-                                           ,")")))))
+                                           ")")))))
 ) ;tm-define

@@ -187,10 +187,10 @@
             (resize "320px"
               "110px"
               (texmacs-output
-                `(with ,"bg-color"
-                   ,"white"
-                   ,"font-base-size"
-                   ,"18"
+                `(with "bg-color"
+                   "white"
+                   "font-base-size"
+                   "18"
                    (document ,tips1 ,tips2 ,tips3 ,tips4))
                 '(style "generic")
               ) ;texmacs-output

@@ -292,11 +292,11 @@
             (env* (apply append inits))
             (env (append env* (list "magnification" mag)))
             (doc
-              `(surround (hide-preamble ,pre) ,"" ,tip)
+              `(surround (hide-preamble ,pre) "" ,tip)
             ) ;doc
             (master (url->system (current-buffer)))
             (w
-              (widget-texmacs-output `(with ,@env ,"project" ,master ,doc)
+              (widget-texmacs-output `(with ,@env "project" ,master ,doc)
                 `(style (tuple ,@packs))
               ) ;widget-texmacs-output
             ) ;w

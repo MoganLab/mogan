@@ -74,18 +74,18 @@
          (actual-created-at (or created-at ""))
          (actual-updated-at (or updated-at created-at ""))
         ) ;
-    `((,"sessionId" . ,sid)
-      (,"title" . ,title)
-      (,"model" . ,model)
-      (,"archived" . ,archived-str)
-      (,"createdAt" . ,actual-created-at)
-      (,"defaultExpandCount" . ,5)
-      (,"thinking" . ,thinking)
-      (,"search" . ,search)
-      (,"thinkingEffort" . ,thinking-effort)
-      (,"updateAt" . ,actual-updated-at)
-      (,"stemDocId" . ,stem-doc-id)
-      (,"type" . ,session-type))
+    `(("sessionId" . ,sid)
+      ("title" . ,title)
+      ("model" . ,model)
+      ("archived" . ,archived-str)
+      ("createdAt" . ,actual-created-at)
+      ("defaultExpandCount" . 5)
+      ("thinking" . ,thinking)
+      ("search" . ,search)
+      ("thinkingEffort" . ,thinking-effort)
+      ("updateAt" . ,actual-updated-at)
+      ("stemDocId" . ,stem-doc-id)
+      ("type" . ,session-type))
   ) ;let*
 ) ;tm-define
 
@@ -180,9 +180,8 @@
              ) ;map
            ) ;updated-entries
            (final-entries (if found updated-entries (append updated-entries (list entry))))
-           (new-manifest
-             `((,"version" . ,version)
-               (,"sessions" . ,(list->vector final-entries)))
+           (new-manifest `(("version" . ,version)
+                           ("sessions" . ,(list->vector final-entries)))
            ) ;new-manifest
           ) ;
       (string-save (json->string new-manifest) (system->url manifest-path))
@@ -224,9 +223,8 @@
                  entries
                ) ;filter
              ) ;remaining
-             (new-manifest
-               `((,"version" . ,version)
-                 (,"sessions" . ,(list->vector remaining)))
+             (new-manifest `(("version" . ,version)
+                             ("sessions" . ,(list->vector remaining)))
              ) ;new-manifest
             ) ;
         (string-save (json->string new-manifest) (system->url manifest-path))

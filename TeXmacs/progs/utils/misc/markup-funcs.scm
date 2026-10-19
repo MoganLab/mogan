@@ -251,12 +251,12 @@
    (else
      (if lang
        (list
-         `(numbered-line (with ,"mode"
-                           ,"prog"
-                           ,"prog-language"
+         `(numbered-line (with "mode"
+                           "prog"
+                           "prog-language"
                            ,lang
-                           ,"font-family"
-                           ,"rm"
+                           "font-family"
+                           "rm"
                            ,body))
        ) ;list
        (list `(numbered-line ,body))
@@ -280,11 +280,11 @@
        (append
          (list
            `(numbered-line (concat (render-else)
-                             ," "
+                             " "
                              (render-if)
-                             ," "
+                             " "
                              ,cond
-                             ," "
+                             " "
                              (render-then)
                              (no-page-break)))
          ) ;list
@@ -303,9 +303,9 @@
       (append
         (list
           `(numbered-line (concat (render-if)
-                            ," "
+                            " "
                             ,cond
-                            ," "
+                            " "
                             (render-then)
                             (no-page-break)))
         ) ;list
@@ -398,7 +398,7 @@
         (list '(numbered-line (concat (render-repeat) (no-page-break))))
         (indent-lines (wrap-algo-body body-arg lang))
         (list
-          `(numbered-line (concat (render-until) ," " ,cond-arg (right-flush)))
+          `(numbered-line (concat (render-until) " " ,cond-arg (right-flush)))
         ) ;list
       ) ;append
     ) ;let
@@ -414,11 +414,11 @@
     (append
       (list
         `(numbered-line (concat (render-procedure)
-                          ," "
-                          (with ,"font-shape" ,"small-caps" ,(arg0 line))
-                          ,"("
+                          " "
+                          (with "font-shape" "small-caps" ,(arg0 line))
+                          "("
                           ,(arg1 line)
-                          ,")"
+                          ")"
                           (no-page-break)))
       ) ;list
       (indent-lines (wrap-algo-body (arg2 line) lang))
@@ -429,11 +429,11 @@
     (append
       (list
         `(numbered-line (concat (render-function)
-                          ," "
-                          (with ,"font-shape" ,"small-caps" ,(arg0 line))
-                          ,"("
+                          " "
+                          (with "font-shape" "small-caps" ,(arg0 line))
+                          "("
                           ,(arg1 line)
-                          ,")"
+                          ")"
                           (no-page-break)))
       ) ;list
       (indent-lines (wrap-algo-body (arg2 line) lang))
@@ -512,12 +512,12 @@
                                                  (wrap-algo-macro line lang))
                                                 ((tree-multi-line? line)
                                                  (list (ext-numbered-sub line)))
-                                                (else (list `(numbered-line (with ,"mode"
-                                                                              ,"prog"
-                                                                              ,"prog-language"
+                                                (else (list `(numbered-line (with "mode"
+                                                                              "prog"
+                                                                              "prog-language"
                                                                               ,lang
-                                                                              ,"font-family"
-                                                                              ,"rm"
+                                                                              "font-family"
+                                                                              "rm"
                                                                               ,line))))))
                                      (tm-children body)))))
     body

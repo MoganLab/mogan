@@ -271,15 +271,15 @@
                ((null? (cdr authors)) `((author-name ,@authors)))
                ((null? (cddr authors))
                 `((author-name (concat ,(car authors)
-                                 ," "
+                                 " "
                                  (localize "and")
-                                 ," "
+                                 " "
                                  ,(cadr authors)))))
                (else (with l
                        (list-intersperse authors ", ")
                        `((author-name (concat ,@(cDr l)
                                         (localize "and")
-                                        ," "
+                                        " "
                                         ,(cAr l))))))))
      ,@(tm-select t '(doc-misc))
      ,@(tm-select t '(doc-inactive)))

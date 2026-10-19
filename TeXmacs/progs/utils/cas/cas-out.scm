@@ -246,13 +246,13 @@
 
 (define (cas-out-times x)
   (or
-    (and (func? x '/ 1) `(frac ,"1" ,(cas-out (cadr x))))
+    (and (func? x '/ 1) `(frac "1" ,(cas-out (cadr x))))
     (and (func? x '/ 2) `(frac ,(cas-out (cadr x)) ,(cas-out (caddr x))))
     (and (func? x 'div 2)
-      `(concat ,(cas-out-times (cadr x)) ," div " ,(cas-out-prefix (caddr x)))
+      `(concat ,(cas-out-times (cadr x)) " div " ,(cas-out-prefix (caddr x)))
     ) ;and
     (and (func? x 'mod 2)
-      `(concat ,(cas-out-times (cadr x)) ," mod " ,(cas-out-prefix (caddr x)))
+      `(concat ,(cas-out-times (cadr x)) " mod " ,(cas-out-prefix (caddr x)))
     ) ;and
     (cas-out-associative x cas-times-op? cas-out-times cas-out-prefix)
     (cas-out-infix x cas-over-op? cas-out-times cas-out-prefix)
@@ -294,7 +294,7 @@
       `(concat ,(cas-out-postfix radical) (rprime ,prime))
     ) ;receive
    ) ;
-   ((func? x 'factorial 1) `(concat ,(cas-out-postfix (cadr x)) ,"!"))
+   ((func? x 'factorial 1) `(concat ,(cas-out-postfix (cadr x)) "!"))
    ((func? x '_)
     (with radical
       (cas-out-postfix (cadr x))
@@ -314,7 +314,7 @@
     ) ;with
    ) ;
    ((func? x '%dotaccess 2)
-    `(concat ,(cas-out-postfix (cadr x)) ,"." ,(cas-out-atom (caddr x)))
+    `(concat ,(cas-out-postfix (cadr x)) "." ,(cas-out-atom (caddr x)))
    ) ;
    ((func? x '%sqaccess)
     (with radical
@@ -325,7 +325,7 @@
       ) ;with
     ) ;with
    ) ;
-   ((list-1? x) `(concat ,(cas-out-postfix (car x)) ,"()"))
+   ((list-1? x) `(concat ,(cas-out-postfix (car x)) "()"))
    ((and (pair? x) (keyword? (car x)))
     (cons (keyword->symbol (car x)) (map cas-out (cdr x)))
    ) ;
@@ -394,7 +394,7 @@
          ) ;with
         ) ;
         ((func? x 'sqrt 1) `(sqrt ,(cas-out (cadr x))))
-        ((func? x 'conj 1) `(wide ,(cas-out (cadr x)) ,"<bar>"))
+        ((func? x 'conj 1) `(wide ,(cas-out (cadr x)) "<bar>"))
         ((func? x 'choose 2) `(choose ,(cas-out (cadr x)) ,(cas-out (caddr x))))
         ((nlist? x) x)
         (else

@@ -93,7 +93,7 @@
        (twith "table-hmode" "min")
        (twith "table-width" "1par")
        (cwith "1" "-1" "1" "-1" "cell-hmode" "exact")
-       (cwith ,"1" ,"-1" ,"1" ,"-1" ,"cell-width" ,w)
+       (cwith "1" "-1" "1" "-1" "cell-width" ,w)
        (cwith "1" "-1" "1" "-1" "cell-hyphen" "t")
        (cwith "1" "-1" "1" "-1" "cell-lsep" "-0.2ln")
        (cwith "1" "-1" "1" "-1" "cell-rsep" "-0.2ln")
@@ -112,16 +112,16 @@
   `(tformat (twith "table-valign" "T")
      (twith "table-hmode" "min")
      (twith "table-width" "1par")
-     (twith ,"table-lborder" ,(tree-copy out))
-     (twith ,"table-rborder" ,(tree-copy out))
-     (twith ,"table-tborder" ,(tree-copy out))
-     (twith ,"table-bborder" ,(tree-copy out))
+     (twith "table-lborder" ,(tree-copy out))
+     (twith "table-rborder" ,(tree-copy out))
+     (twith "table-tborder" ,(tree-copy out))
+     (twith "table-bborder" ,(tree-copy out))
      (cwith "1" "-1" "1" "-1" "cell-hyphen" "t")
      (cwith "1" "-1" "1" "-1" "cell-lsep" "0ln")
      (cwith "1" "-1" "1" "-1" "cell-rsep" "0ln")
      (cwith "1" "-1" "1" "-1" "cell-bsep" "-0.2ln")
      (cwith "1" "-1" "1" "-1" "cell-tsep" "-0.2ln")
-     (cwith ,"2" ,"-1" ,"1" ,"-1" ,"cell-tborder" ,inn)
+     (cwith "2" "-1" "1" "-1" "cell-tborder" ,inn)
      (table ,@(map ext-vertical-item (tree-children t))))
 ) ;tm-define
 
@@ -157,9 +157,9 @@
         ) ;
     `(button-popup ,text
        ,t
-       (with ,"button-nr" ,"0" (vertical-items* ,@ch))
-       ,"left"
-       ,"Bottom"
-       ,"default")
+       (with "button-nr" "0" (vertical-items* ,@ch))
+       "left"
+       "Bottom"
+       "default")
   ) ;let*
 ) ;tm-define

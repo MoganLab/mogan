@@ -166,7 +166,7 @@
           ) ;
       (set! l (list-intersperse (map cadr l) sep))
       `((!document (numberofauthors ,n)
-          (author (!indent (!concat (alignauthor) ," " ,@l)))))
+          (author (!indent (!concat (alignauthor) " " ,@l)))))
     ) ;let*
   ) ;if
 ) ;tm-define

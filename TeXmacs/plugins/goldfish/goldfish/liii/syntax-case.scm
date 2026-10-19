@@ -582,7 +582,7 @@
           ((cls (reverse clauses))
            (chain
              `(error 'syntax-error
-                ,"syntax-case: no matching pattern"
+                "syntax-case: no matching pattern"
                 (syntax->datum ,e-var))
            ) ;chain
           ) ;

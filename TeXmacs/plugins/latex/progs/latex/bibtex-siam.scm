@@ -30,10 +30,10 @@
          ) ;vv
          (ll (if (bib-null? (list-ref x 3)) "" (bib-purify (list-ref x 3))))
          (jj
-           (if (bib-null? (list-ref x 4)) "" `(concat ,", " ,(list-ref x 4)))
+           (if (bib-null? (list-ref x 4)) "" `(concat ", " ,(list-ref x 4)))
          ) ;jj
         ) ;
-    `(with ,"font-shape" ,"small-caps" (concat ,f ,vv ,ll ,jj))
+    `(with "font-shape" "small-caps" (concat ,f ,vv ,ll ,jj))
   ) ;let*
 ) ;tm-define
 
@@ -44,8 +44,8 @@
     (if (or (bib-null? a) (nlist? a))
       ""
       (if (equal? (length a) 2)
-        `(concat ,(bib-format-names a) ,", ed.")
-        `(concat ,(bib-format-names a) ,", eds.")
+        `(concat ,(bib-format-names a) ", ed.")
+        `(concat ,(bib-format-names a) ", eds.")
       ) ;if
     ) ;if
   ) ;with
@@ -61,7 +61,7 @@
             ) ;series
             (sep (if (< (bib-text-length v) 3) '(nbsp) " "))
            ) ;
-        `(concat ,"vol." ,sep ,v ,series)
+        `(concat "vol." ,sep ,v ,series)
       ) ;let
     ) ;if
   ) ;let*
@@ -81,7 +81,7 @@
               ) ;series
               (sep (if (< (bib-text-length n) 3) '(nbsp) " "))
              ) ;
-          `(concat ,"no." ,sep ,n ,series)
+          `(concat "no." ,sep ,n ,series)
         ) ;let
       ) ;if
       ""
@@ -90,7 +90,7 @@
 ) ;tm-define
 
 (define (bib-format-edition x)
-  (with e (bib-field x "edition") (if (bib-null? e) "" `(concat ,e ," ed.")))
+  (with e (bib-field x "edition") (if (bib-null? e) "" `(concat ,e " ed.")))
 ) ;define
 
 (tm-define (bib-format-in-ed-booktitle x)
@@ -100,7 +100,7 @@
       ""
       (if (bib-null? e)
         `(concat ,(bib-translate "in ") ,b)
-        `(concat ,(bib-translate "in ") ,b ,", " ,(bib-format-editor x))
+        `(concat ,(bib-translate "in ") ,b ", " ,(bib-format-editor x))
       ) ;if
     ) ;if
   ) ;let*
@@ -113,10 +113,10 @@
       (bib-format-pages x)
       (let ((type (if (bib-null? t) (bib-translate "chapter") (bib-locase t)))
             (pages
-              `(concat ,", " ,(bib-format-pages x))
+              `(concat ", " ,(bib-format-pages x))
             ) ;pages
            ) ;
-        `(concat ,type ," " ,c ,pages)
+        `(concat ,type " " ,c ,pages)
       ) ;let
     ) ;if
   ) ;let*
@@ -128,9 +128,9 @@
     (bib-field x "pages")
     (cond ((or (bib-null? p) (nlist? p)) "")
           ((== (length p) 1) "")
-          ((== (length p) 2) `(concat ,"p." (nbsp) ,(list-ref p 1)))
+          ((== (length p) 2) `(concat "p." (nbsp) ,(list-ref p 1)))
           (else
-            `(concat ,"pp."
+            `(concat "pp."
                (nbsp)
                ,(list-ref p 1)
                ,bib-range-symbol
@@ -160,10 +160,10 @@
                                                                                          "volume")
                                                                                      ""
                                                                                      " ")
-                                                                            ,"("
+                                                                            "("
                                                                             ,(bib-field x
                                                                                "year")
-                                                                            ,")")))
+                                                                            ")")))
                                                                     ,(bib-format-pages x))
                                                                   `((concat ,(bib-translate "in ")
                                                                       (cite ,(bib-field x

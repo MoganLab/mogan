@@ -1973,7 +1973,7 @@
   (let* ((c (number->string nr))
          (p (string-append "p{" (number->string (/ 12.0 out-of)) "cm}"))
         ) ;
-    `(cwith ,"1" ,"-1" ,c ,c ,"cell-halign" ,p)
+    `(cwith "1" "-1" ,c ,c "cell-halign" ,p)
   ) ;let*
 ) ;define
 
@@ -2292,7 +2292,7 @@
         (set! tmtex-languages (append (list val) tmtex-languages))
       ) ;if
       (if (texout-multiline? arg)
-        `((!begin ,"otherlanguage" ,val) ,arg)
+        `((!begin "otherlanguage" ,val) ,arg)
         `(foreignlanguage ,val ,arg)
       ) ;if
     ) ;begin
@@ -2561,8 +2561,8 @@
   (cond ((== (car l) "latex") (tmtex-tt (cadr l)))
         ((== (car l) "image") (tmtex-eps (cadr l)))
         ((== (car l) "printer") (tmtex (cadr l)))
-        ((== (car l) "odd") `(ifthispageodd ,(tmtex (cadr l)) ,""))
-        ((== (car l) "even") `(ifthispageodd ,"" ,(tmtex (cadr l))))
+        ((== (car l) "odd") `(ifthispageodd ,(tmtex (cadr l)) ""))
+        ((== (car l) "even") `(ifthispageodd "" ,(tmtex (cadr l))))
         (else "")
   ) ;cond
 ) ;define
@@ -2580,7 +2580,7 @@
 
 (define (tmtex-eps x)
   (tmtex-image-increment)
-  (if (tmtex-math-mode?) (set! x `(with ,"mode" ,"math" ,x)))
+  (if (tmtex-math-mode?) (set! x `(with "mode" "math" ,x)))
   (receive (name-url name-string)
     (tmtex-eps-names)
     (let* ((extents (print-snippet name-url x #t))
@@ -3266,10 +3266,8 @@
   (set! s (car (string-decompose s "-")))
   (if (or (== s "verbatim") (== s "code"))
     `((!begin* "alltt") ,(tmtex-verbatim* "" l))
-    (with lang
-      `((!option ,s))
-      `((!begin* ,"tmcode" ,@lang) ,(tmtex-verbatim* "" l))
-    ) ;with
+    (with lang `((!option ,s)) `((!begin* "tmcode" ,@lang)
+                                 ,(tmtex-verbatim* "" l)))
   ) ;if
 ) ;define
 
@@ -3281,7 +3279,7 @@
 ) ;define
 
 (define (tmtex-mixed s l)
-  (if (func? (cadr l) 'text) (set! l `(,"" ,(cadadr l))))
+  (if (func? (cadr l) 'text) (set! l `("" ,(cadadr l))))
   ;; (set! l (unescape-angles l))
   ;; NOTE: instead, we now unescape in tmtex-verb-string
   (tmtex-env-set "mode" "text")
@@ -3306,7 +3304,7 @@
          (size (cadr l))
          (body (caddr l))
         ) ;
-    `((!begin ,"minipage" ,@opt ,(tmtex-decode-length size)) ,(tmtex body))
+    `((!begin "minipage" ,@opt ,(tmtex-decode-length size)) ,(tmtex body))
   ) ;let*
 ) ;define
 
@@ -3380,7 +3378,7 @@
   (with lan
     (if (list>0? tmtex-languages) (cAr tmtex-languages) "english")
     (tmtex
-      `(translate ,(car l) ,"english" ,lan)
+      `(translate ,(car l) "english" ,lan)
     ) ;tmtex
   ) ;with
 ) ;define
@@ -3505,7 +3503,7 @@
 
 (define (tmtex-specific-language s l)
   (tmtex
-    `(with ,"language" ,s ,(car l))
+    `(with "language" ,s ,(car l))
   ) ;tmtex
 ) ;define
 
@@ -3529,8 +3527,8 @@
 
 (define (tmtex-math s l)
   (cond ((tm-in? (car l) '(equation equation* eqnarray eqnarray*)) (tmtex (car l)))
-        ((not (tm-func? (car l) 'document)) (tmtex `(with ,"mode"
-                                                      ,"math"
+        ((not (tm-func? (car l) 'document)) (tmtex `(with "mode"
+                                                      "math"
                                                       ,(car l))))
         ((tm-func? (car l) 'document 1) (tmtex `(math ,(cadr (car l)))))
         (else
@@ -3974,14 +3972,14 @@
   (:mode natbib-package?)
   (with c
     (tmtex-cite-list (list (car l)))
-    (tex-apply 'citetext `(!concat (citealp ,c) ,", " ,(tmtex (cadr l))))
+    (tex-apply 'citetext `(!concat (citealp ,c) ", " ,(tmtex (cadr l))))
   ) ;with
 ) ;tm-define
 
 (tm-define (tmtex-cite-detail-poor s l)
   (with c
     (tmtex-cite-list (list (car l)))
-    `(!concat ,(tex-apply 'cite c) ," (" ,(tmtex (cadr l)) ,")")
+    `(!concat ,(tex-apply 'cite c) " (" ,(tmtex (cadr l)) ")")
   ) ;with
 ) ;tm-define
 
@@ -4068,8 +4066,8 @@
 ) ;define
 
 (define (tmtex-the-glossary s l)
-  `(!document (,(if (latex-book-style?) 'chapter* 'section*) ,"Glossary")
-     ((!begin ,"theglossary" ,(car l)) ,(tmtex-glossary-body (cadr l))))
+  `(!document (,(if (latex-book-style?) 'chapter* 'section*) "Glossary")
+     ((!begin "theglossary" ,(car l)) ,(tmtex-glossary-body (cadr l))))
 ) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -4552,7 +4550,7 @@
   (with (tag fun narg)
     x
     (with fun+bis (symbol-append fun '+bis) `(,tag
-                                              (,(list 'unquote fun+bis) ,-1)))
+                                              (,(list 'unquote fun+bis) -1)))
   ) ;with
 ) ;tm-define
 

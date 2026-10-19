@@ -132,7 +132,7 @@
 ) ;define
 
 (define (mathtm-mtext env a c)
-  `((with ,"mode" ,"text" ,(mathtm-args-serial env c)))
+  `((with "mode" "text" ,(mathtm-args-serial env c)))
 ) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -167,7 +167,7 @@
 ) ;define
 
 (define (mathtm-error message)
-  `((with ,"color" ,"red" ,message))
+  `((with "color" "red" ,message))
 ) ;define
 
 (define (mathtm-merror env a c)
@@ -388,7 +388,7 @@
         ) ;and
         `((below ,(car (mathtm-below base (second sub))) ,(third sub)))
        ) ;
-       ((stretchy? (first c) base) `((long-arrow ,(rubberify base) ,"" ,sub)))
+       ((stretchy? (first c) base) `((long-arrow ,(rubberify base) "" ,sub)))
        (else (mathtm-below base sub))
       ) ;cond
     ) ;let
@@ -471,10 +471,10 @@
       ) ;map
       (cond
        ((and (func? a 'columnalign) (mathtm-halign (cadr a)))
-        `((cwith ,"cell-halign" ,(mathtm-halign (cadr a))))
+        `((cwith "cell-halign" ,(mathtm-halign (cadr a))))
        ) ;
        ((and (func? a 'rowalign) (mathtm-valign (cadr a)))
-        `((cwith ,"cell-valign" ,(mathtm-valign (cadr a))))
+        `((cwith "cell-valign" ,(mathtm-valign (cadr a))))
        ) ;
        (else '())
       ) ;cond
@@ -498,7 +498,7 @@
     (let* ((h (mathtm-halign (car l)))
            (r (mathtm-row-halign (cdr l) (+ nr 1)))
            (s (number->string nr))
-           (c `(cwith ,s ,s ,"cell-halign" ,h))
+           (c `(cwith ,s ,s "cell-halign" ,h))
           ) ;
       (if h (cons c r) r)
     ) ;let*
@@ -510,7 +510,7 @@
     (mathtm-style (list a))
     (if (nnull? sa)
       (map
-        (lambda (x) `(cwith ,"1" ,"-1" ,(first x) ,(second x)))
+        (lambda (x) `(cwith "1" "-1" ,(first x) ,(second x)))
         (split-by sa 2)
       ) ;map
       (cond
@@ -518,7 +518,7 @@
         (with l (string-tokenize-by-char (cadr a) #\space) (mathtm-row-halign l 1))
        ) ;
        ((and (func? a 'rowalign) (mathtm-valign (cadr a)))
-        `((cwith ,"1" ,"-1" ,"cell-valign" ,(mathtm-valign (cadr a))))
+        `((cwith "1" "-1" "cell-valign" ,(mathtm-valign (cadr a))))
        ) ;
        (else '())
       ) ;cond
@@ -561,7 +561,7 @@
     (let* ((h (mathtm-halign (car l)))
            (r (mathtm-table-halign (cdr l) (+ nr 1)))
            (s (number->string nr))
-           (c `(cwith ,"1" ,"-1" ,s ,s ,"cell-halign" ,h))
+           (c `(cwith "1" "-1" ,s ,s "cell-halign" ,h))
           ) ;
       (if h (cons c r) r)
     ) ;let*
@@ -574,7 +574,7 @@
     (let* ((h (mathtm-valign (car l)))
            (r (mathtm-table-valign (cdr l) (+ nr 1)))
            (s (number->string nr))
-           (c `(cwith ,s ,s ,"1" ,"-1" ,"cell-valign" ,h))
+           (c `(cwith ,s ,s "1" "-1" "cell-valign" ,h))
           ) ;
       (if h (cons c r) r)
     ) ;let*
@@ -586,7 +586,7 @@
     (mathtm-style (list a))
     (if (nnull? sa)
       (map
-        (lambda (x) `(cwith ,"1" ,"-1" ,"1" ,"-1" ,(first x) ,(second x)))
+        (lambda (x) `(cwith "1" "-1" "1" "-1" ,(first x) ,(second x)))
         (split-by sa 2)
       ) ;map
       (cond

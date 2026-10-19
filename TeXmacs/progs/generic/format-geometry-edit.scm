@@ -77,7 +77,7 @@
         ) ;
     (set-step unit next)
     (set-message
-      `(concat ,"Current step-size: " ,(number->string next) ,unit)
+      `(concat "Current step-size: " ,(number->string next) ,unit)
       "Change step-size"
     ) ;set-message
   ) ;let*
@@ -111,7 +111,7 @@
          (next (if j (list-ref unit-list j) "spc"))
         ) ;
     (set-unit next)
-    (set-message `(concat ,"Default unit: " ,next) "Change default unit")
+    (set-message `(concat "Default unit: " ,next) "Change default unit")
   ) ;let*
 ) ;define
 
@@ -434,7 +434,7 @@
   (:argument hor "Horizontal")
   (:argument ver "Vertical")
   (wrap-selection-small
-    (insert-go-to `(move ,"" ,hor ,ver) '(0 0))
+    (insert-go-to `(move "" ,hor ,ver) '(0 0))
     (set-adjust-message "Adjust position" "move")
   ) ;wrap-selection-small
 ) ;tm-define
@@ -443,7 +443,7 @@
   (:argument hor "Horizontal")
   (:argument ver "Vertical")
   (wrap-selection-small
-    (insert-go-to `(shift ,"" ,hor ,ver) '(0 0))
+    (insert-go-to `(shift "" ,hor ,ver) '(0 0))
     (set-adjust-message "Adjust position" "shift")
   ) ;wrap-selection-small
 ) ;tm-define
@@ -500,7 +500,7 @@
   (:argument r "Right")
   (:argument t "Top")
   (wrap-selection-small
-    (insert-go-to `(resize ,"" ,l ,b ,r ,t) '(0 0))
+    (insert-go-to `(resize "" ,l ,b ,r ,t) '(0 0))
     (set-adjust-message "Adjust extents" "resize")
   ) ;wrap-selection-small
 ) ;tm-define
@@ -511,7 +511,7 @@
   (:argument r "Right")
   (:argument t "Top")
   (wrap-selection-small
-    (insert-go-to `(extend ,"" ,l ,b ,r ,t) '(0 0))
+    (insert-go-to `(extend "" ,l ,b ,r ,t) '(0 0))
     (set-adjust-message "Adjust extension" "extend")
   ) ;wrap-selection-small
 ) ;tm-define
@@ -522,7 +522,7 @@
   (:argument r "Right")
   (:argument t "Top")
   (wrap-selection-small
-    (insert-go-to `(clipped ,"" ,l ,b ,r ,t) '(0 0))
+    (insert-go-to `(clipped "" ,l ,b ,r ,t) '(0 0))
     (set-adjust-message "Adjust clipping" "clipped")
   ) ;wrap-selection-small
 ) ;tm-define
@@ -530,19 +530,19 @@
 (tm-define (make-reduce-by by)
   (:argument by "Reduce by")
   (wrap-selection-small
-    (insert-go-to `(reduce-by ,"" ,by) '(0 0))
+    (insert-go-to `(reduce-by "" ,by) '(0 0))
     (set-adjust-message "Reduce vertical size" "reduce-by")
   ) ;wrap-selection-small
 ) ;tm-define
 
 (define (replace-empty-horizontal t)
-  (replace-empty t 1 `(plus ,"1l" ,(get-zero-unit)))
-  (replace-empty t 3 `(plus ,"1r" ,(get-zero-unit)))
+  (replace-empty t 1 `(plus "1l" ,(get-zero-unit)))
+  (replace-empty t 3 `(plus "1r" ,(get-zero-unit)))
 ) ;define
 
 (define (replace-empty-vertical t)
-  (replace-empty t 2 `(plus ,"1b" ,(get-zero-unit)))
-  (replace-empty t 4 `(plus ,"1t" ,(get-zero-unit)))
+  (replace-empty t 2 `(plus "1b" ,(get-zero-unit)))
+  (replace-empty t 4 `(plus "1t" ,(get-zero-unit)))
 ) ;define
 
 (define (resize-consistent-horizontal? t)

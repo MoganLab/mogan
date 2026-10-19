@@ -360,10 +360,10 @@
   ;; Changed because of bug 61989
   ;; `(folded-explain
   ;;  (document (with "color" "dark green" (em ,(replace "Definition..."))))
-  `(document (with ,"font-series"
-               ,"bold"
-               ,"color"
-               ,"dark green"
+  `(document (with "font-series"
+               "bold"
+               "color"
+               "dark green"
                (em ,(replace "Definition:")))
      (scm-code (document ,(cond ((and (tm-exported? sym)
                                    (procedure? (eval sym)))
@@ -417,10 +417,10 @@
 (define ($explain-scheme-not-found key)
   `(document ,($doc-symbol-template (string->symbol key)
                 #t
-                `(concat ,"Documentation unavailable. Search "
-                   (action ,"the manual"
+                `(concat "Documentation unavailable. Search "
+                   (action "the manual"
                      ,(string-append "(docgrep-in-doc-secure \"" key "\")"))
-                   ,", or go to the definition in "
+                   ", or go to the definition in "
                    ,($doc-symbol-properties (string->symbol key)))))
 ) ;define
 
@@ -463,10 +463,10 @@
 (define ($explain-macro-not-found key)
   `(document ,($doc-symbol-template (string->symbol key)
                 #f
-                `(concat ,"Documentation unavailable. You may search "
-                   (action ,"the manual"
+                `(concat "Documentation unavailable. You may search "
+                   (action "the manual"
                      ,(string-append "(docgrep-in-doc-secure \"" key "\")"))
-                   ,".")))
+                   ".")))
 ) ;define
 
 (tm-define ($doc-explain-macro* key)

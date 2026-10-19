@@ -80,16 +80,14 @@
         ) ;
     (cond
      ((and (!= t "") (== (get-preference "console details") "detailed"))
-      `(document ,(build-message `(tuple ,(tm-ref m 0) ,(tm-ref m 1) ,""))
+      `(document ,(build-message `(tuple ,(tm-ref m 0) ,(tm-ref m 1) ""))
          (indent (small ,t)))
      ) ;
-     ((string-ends? k "-error") `(with ,"color"
-                                   ,"#e02020"
-                                   (concat ,"Error: " ,s)))
+     ((string-ends? k "-error") `(with "color" "#e02020" (concat "Error: " ,s)))
      ((string-ends? k "-warning")
-      `(with ,"color" ,"dark magenta" (concat ,"Warning: " ,s))
+      `(with "color" "dark magenta" (concat "Warning: " ,s))
      ) ;
-     ((string-ends? k "-bench") `(with ,"color" ,"dark blue" ,s))
+     ((string-ends? k "-bench") `(with "color" "dark blue" ,s))
      (else s)
     ) ;cond
   ) ;let*
@@ -104,7 +102,7 @@
      ((and (!= t "") (== (get-preference "console details") "detailed"))
       (string-append
         (get-message-text
-          `(tuple ,(tm-ref m 0) ,(tm-ref m 1) ,"")
+          `(tuple ,(tm-ref m 0) ,(tm-ref m 1) "")
         ) ;get-message-text
         "\n"
         t
@@ -132,14 +130,14 @@
          (all-ms (tree-children (get-debug-messages kind n)))
          (sel-ms (list-filter all-ms (cut message-among? <> selected)))
         ) ;
-    `(document (with ,"language"
-                 ,"verbatim"
-                 ,"font-family"
-                 ,"tt"
-                 ,"font-size"
-                 ,"2.0"
-                 ,"par-par-sep"
-                 ,"0fn"
+    `(document (with "language"
+                 "verbatim"
+                 "font-family"
+                 "tt"
+                 "font-size"
+                 "2.0"
+                 "par-par-sep"
+                 "0fn"
                  (document ,@(map build-message sel-ms))))
   ) ;let*
 ) ;define

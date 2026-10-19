@@ -45,7 +45,7 @@
 
 (tm-menu (redo-menu)
   (for (i (.. 0 (redo-possibilities)))
-   ((eval `(concat ,"Branch " ,(number->string (+ i 1)))) (redo i))
+   ((eval `(concat "Branch " ,(number->string (+ i 1)))) (redo i))
   ) ;for
 ) ;tm-menu
 

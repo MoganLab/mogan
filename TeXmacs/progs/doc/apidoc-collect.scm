@@ -286,7 +286,7 @@
     (display* "I WOULD HAVE deleted the cache at " s ".\n")
     (reset-preference "doc:doc-scm-cache")
     (set-message
-      `(replace ,"The cache at %1 was deleted" (verbatim ,s))
+      `(replace "The cache at %1 was deleted" (verbatim ,s))
       ""
     ) ;set-message
   ) ;with
@@ -295,7 +295,7 @@
     (display* "I WOULD HAVE deleted the cache at " s ".\n")
     (reset-preference "doc:doc-macro-cache")
     (set-message
-      `(replace ,"The cache at %1 was deleted" (verbatim ,s))
+      `(replace "The cache at %1 was deleted" (verbatim ,s))
       ""
     ) ;set-message
   ) ;with
@@ -310,7 +310,7 @@
   (with run
     (lambda (go?) (if go? (doc-delete-cache*) (set-message "Cancelled" "")))
     (user-confirm
-      `(replace ,"All the files at %1 and %2 will be deleted. Are you sure?"
+      `(replace "All the files at %1 and %2 will be deleted. Are you sure?"
          (verbatim ,(url->system (doc-scm-cache)))
          (verbatim ,(url->system (doc-macro-cache))))
       #t

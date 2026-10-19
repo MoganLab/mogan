@@ -187,7 +187,7 @@
              (x2 (* 1.0 (string->number val2)))
              (mag (/ x2 x1))
              (txt
-               `(with ,"magnification" ,(number->string mag) ,s)
+               `(with "magnification" ,(number->string mag) ,s)
              ) ;txt
             ) ;
         (build-with-font fn1 txt)
@@ -274,13 +274,13 @@
 
 (define (build-with-font fn body)
   (let* ((cfn (closest-font fn)) (lfn (logical-font-public (car cfn) (cadr cfn))))
-    `(with ,"font"
+    `(with "font"
        ,(logical-font-family lfn)
-       ,"font-family"
+       "font-family"
        ,(logical-font-variant lfn)
-       ,"font-series"
+       "font-series"
        ,(logical-font-series lfn)
-       ,"font-shape"
+       "font-shape"
        ,(logical-font-shape lfn)
        ,body)
   ) ;let*

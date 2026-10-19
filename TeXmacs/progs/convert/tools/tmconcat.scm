@@ -119,7 +119,7 @@
 ) ;define
 
 (define (tab-weak tab)
-  `(,(car tab) ,(cadr tab) ,"0")
+  `(,(car tab) ,(cadr tab) "0")
 ) ;define
 
 (define (has-tab? x)

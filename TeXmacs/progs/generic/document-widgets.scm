@@ -237,7 +237,7 @@
 
 (define (make-pn-l-stree name m-name style)
   (let ((m-sym (string->symbol m-name)))
-    `(macro (if (less (,m-sym) ,"1") ,"" (number (,m-sym) ,style)))
+    `(macro (if (less (,m-sym) "1") "" (number (,m-sym) ,style)))
   ) ;let
 ) ;define
 
@@ -1079,7 +1079,7 @@
           "100px"
           (texmacs-input
             `(document ,(initial-get-tree u var))
-            `(style (tuple ,@style ,"gui-base"))
+            `(style (tuple ,@style "gui-base"))
             (header-buffer var)
           ) ;texmacs-input
         ) ;resize
@@ -1135,7 +1135,7 @@
            `(not (or (less ,page-nr ,start) (greater ,page-nr ,end)))
          ) ;range-test
         ) ;
-    `(if ,range-test ,content ,"")
+    `(if ,range-test ,content "")
   ) ;let*
 ) ;define
 
@@ -1255,7 +1255,7 @@
             (resize "480px"
               "100px"
               (texmacs-input `(document ,content-tree)
-                `(style (tuple ,@style ,"gui-base"))
+                `(style (tuple ,@style "gui-base"))
                 (string->url "tmfs://aux/advanced-header")
               ) ;texmacs-input
             ) ;resize
@@ -1292,7 +1292,7 @@
            `(not (or (less ,page-nr ,start) (greater ,page-nr ,end)))
          ) ;range-test
         ) ;
-    `(if ,range-test ,content ,"")
+    `(if ,range-test ,content "")
   ) ;let*
 ) ;define
 
@@ -1412,7 +1412,7 @@
             (resize "480px"
               "100px"
               (texmacs-input `(document ,content-tree)
-                `(style (tuple ,@style ,"gui-base"))
+                `(style (tuple ,@style "gui-base"))
                 (string->url "tmfs://aux/advanced-footer")
               ) ;texmacs-input
             ) ;resize

@@ -188,7 +188,7 @@
          (bod (tm-ref t :last))
          (lab (if (null? opt-lab) 'mirror-comment (car opt-lab)))
         ) ;
-    `(,lab ,uid' ,mid ,typ ,by ,tim ,"" ,bod)
+    `(,lab ,uid' ,mid ,typ ,by ,tim "" ,bod)
   ) ;let*
 ) ;define
 

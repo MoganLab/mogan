@@ -206,7 +206,7 @@
 
 (tm-define (make-calc-table tag)
   (insert-go-to
-    `(calc-table ,(create-unique-id) ,"")
+    `(calc-table ,(create-unique-id) "")
     '(1 0)
   ) ;insert-go-to
   (make tag)

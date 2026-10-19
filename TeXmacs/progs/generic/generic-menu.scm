@@ -262,7 +262,7 @@
 (tm-menu (string-input-menu t i)
   (push-focus t
     (let* ((name (tree-child-long-name* t i))
-           (s `(concat ,"Set " ,name))
+           (s `(concat "Set " ,name))
            (prompt (upcase-first name))
            (type (tree-child-type t i))
            (fm (type->format type))
@@ -1228,11 +1228,11 @@
        (input (if answer
                 (begin
                   (set-interactive-tool-arg (quote ,win) (quote ,fun) ,i answer)
-                  (if (< (+ ,i ,1) ,(length args))
-                    (keyboard-focus-on (string-append ,"interactive-"
-                                         (number->string (+ ,i ,1))))
+                  (if (< (+ ,i 1) ,(length args))
+                    (keyboard-focus-on (string-append "interactive-"
+                                         (number->string (+ ,i 1))))
                     (interactive-ok (quote ,win) (quote ,fun) (quote ,args))))
-                (tool-close ,:any 'interactive-tool ,#f (quote ,win)))
+                (tool-close ,:any 'interactive-tool #f (quote ,win)))
          ,(interactive-retype type i)
          (quote ,(rcons vals ""))
          ,w))
@@ -1281,7 +1281,7 @@
                              (input (begin
                                       (set-interactive-tool-arg (quote ,win)
                                         (quote ,fun)
-                                        ,0
+                                        0
                                         answer)
                                       (when answer
                                         (interactive-ok (quote ,win)
@@ -1299,8 +1299,8 @@
                            (.. 0 (length args))))
               ===
               (hlist >>>
-                (division ,"plain"
-                  (,"Ok"
+                (division "plain"
+                  ("Ok"
                    (interactive-ok (quote ,win) (quote ,fun) (quote ,args))))))
          ) ;side?
          (else
@@ -1312,8 +1312,8 @@
                             //
                             //
                             (vlist (glue #f #t 0 0)
-                              (division ,"plain"
-                                (hlist (,"Ok"
+                              (division "plain"
+                                (hlist ("Ok"
                                         (interactive-ok (quote ,win)
                                           (quote ,fun)
                                           (quote ,args)))

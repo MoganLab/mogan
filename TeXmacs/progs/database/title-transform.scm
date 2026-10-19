@@ -29,7 +29,7 @@
                (sym*
                  `(number ,(number->string nr) ,num)
                ) ;sym*
-               (sym `(with ,"font-shape" ,"italic" ,sym*))
+               (sym `(with "font-shape" "italic" ,sym*))
                (id (string-append "authref-" (number->string nr)))
                (nname `(doc-note-ref ,sym (noteref-sep) ,id ,name))
               ) ;
@@ -41,7 +41,7 @@
                (sym*
                  `(number ,(number->string nr) ,num)
                ) ;sym*
-               (sym `(with ,"font-shape" ,"italic" ,sym*))
+               (sym `(with "font-shape" "italic" ,sym*))
                (id (string-append "authref-" (number->string nr)))
                (lab* (symbol-append (tm-label item) '-note))
                (lab (if (== where :notes) lab* 'doc-footnote-text))

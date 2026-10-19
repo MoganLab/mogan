@@ -33,8 +33,8 @@
 
 
 
-(define-public-macro (1+ n) `(+ ,n ,1))
-(define-public-macro (1- n) `(- ,n ,1))
+(define-public-macro (1+ n) `(+ ,n 1))
+(define-public-macro (1- n) `(- ,n 1))
 (define-public (noop . args) (and (pair? args) (car args)))
 
 (define-public (delq x l)
@@ -159,7 +159,7 @@
 
 (define-public (make-promise done? proc) (list (cons done? proc)))
 
-(define-public-macro (delay-force expr) `(make-promise ,#f (lambda ,() ,expr)))
+(define-public-macro (delay-force expr) `(make-promise #f (lambda ,() ,expr)))
 
 (define-public-macro (delay expr)
   (list 'delay-force (list 'make-promise #t (list 'lambda () expr)))

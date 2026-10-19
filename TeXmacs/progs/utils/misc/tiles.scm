@@ -35,13 +35,13 @@
          (fill (string-append "0." perc))
          (art (if art? "0.1" "0"))
          (eff0 ())
-         (eff1 `(eff-hatch ,"0" ,"6" ,"10" ,fill ,art))
-         (eff2 `(eff-hatch ,"0" ,"-6" ,"9" ,fill ,art))
-         (eff3 `(eff-hatch ,"0" ,"12" ,"2" ,fill ,art))
-         (eff4 `(eff-hatch ,"0" ,"12" ,"0" ,fill ,art))
-         (eff5 `(eff-hatch ,"0" ,"0" ,"12" ,fill ,art))
-         (eff6 `(eff-hatch ,"0" ,"8" ,"8" ,fill ,art))
-         (eff7 `(eff-hatch ,"0" ,"-8" ,"8" ,fill ,art))
+         (eff1 `(eff-hatch "0" "6" "10" ,fill ,art))
+         (eff2 `(eff-hatch "0" "-6" "9" ,fill ,art))
+         (eff3 `(eff-hatch "0" "12" "2" ,fill ,art))
+         (eff4 `(eff-hatch "0" "12" "0" ,fill ,art))
+         (eff5 `(eff-hatch "0" "0" "12" ,fill ,art))
+         (eff6 `(eff-hatch "0" "8" "8" ,fill ,art))
+         (eff7 `(eff-hatch "0" "-8" "8" ,fill ,art))
          (effl (list eff0 eff1 eff2 eff3 eff4 eff5 eff6 eff7))
          (effs (map (cut list-ref effl <>) nums))
          (eff
@@ -76,9 +76,9 @@
          (fill
            (number->string (* fact (sqrt (* 0.01 fp))))
          ) ;fill
-         (eff1 `(eff-dots ,"0" ,"12" ,"0" ,"6" ,"10" ,fill ,"0"))
-         (eff2 `(eff-dots ,"0" ,"12" ,"0" ,"0" ,"12" ,fill ,"0"))
-         (eff3 `(eff-dots ,"0" ,"12" ,"0" ,"6" ,"10" ,fill ,"0.15"))
+         (eff1 `(eff-dots "0" "12" "0" "6" "10" ,fill "0"))
+         (eff2 `(eff-dots "0" "12" "0" "0" "12" ,fill "0"))
+         (eff3 `(eff-dots "0" "12" "0" "6" "10" ,fill "0.15"))
          (effl (list eff1 eff2 eff3))
          (eff (list-ref effl num))
         ) ;

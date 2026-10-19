@@ -41,26 +41,26 @@
 (define (latex-error-doc* err)
   (if (<= (tree-arity err) 2)
     (string->document (tree->string (tree-ref err 0)))
-    `(document (padded (with ,"color"
-                         ,"dark red"
+    `(document (padded (with "color"
+                         "dark red"
                          ,(string->document (tree->string (tree-ref err 2))))
-                 ,"0fn"
-                 ,"0.5fn")
-       (padded (with ,"color"
-                 ,"black"
+                 "0fn"
+                 "0.5fn")
+       (padded (with "color"
+                 "black"
                  ,(string->document (tree->string (tree-ref err 3))))
-         ,"0fn"
-         ,"0.5fn")
-       (padded (with ,"color"
-                 ,"dark blue"
+         "0fn"
+         "0.5fn")
+       (padded (with "color"
+                 "dark blue"
                  ,(string->document (tree->string (tree-ref err 4))))
-         ,"0fn"
-         ,"0.5fn")
-       (padded (with ,"color"
-                 ,"black"
+         "0fn"
+         "0.5fn")
+       (padded (with "color"
+                 "black"
                  ,(string->document (tree->string (tree-ref err 5))))
-         ,"0fn"
-         ,"0.5fn"))
+         "0fn"
+         "0.5fn"))
   ) ;if
 ) ;define
 

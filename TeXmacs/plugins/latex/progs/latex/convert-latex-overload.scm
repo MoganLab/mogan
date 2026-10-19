@@ -29,13 +29,13 @@
 (define-macro (latex-texmacs-section name inside style)
   `(smart-table latex-texmacs-macro
      (,:require (latex-has-style? ,style))
-     (,name (!append (medskip) (bigskip) ,"\n\n" (noindent) (textbf ,inside))))
+     (,name (!append (medskip) (bigskip) "\n\n" (noindent) (textbf ,inside))))
 ) ;define-macro
 
 (define-macro (latex-texmacs-paragraph name inside style)
   `(smart-table latex-texmacs-macro
      (,:require (latex-has-style? ,style))
-     (,name (!append (smallskip) ,"\n\n" (noindent) (textbf ,inside))))
+     (,name (!append (smallskip) "\n\n" (noindent) (textbf ,inside))))
 ) ;define-macro
 
 (latex-texmacs-section chapter (!append "\\huge " 1) "article")
@@ -61,29 +61,29 @@
   `(smart-table latex-texmacs-env-preamble
      (:require (latex-depends? "amsthm"))
      (,abbr
-      (!append ,"\\theoremstyle{plain}\n"
+      (!append "\\theoremstyle{plain}\n"
         (newtheorem ,abbr (!translate ,full))
-        ,"\n")))
+        "\n")))
 ) ;define-macro
 
 (define-macro (ams-texmacs-remark abbr full)
   `(smart-table latex-texmacs-env-preamble
      (:require (latex-depends? "amsthm"))
      (,abbr
-      (!append ,"\\theoremstyle{remark}\n"
+      (!append "\\theoremstyle{remark}\n"
         (newtheorem ,abbr (!translate ,full))
-        ,"\n")))
+        "\n")))
 ) ;define-macro
 
 (define-macro (ams-texmacs-exercise abbr full)
   `(smart-table latex-texmacs-env-preamble
      (:require (latex-depends? "amsthm"))
      (,abbr
-      (!append ,"\\newtheoremstyle{indent-exercise}{3pt}{3pt}"
-        ,"{\\small}{\\parindent}{\\bf\\small}{.}{.5em}{}{}\n"
-        ,"\\theoremstyle{indent-exercise}\n"
+      (!append "\\newtheoremstyle{indent-exercise}{3pt}{3pt}"
+        "{\\small}{\\parindent}{\\bf\\small}{.}{.5em}{}{}\n"
+        "\\theoremstyle{indent-exercise}\n"
         (newtheorem ,abbr (!translate ,full))
-        ,"\n")))
+        "\n")))
 ) ;define-macro
 
 (ams-texmacs-theorem "theorem" "Theorem")
