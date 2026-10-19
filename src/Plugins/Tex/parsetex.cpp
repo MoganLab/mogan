@@ -714,7 +714,7 @@ is_math_environment (tree t) {
     string bs= b[i][0]->label;
     string es= e[j][0]->label;
     bool   ok= starts (bs, "\\begin-") && starts (es, "\\end-") &&
-             bs (7, N (bs)) == es (5, N (es));
+               bs (7, N (bs)) == es (5, N (es));
     // cout << t[1] << " -> " << ok << "\n";
     return ok;
   }
@@ -1152,7 +1152,7 @@ latex_parser::parse_command (string s, int& i, string cmd, int change) {
         is_tuple (t, "\\declaretheorem", 1)) {
       string var         = "\\begin-" * string_arg (t[N (t) - 1]);
       command_type (var) = "enunciation";
-      command_arity (var)= 0;
+      command_arity (var)= -1; // keep the optional [Title]
       var                = "\\end-" * string_arg (t[N (t) - 1]);
       command_type (var) = "enunciation";
       command_arity (var)= 0;
@@ -1160,7 +1160,7 @@ latex_parser::parse_command (string s, int& i, string cmd, int change) {
     if (is_tuple (t, "\\newtheorem", 2) || is_tuple (t, "\\newtheorem*", 2)) {
       string var         = "\\begin-" * string_arg (t[1]);
       command_type (var) = "enunciation";
-      command_arity (var)= 0;
+      command_arity (var)= -1; // keep the optional [Title]
       var                = "\\end-" * string_arg (t[1]);
       command_type (var) = "enunciation";
       command_arity (var)= 0;
