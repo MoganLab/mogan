@@ -376,8 +376,13 @@ ChatController::onAttachRequested (const string& sessionId,
 
   popup->adjustSize ();
 
-  int    popupX= globalPos.x ();
-  int    popupY= globalPos.y () - popup->height () - 4;
+  // 空会话（未发消息）的 chat 标签页：附件按钮位于输入框正下方，浮层若按
+  // 默认「按钮上方」展开会覆盖整个输入区；强制改成向下弹出，确保用户能
+  // 边选文件边看到自己的草稿。
+  bool   isEmptyChatSession= is_empty (session->title);
+  int    popupX            = globalPos.x ();
+  int    popupY            = isEmptyChatSession ? globalPos.y () + 36
+                                                : globalPos.y () - popup->height () - 4;
   QPoint menuPos (popupX, popupY);
 
   QScreen* screen= QGuiApplication::screenAt (globalPos);
