@@ -162,7 +162,7 @@
   (:synopsis "Rebuild translations file adding the missing ones (up to now)")
   (tr-parse language)
   (user-confirm
-    `(replace ,"This will overwrite the dictionary %1 with %2 entries. Are you sure?"
+    `(replace "This will overwrite the dictionary %1 with %2 entries. Are you sure?"
        (verbatim ,(tr-file language))
        ,(ahash-size (tr-hash language)))
     #f
@@ -175,7 +175,7 @@
             ) ;lambda
           ) ;with-output-to-file
           (set-message
-            `(replace ,"Wrote file %1" (verbatim ,(tr-file language)))
+            `(replace "Wrote file %1" (verbatim ,(tr-file language)))
             ""
           ) ;set-message
         ) ;begin

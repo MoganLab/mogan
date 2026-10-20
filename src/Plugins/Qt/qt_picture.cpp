@@ -136,17 +136,16 @@ native_picture (int w, int h, int ox, int oy) {
 #endif
 
 void
-qt_renderer_rep::draw_picture (picture p, SI x, SI y, int alpha) {
+qt_renderer_rep::draw_picture (picture p, DI x, DI y, int alpha) {
   if (is_nil (p)) return;
   p                   = as_qt_picture (p);
   qt_picture_rep* pict= (qt_picture_rep*) p->get_handle ();
   if (pict == NULL || pict->pict.isNull ()) return;
   int x0= pict->ox, y0= pict->h - 1 - pict->oy;
-  DI  X= x, Y= y;
-  decode (X, Y);
+  decode (x, y);
   qreal old_opacity= painter->opacity ();
   painter->setOpacity (qreal (alpha) / qreal (255));
-  painter->drawImage (X - x0, Y - y0, pict->pict);
+  painter->drawImage (x - x0, y - y0, pict->pict);
   painter->setOpacity (old_opacity);
 }
 
@@ -166,8 +165,8 @@ qt_image_renderer_rep::qt_image_renderer_rep (picture p, double zoom)
   int pox= p->get_origin_x ();
   int poy= p->get_origin_y ();
 
-  ox= pox * pixel;
-  oy= poy * pixel;
+  ox= ((DI) pox) * pixel;
+  oy= ((DI) poy) * pixel;
   /*
   cx1= 0;
   cy1= 0;

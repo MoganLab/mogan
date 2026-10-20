@@ -605,7 +605,7 @@
   (when (and (string? s) (string-starts? s "<") (string-ends? s ">"))
     (with rs
       (string-append "<rubber-" (substring s 1 (string-length s)))
-      (insert-go-to `(long-arrow ,rs ,"") '(1 0))
+      (insert-go-to `(long-arrow ,rs "") '(1 0))
     ) ;with
   ) ;when
 ) ;tm-define
@@ -614,7 +614,7 @@
   (when (and (string? s) (string-starts? s "<") (string-ends? s ">"))
     (with rs
       (string-append "<rubber-" (substring s 1 (string-length s)))
-      (insert-go-to `(long-arrow ,rs ,"" ,"") '(2 0))
+      (insert-go-to `(long-arrow ,rs "" "") '(2 0))
     ) ;with
   ) ;when
 ) ;tm-define
@@ -702,10 +702,10 @@
    ) ;
    ((and (tree-in? t '(around around*)) (== (tree-arity t) 3))
     (when (tree-atomic? (tree-ref t 0))
-      (tree-set t 0 `(left ,(tree-ref t 0) ,"0"))
+      (tree-set t 0 `(left ,(tree-ref t 0) "0"))
     ) ;when
     (when (tree-atomic? (tree-ref t 2))
-      (tree-set t 2 `(right ,(tree-ref t 2) ,"0"))
+      (tree-set t 2 `(right ,(tree-ref t 2) "0"))
     ) ;when
     (bracket-size-increase (tree-ref t 0) by)
     (bracket-size-increase (tree-ref t 2) by)
@@ -897,7 +897,7 @@
       (begin
         (clipboard-cut "temp")
         (insert-go-to
-          `(,(if large? 'around* 'around) ,lb ,"" ,rb)
+          `(,(if large? 'around* 'around) ,lb "" ,rb)
           '(1 0)
         ) ;insert-go-to
         (clipboard-paste "temp")
@@ -925,7 +925,7 @@
          ((try-matching-insert #t lb large?) (noop))
          (else
            (insert-go-to
-             `(,(if large? 'around* 'around) ,lb ,"" ,rb)
+             `(,(if large? 'around* 'around) ,lb "" ,rb)
              '(1 0)
            ) ;insert-go-to
          ) ;else
@@ -1316,7 +1316,7 @@
       (if (> (length symbols) 1)
         (set-auxiliary-widget
           (make-menu-widget
-            `((tile ,99 (link (lambda ,() ,symbols))))
+            `((tile 99 (link (lambda ,() ,symbols))))
             0
           ) ;make-menu-widget
           "Math"

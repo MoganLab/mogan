@@ -557,7 +557,7 @@
   (when (or global-picture? global-gradient? (== (get-name) "neutral-pattern.png"))
     (set! global-picture? #f)
     (set! global-gradient? #f)
-    (set! global-pattern-color `(pattern ,"neutral-pattern.png" ,w ,"100@"))
+    (set! global-pattern-color `(pattern "neutral-pattern.png" ,w "100@"))
   ) ;when
   (with u
     (current-buffer)

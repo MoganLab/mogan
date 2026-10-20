@@ -79,7 +79,7 @@
     (plot-search gt name)
     (if p
       `(document (plot-script-input ,@(tm-children p)))
-      `(document (plot-script-input ,lan ,ses ,name (document "") ,""))
+      `(document (plot-script-input ,lan ,ses ,name (document "") ""))
     ) ;if
   ) ;with
 ) ;tm-define

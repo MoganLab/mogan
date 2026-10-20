@@ -703,7 +703,7 @@
          (l5 (filter string? l4))
          (page-opts (list-intersperse l5 ","))
         ) ;
-    (if (nnull? page-opts) `(!append (geometry (!concat ,@page-opts)) ,"\n") "")
+    (if (nnull? page-opts) `(!append (geometry (!concat ,@page-opts)) "\n") "")
   ) ;let*
 ) ;define
 

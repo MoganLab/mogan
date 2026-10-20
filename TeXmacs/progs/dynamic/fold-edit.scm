@@ -450,8 +450,8 @@
 
 (tm-define (make-overlays l)
   (if (== l 'overlays)
-    (insert-go-to `(,l ,"1" ,"1" (document "")) '(2 0 0))
-    (insert-go-to `(,l ,"1" ,"1" ,"") '(2 0))
+    (insert-go-to `(,l "1" "1" (document "")) '(2 0 0))
+    (insert-go-to `(,l "1" "1" "") '(2 0))
   ) ;if
 ) ;tm-define
 
@@ -460,11 +460,11 @@
     overlays-context?
     (if (unary-overlay-tag? (tree-label t))
       (insert-go-to
-        `(,l ,(tree-copy (tree-ref t 0)) ,"")
+        `(,l ,(tree-copy (tree-ref t 0)) "")
         '(1 0)
       ) ;insert-go-to
       (insert-go-to
-        `(,l ,(tree-copy (tree-ref t 0)) ,"" ,"")
+        `(,l ,(tree-copy (tree-ref t 0)) "" "")
         '(1 0)
       ) ;insert-go-to
     ) ;if
@@ -1638,7 +1638,7 @@
     `(gr-screen ,(extract-slide-template (tree-ref t 0)))
    ) ;
    ((tree-func? t 'gr-overlays 3)
-    `(gr-overlays ,"1" ,"1" ,(extract-slide-template (tree-ref t 2)))
+    `(gr-overlays "1" "1" ,(extract-slide-template (tree-ref t 2)))
    ) ;
    ((tree-in? t '(with with-screen-color))
     (with l
@@ -1687,7 +1687,7 @@
     (tree-innermost 'graphics #t)
     (while (tree-is? t :up 'with) (set! t (tree-up t)))
     (when (not (overlays-context? t))
-      (tree-set! t `(gr-overlays ,(if forwards? "2" "1") ,"2" ,t))
+      (tree-set! t `(gr-overlays ,(if forwards? "2" "1") "2" ,t))
     ) ;when
   ) ;and-with
 ) ;tm-define

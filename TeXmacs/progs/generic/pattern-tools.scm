@@ -477,11 +477,11 @@
                                      "396guipx")
                             (cwith "1" "1" "1" "1" "cell-height" "246guipx")
                             (cwith "1" "1" "1" "1" "cell-vmode" "exact")
-                            (cwith ,"1"
-                              ,"1"
-                              ,"1"
-                              ,"1"
-                              ,"cell-background"
+                            (cwith "1"
+                              "1"
+                              "1"
+                              "1"
+                              "cell-background"
                               ,(get-color key))
                             (table (row (cell ""))))))
         '(style (tuple "generic"))

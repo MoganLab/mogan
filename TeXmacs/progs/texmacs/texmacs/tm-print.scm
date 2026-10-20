@@ -313,20 +313,20 @@
       (cpp-export-pdf-dialog
         (stree->tree
           `(export-pdf-form (toggle ,(translate "Embed source document")
-                              ,"embed"
-                              ,"false")
+                              "embed"
+                              "false")
              (toggle ,(translate "Expand foldable environments in single slide")
-               ,"expand-slides"
+               "expand-slides"
                ,(if (preference-on? (pref-convert-pdf-expand-slides))
                   "true"
                   "false")
                ,(translate "When enabled, foldable environments are directly expanded on a single slide. When disabled, foldable environments are sequentially expanded across multiple slides."))
              ,@(if (has-style-package? "dark")
                  `((toggle ,(translate "Keep dark mode in exported PDF")
-                     ,"keep-dark"
-                     ,"false"))
+                     "keep-dark"
+                     "false"))
                  '())
-             (path ,(translate "Export to") ,"path" ,default-path))
+             (path ,(translate "Export to") "path" ,default-path))
         ) ;stree->tree
       ) ;cpp-export-pdf-dialog
     ) ;with
@@ -465,11 +465,11 @@
     (cpp-print-to-file-dialog
       (stree->tree
         `(print-to-file-form (path ,(translate "File name:")
-                               ,"name"
+                               "name"
                                ,(propose-postscript-name))
-           (number ,(translate "First page:") ,"first" ,"1")
+           (number ,(translate "First page:") "first" "1")
            (number ,(translate "Last page:")
-             ,"last"
+             "last"
              ,(number->string (get-page-count))))
       ) ;stree->tree
     ) ;cpp-print-to-file-dialog

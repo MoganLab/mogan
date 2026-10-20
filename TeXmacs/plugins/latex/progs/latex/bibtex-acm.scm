@@ -22,7 +22,7 @@
   (let* ((f
            (if (bib-null? (list-ref x 1))
              ""
-             `(concat ,", " ,(bib-abbreviate (list-ref x 1) "." '(nbsp)))
+             `(concat ", " ,(bib-abbreviate (list-ref x 1) "." '(nbsp)))
            ) ;if
          ) ;f
          (vv
@@ -30,10 +30,10 @@
          ) ;vv
          (ll (if (bib-null? (list-ref x 3)) "" (bib-purify (list-ref x 3))))
          (jj
-           (if (bib-null? (list-ref x 4)) "" `(concat ,", " ,(list-ref x 4)))
+           (if (bib-null? (list-ref x 4)) "" `(concat ", " ,(list-ref x 4)))
          ) ;jj
         ) ;
-    `(with ,"font-shape" ,"small-caps" (concat ,vv ,ll ,jj ,f))
+    `(with "font-shape" "small-caps" (concat ,vv ,ll ,jj ,f))
   ) ;let*
 ) ;tm-define
 
@@ -55,7 +55,7 @@
   (let* ((y (bib-field x "year")) (m (bib-field x "month")))
     (if (bib-null? y)
       (if (bib-null? m) "" m)
-      (if (bib-null? m) y `(concat ,m ," " ,y))
+      (if (bib-null? m) y `(concat ,m " " ,y))
     ) ;if
   ) ;let*
 ) ;tm-define
@@ -65,12 +65,12 @@
   (let* ((b (bib-field x "booktitle"))
          (a (bib-field x "address"))
          (cl
-           `(concat ," (" ,(bib-new-list ", " `(,a ,(bib-format-date x))) ,")")
+           `(concat " (" ,(bib-new-list ", " `(,a ,(bib-format-date x))) ")")
          ) ;cl
         ) ;
     (if (bib-null? b)
       ""
-      `(concat ,(bib-translate "in ") (with ,"font-shape" ,"italic" ,b) ,cl)
+      `(concat ,(bib-translate "in ") (with "font-shape" "italic" ,b) ,cl)
     ) ;if
   ) ;let*
 ) ;tm-define
@@ -88,19 +88,19 @@
               ) ;series
               (sep (if (< (bib-text-length n) 3) '(nbsp) " "))
              ) ;
-          `(concat ,"no." ,sep ,n ,series)
+          `(concat "no." ,sep ,n ,series)
         ) ;let
       ) ;if
       (let ((series
               (if (bib-null? s)
                 ""
                 `(concat ,(bib-translate " of ")
-                   (with ,"font-shape" ,"italic" ,s))
+                   (with "font-shape" "italic" ,s))
               ) ;if
             ) ;series
             (sep (if (< (bib-text-length v) 3) '(nbsp) " "))
            ) ;
-        `(concat ,"vol." ,sep ,v ,series)
+        `(concat "vol." ,sep ,v ,series)
       ) ;let
     ) ;if
   ) ;let*
@@ -126,10 +126,10 @@
       (bib-format-pages x)
       (let ((type (if (bib-null? t) (bib-translate "chapter") (bib-locase t)))
             (pages
-              `(concat ,", " ,(bib-format-pages x))
+              `(concat ", " ,(bib-format-pages x))
             ) ;pages
            ) ;
-        `(concat ,type ," " ,c ,pages)
+        `(concat ,type " " ,c ,pages)
       ) ;let
     ) ;if
   ) ;let*
@@ -149,7 +149,7 @@
 
 (define (bib-format-edition x)
   (let* ((e (bib-field x "edition")))
-    (if (bib-null? e) "" `(concat ,e ," ed."))
+    (if (bib-null? e) "" `(concat ,e " ed."))
   ) ;let*
 ) ;define
 
@@ -163,9 +163,9 @@
     `((concat ,(bib-emphasize `(concat ,(bib-format-field x "journal")
                                  ,(if (bib-null? (bib-field x "volume")) "" " ")
                                  ,(bib-format-field x "volume")))
-        ," ("
+        " ("
         ,(bib-format-date x)
-        ,")")
+        ")")
       ,(bib-format-pages x))
   ) ;bib-new-sentence
 ) ;define
@@ -175,7 +175,7 @@
     `(,(bib-emphasize `(concat ,(bib-format-field x "journal")
                          ,(if (bib-null? (bib-field x "volume")) "" " ")
                          ,(bib-format-field x "volume")))
-      (concat ,(bib-format-field x "number") ," (" ,(bib-format-date x) ,")")
+      (concat ,(bib-format-field x "number") " (" ,(bib-format-date x) ")")
       ,(bib-format-pages x))
   ) ;bib-new-sentence
 ) ;define
@@ -323,12 +323,12 @@
                                             (bib-format-editor x)))
                           ,(bib-new-block (bib-new-sentence `((concat ,(bib-emphasize (bib-format-field x
                                                                                         "title"))
-                                                                ," ("
+                                                                " ("
                                                                 ,(bib-new-list ", "
                                                                    `(,(bib-format-field x
                                                                         "address")
                                                                      ,(bib-format-date x)))
-                                                                ,")")
+                                                                ")")
                                                               ,(bib-format-volume-or-number x)
                                                               ,(bib-format-field x
                                                                  "organization")

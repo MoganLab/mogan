@@ -1273,17 +1273,17 @@ edit_interface_rep::apply_changes () {
     if (tremble_count > 3) dw= (1 + min (tremble_count - 3, 25)) * 2 * pixel;
     SI /*P1= zpixel,*/ P2= 2 * zpixel, P3= 3 * zpixel;
     cursor             cu= get_cursor ();
-    rectangle ocr (oc->ox + ((SI) ((oc->y1 - dw) * oc->slope)) - P3 - dw,
+    rectangle ocr (oc->ox + ((DI) ((oc->y1 - dw) * oc->slope)) - P3 - dw,
                    oc->oy + (oc->y1 - dw) - P3,
-                   oc->ox + ((SI) ((oc->y2 + dw) * oc->slope)) + P2 + dw,
+                   oc->ox + ((DI) ((oc->y2 + dw) * oc->slope)) + P2 + dw,
                    oc->oy + (oc->y2 + dw) + P3);
     if (is_nil (copy_always) || copy_always->item != ocr) {
       copy_always= rectangles (ocr, copy_always);
     }
     invalidate (ocr->x1, ocr->y1, ocr->x2, ocr->y2);
-    rectangle ncr (cu->ox + ((SI) ((cu->y1 - dw) * cu->slope)) - P3 - dw,
+    rectangle ncr (cu->ox + ((DI) ((cu->y1 - dw) * cu->slope)) - P3 - dw,
                    cu->oy + (cu->y1 - dw) - P3,
-                   cu->ox + ((SI) ((cu->y2 + dw) * cu->slope)) + P2 + dw,
+                   cu->ox + ((DI) ((cu->y2 + dw) * cu->slope)) + P2 + dw,
                    cu->oy + (cu->y2 + dw) + P3);
     invalidate (ncr->x1, ncr->y1, ncr->x2, ncr->y2);
     if (is_nil (copy_always) || copy_always->item != ncr) {
@@ -1292,7 +1292,7 @@ edit_interface_rep::apply_changes () {
     oc= copy (cu);
 
     // set hot spot in the gui
-    send_cursor (this, (SI) floor (cu->ox * magf), (SI) floor (cu->oy * magf));
+    send_cursor (this, (DI) floor (cu->ox * magf), (DI) floor (cu->oy * magf));
 
     path sp           = selection_get_cursor_path ();
     bool semantic_flag= semantic_active (path_up (sp));
@@ -1502,10 +1502,10 @@ edit_interface_rep::animate () {
     if (tremble_count > 3) dw= (1 + min (tremble_count - 3, 25)) * 2 * pixel;
     SI x_pad= 3 * zpixel + dw;
     SI y_pad= 3 * zpixel;
-    SI x1   = cu->ox + ((SI) ((cu->y1 - dw) * cu->slope)) - x_pad;
-    SI y1   = cu->oy + (cu->y1 - dw) - y_pad;
-    SI x2   = cu->ox + ((SI) ((cu->y2 + dw) * cu->slope)) + (2 * zpixel) + dw;
-    SI y2   = cu->oy + (cu->y2 + dw) + y_pad;
+    DI x1   = cu->ox + ((DI) ((cu->y1 - dw) * cu->slope)) - x_pad;
+    DI y1   = cu->oy + (cu->y1 - dw) - y_pad;
+    DI x2   = cu->ox + ((DI) ((cu->y2 + dw) * cu->slope)) + (2 * zpixel) + dw;
+    DI y2   = cu->oy + (cu->y2 + dw) + y_pad;
     invalidate (x1, y1, x2, y2);
   }
 }

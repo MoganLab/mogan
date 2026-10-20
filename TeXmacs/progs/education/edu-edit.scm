@@ -152,7 +152,7 @@
         (tree-ref t 0)
         (cond
          ((not (tree-in? c '(hide-simple show-simple)))
-          (if (== mode :question) (tree-set! c `(hide-simple ,"false" ,c)))
+          (if (== mode :question) (tree-set! c `(hide-simple "false" ,c)))
          ) ;
          ((== mode :question)
           (when (not (tree-is? c 'hide-simple))
@@ -186,7 +186,7 @@
         (tree-ref t 0)
         (cond
          ((not (tree-in? c '(hide-reply show-reply)))
-          (if (== mode :question) (tree-set! c `(hide-reply ,"" ,c)))
+          (if (== mode :question) (tree-set! c `(hide-reply "" ,c)))
          ) ;
          ((== mode :question)
           (when (not (tree-is? c 'hide-reply))

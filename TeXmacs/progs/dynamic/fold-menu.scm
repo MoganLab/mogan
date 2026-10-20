@@ -85,7 +85,7 @@
 (tm-menu (supported-convertible-menu)
   (for (name (get-extern-converters))
    ((eval (format-get-name name))
-    (insert-go-to `(converter-input ,name ,"" ,"") '(1 0))
+    (insert-go-to `(converter-input ,name "" "") '(1 0))
    ) ;
   ) ;for
 ) ;tm-menu
@@ -352,12 +352,12 @@
           `(document ,(tree-ref t 0) (screens (shown (document ,@(cdr l)))))
         ) ;tree-assign!
         (if (and p (!= (car p) 0))
-          (apply tree-go-to `(,t ,1 ,0 ,0 ,(- (car p) 1) ,@(cdr p)))
+          (apply tree-go-to `(,t 1 0 0 ,(- (car p) 1) ,@(cdr p)))
         ) ;if
       ) ;begin
       (begin
         (tree-assign! t `(document (screens (shown (document ,@l)))))
-        (if p (apply tree-go-to `(,t ,0 ,0 ,0 ,@p)))
+        (if p (apply tree-go-to `(,t 0 0 0 ,@p)))
       ) ;begin
     ) ;if
   ) ;let*
@@ -547,12 +547,7 @@
                                            "140px")
                                   (cwith "1" "1" "1" "1" "cell-height" "90px")
                                   (cwith "1" "1" "1" "1" "cell-vmode" "exact")
-                                  (cwith ,"1"
-                                    ,"1"
-                                    ,"1"
-                                    ,"1"
-                                    ,"cell-background"
-                                    ,col)
+                                  (cwith "1" "1" "1" "1" "cell-background" ,col)
                                   (table (row (cell ""))))))
               '(style (tuple "generic"))
             ) ;texmacs-output

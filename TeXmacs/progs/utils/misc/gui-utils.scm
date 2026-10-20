@@ -148,12 +148,12 @@
            (mode (if ext? "auto" "exact"))
           ) ;
       (cons
-        `((,@cw ,"cell-valign" ,"t")
-          (,@cw ,"cell-width" ,w)
-          (,@cw ,"cell-height" ,h)
-          (,@cw ,"cell-hmode" ,mode)
-          (,@cw ,"cell-vmode" ,mode)
-          ,@(if ext? (list `(,@cw ,"cell-hpart" ,"1")) (list)))
+        `((,@cw "cell-valign" "t")
+          (,@cw "cell-width" ,w)
+          (,@cw "cell-height" ,h)
+          (,@cw "cell-hmode" ,mode)
+          (,@cw "cell-vmode" ,mode)
+          ,@(if ext? (list `(,@cw "cell-hpart" "1")) (list)))
         ""
       ) ;cons
     ) ;let*
@@ -221,12 +221,12 @@
            (mode (if ext? "auto" "exact"))
           ) ;
       (cons
-        `((,@cw ,"cell-valign" ,"t")
-          (,@cw ,"cell-width" ,w)
-          (,@cw ,"cell-height" ,h)
-          (,@cw ,"cell-hmode" ,mode)
-          (,@cw ,"cell-vmode" ,mode)
-          ,@(if ext? (list `(,@cw ,"cell-vpart" ,"1")) (list)))
+        `((,@cw "cell-valign" "t")
+          (,@cw "cell-width" ,w)
+          (,@cw "cell-height" ,h)
+          (,@cw "cell-hmode" ,mode)
+          (,@cw "cell-vmode" ,mode)
+          ,@(if ext? (list `(,@cw "cell-vpart" "1")) (list)))
         '(row "")
       ) ;cons
     ) ;let*

@@ -20,7 +20,7 @@
 (define (show-memory-information t)
   (let* ((s (tree->stree t))
          (a
-           `(concat ,s ," [" ,(number->string (texmacs-memory)) ," bytes]")
+           `(concat ,s " [" ,(number->string (texmacs-memory)) " bytes]")
          ) ;a
         ) ;
     (stree->tree a)

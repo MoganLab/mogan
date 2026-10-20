@@ -68,17 +68,17 @@
 
 (define (bibwid-output-content t style)
   (if (tree-is? t 'string)
-    `(with ,"bg-color"
+    `(with "bg-color"
        ,(bibwid-preview-bg-color)
-       ,"color"
+       "color"
        ,(bibwid-preview-fg-color)
-       (mini-paragraph ,"1250px"
+       (mini-paragraph "1250px"
          (document ,(replace "Please choose a valid %1 file" "BibTeX"))))
-    `(with ,"bg-color"
+    `(with "bg-color"
        ,(bibwid-preview-bg-color)
-       ,"color"
+       "color"
        ,(bibwid-preview-fg-color)
-       (mini-paragraph ,"1250px" ,(bib-process "bib" style (tree->stree t))))
+       (mini-paragraph "1250px" ,(bib-process "bib" style (tree->stree t))))
   ) ;if
 ) ;define
 

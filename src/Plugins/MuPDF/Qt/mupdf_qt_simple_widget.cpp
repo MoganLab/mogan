@@ -28,8 +28,8 @@ qt_simple_widget_rep::repaint_invalid_regions () {
   bs_ox= -pt_or.x1 * retina_factor;
   bs_oy= -pt_or.x2 * retina_factor;
 
-  SI  new_bs_ox= -pt_new_or.x1 * retina_factor;
-  SI  new_bs_oy= -pt_new_or.x2 * retina_factor;
+  DI  new_bs_ox= -pt_new_or.x1 * retina_factor;
+  DI  new_bs_oy= -pt_new_or.x2 * retina_factor;
   int new_bs_w = _newSize.width ();
   int new_bs_h = _newSize.height ();
   bs_zoomf     = std_shrinkf;
@@ -48,7 +48,7 @@ qt_simple_widget_rep::repaint_invalid_regions () {
         picture_renderer (new_backing_store, bs_zoomf * retina_factor);
 
     // copy the old backingstore
-    SI x1= 0, y1= 0, x2= bs_w, y2= bs_h;
+    DI x1= 0, y1= 0, x2= bs_w, y2= bs_h;
     ren->encode (x1, y1);
     ren->encode (x2, y2);
     ren2->fetch (x1, y2, x2, y1, ren, x1, y2);
@@ -111,7 +111,7 @@ qt_simple_widget_rep::repaint_invalid_regions () {
         invalid_regions= rectangles (lub);
 
       // cache since they are muddled by handle_repaint...
-      SI ox= ren->ox, oy= ren->oy;
+      DI ox= ren->ox, oy= ren->oy;
 
       rectangles rects= invalid_regions;
       invalid_regions = rectangles ();

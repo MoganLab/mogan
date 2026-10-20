@@ -35,7 +35,7 @@
   (for (e l)
     (eval
       `(begin
-         (if (not (defined? (quote ,(car e)))) (define-public ,(car e) ,#f))
+         (if (not (defined? (quote ,(car e)))) (define-public ,(car e) #f))
          (set! ,(car e)
            ,(with val
               (cadr e)
@@ -47,7 +47,7 @@
 ) ;define
 
 (define (proplist-load l funcs b)
-  (for (e l) (if (not (defined? (car e))) (eval `(define-public ,(car e) ,#f))))
+  (for (e l) (if (not (defined? (car e))) (eval `(define-public ,(car e) #f))))
   (if b (for (f funcs) (f)))
 ) ;define
 
@@ -140,9 +140,9 @@
          (props (cadr (cadr theslots)))
         ) ;
     `(begin
-       (if (not (defined? (quote ,name))) (define-public ,name ,#f))
+       (if (not (defined? (quote ,name))) (define-public ,name #f))
        (with cprops
-         ,#f
+         #f
          (set! cprops
            (map (lambda (x) (eval `(lambda ,() (set! ,(car x) ,(cadr x)))))
              (quote ,props)))
@@ -159,7 +159,7 @@
 ) ;define-public-macro
 
 (define-public-macro (with-state-slots sr . body)
-  `(begin (state-load ,sr ,#f) (with res (begin . ,body) (state-save ,sr) res))
+  `(begin (state-load ,sr #f) (with res (begin . ,body) (state-save ,sr) res))
 ) ;define-public-macro
 
 (define-public-macro (with-state-slots-by-name name . body)

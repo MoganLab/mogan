@@ -221,7 +221,7 @@
     ($generic ($tmfs-title "Commit Message of " (version-beautify-revision root rev))
       (if (== rev p)
         "parent 0"
-        `(concat ,"parent " ,($link (tmfs-url-commit root p) p))
+        `(concat "parent " ,($link (tmfs-url-commit root p) p))
       ) ;if
       (list 'new-line)
       ($for (x m) `(concat ,(utf8->cork x) ,(list 'new-line)))
@@ -232,15 +232,15 @@
                                (map (lambda (x) (get-row-from-x x maxs maxv)) d)))))
       (list 'new-line)
       `(concat ,nr
-         ," files changed, "
+         " files changed, "
          ,ins
-         ," insertions("
+         " insertions("
          (verbatim (with color green "+"))
-         ,"), "
+         "), "
          ,del
-         ," deletions("
+         " deletions("
          (verbatim (with color red "-"))
-         ,")")
+         ")")
     ) ;$generic
   ) ;let*
 ) ;tm-define
@@ -251,7 +251,7 @@
          (right (car (cdr parents)))
         ) ;
     ($generic ($tmfs-title "Merge")
-      `(concat ,"parents "
+      `(concat "parents "
          ,($link (tmfs-url-commit root left) left)
          ,(list 'new-line)
          ,($link (tmfs-url-commit root right) right))

@@ -336,7 +336,7 @@
         ((in? (unix->url name) (buffer-list)) (switch-to-buffer (unix->url name)))
         (else
           (set-message
-            `(concat ,"Error: no buffer " (verbatim ,name))
+            `(concat "Error: no buffer " (verbatim ,name))
             "switch to buffer"
           ) ;set-message
         ) ;else
@@ -350,8 +350,8 @@
        (let* ((,old (current-buffer)) (,new ,name))
          (and (or (url? ,new) (string? ,new))
            (buffer-exists? ,new)
-           (buffer-focus ,new ,#f)
-           (with ,res (begin ,@body) (buffer-focus ,old ,#f) ,res))))
+           (buffer-focus ,new #f)
+           (with ,res (begin ,@body) (buffer-focus ,old #f) ,res))))
   ) ;let*
 ) ;define-public-macro
 

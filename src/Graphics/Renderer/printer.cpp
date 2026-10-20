@@ -233,15 +233,14 @@ printer_rep::print (string s) {
 }
 
 void
-printer_rep::print (SI x, SI y) {
-  DI X= x, Y= y;
-  decode (X, Y);
-  print (as_string (X - dpi));
-  print (as_string (Y - dpi));
+printer_rep::print (DI x, DI y) {
+  decode (x, y);
+  print (as_string (x - dpi));
+  print (as_string (y - dpi));
 }
 
 void
-printer_rep::move_to (SI x, SI y) {
+printer_rep::move_to (DI x, DI y) {
   x+= ox;
   y+= oy;
   if (x >= 0) x= x / PIXEL;
@@ -683,7 +682,7 @@ printer_rep::set_background (brush b) {
 }
 
 void
-printer_rep::draw (int glyph_index, font_glyphs fn, SI x, SI y, int codepoint) {
+printer_rep::draw (int glyph_index, font_glyphs fn, DI x, DI y, int codepoint) {
   // cout << "Draw " << glyph_index << " at " << (x/PIXEL) << ", " << (y/PIXEL)
   // << "\n";
   if (opacity == 0) return;
@@ -704,7 +703,7 @@ printer_rep::draw (int glyph_index, font_glyphs fn, SI x, SI y, int codepoint) {
 }
 
 void
-printer_rep::line (SI x1, SI y1, SI x2, SI y2) {
+printer_rep::line (DI x1, DI y1, DI x2, DI y2) {
   if (opacity == 0) return;
   print (x1, y1);
   print (x2, y2);
@@ -726,7 +725,7 @@ printer_rep::lines (array<SI> x, array<SI> y) {
 }
 
 void
-printer_rep::clear (SI x1, SI y1, SI x2, SI y2) {
+printer_rep::clear (DI x1, DI y1, DI x2, DI y2) {
   select_color (bg);
   print (x1, y1);
   print (x2, y2);
@@ -735,7 +734,7 @@ printer_rep::clear (SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-printer_rep::fill (SI x1, SI y1, SI x2, SI y2) {
+printer_rep::fill (DI x1, DI y1, DI x2, DI y2) {
   if (opacity == 0) return;
   if ((x1 < x2) && (y1 < y2)) {
     print (x1, y1);
@@ -745,7 +744,7 @@ printer_rep::fill (SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-printer_rep::arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta) {
+printer_rep::arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta) {
   if (opacity == 0) return;
   print ((x1 + x2) / 2, (y1 + y2) / 2);
   print (as_string ((x2 - x1) / (2 * PIXEL)));
@@ -756,7 +755,7 @@ printer_rep::arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta) {
 }
 
 void
-printer_rep::fill_arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta) {
+printer_rep::fill_arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta) {
   if (opacity == 0) return;
   print ((x1 + x2) / 2, (y1 + y2) / 2);
   print (as_string ((x2 - x1) / (2 * PIXEL)));
@@ -800,8 +799,8 @@ incorporate_postscript (string s) {
 */
 
 void
-printer_rep::image (string name, string eps, SI x1, SI y1, SI x2, SI y2, SI w,
-                    SI h, SI x, SI y, int alpha) {
+printer_rep::image (string name, string eps, DI x1, DI y1, DI x2, DI y2, DI w,
+                    DI h, DI x, DI y, int alpha) {
   if (opacity == 0 || alpha == 0) return;
 
   double sc_x= (72.0 / dpi) * ((double) (w / PIXEL)) / ((double) (x2 - x1));
@@ -925,7 +924,7 @@ printer_rep::apply_shadow (DI x1, DI y1, DI x2, DI y2) {
 }
 
 renderer
-printer_rep::shadow (picture& pic, SI x1, SI y1, SI x2, SI y2) {
+printer_rep::shadow (picture& pic, DI x1, DI y1, DI x2, DI y2) {
   // NOTE: picture shadows are rasterized at PICTURE_ZOOM times the dpi
   double old_zoomf= this->zoomf;
   set_zoom_factor (5.0 * PICTURE_ZOOM);
@@ -935,7 +934,7 @@ printer_rep::shadow (picture& pic, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-printer_rep::draw_picture (picture p, SI x, SI y, int alpha) {
+printer_rep::draw_picture (picture p, DI x, DI y, int alpha) {
   (void) alpha; // FIXME
   int    w= p->get_width (), h= p->get_height ();
   int    ox= p->get_origin_x (), oy= p->get_origin_y ();
@@ -953,7 +952,7 @@ printer_rep::draw_picture (picture p, SI x, SI y, int alpha) {
 }
 
 void
-printer_rep::draw_scalable (scalable im, SI x, SI y, int alpha) {
+printer_rep::draw_scalable (scalable im, DI x, DI y, int alpha) {
   if (im->get_type () != scalable_image)
     renderer_rep::draw_scalable (im, x, y, alpha);
   else {
@@ -976,7 +975,7 @@ printer_rep::draw_scalable (scalable im, SI x, SI y, int alpha) {
 }
 
 void
-printer_rep::anchor (string label, SI x1, SI y1, SI x2, SI y2) {
+printer_rep::anchor (string label, DI x1, DI y1, DI x2, DI y2) {
   (void) x2;
   (void) y2;
   string s= "(";
@@ -991,7 +990,7 @@ printer_rep::anchor (string label, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-printer_rep::href (string label, SI x1, SI y1, SI x2, SI y2) {
+printer_rep::href (string label, DI x1, DI y1, DI x2, DI y2) {
   bool preserve= (get_locus_rendering ("locus-on-paper") == "preserve");
   if (linelen > 0) cr ();
   print ("[");
@@ -1015,9 +1014,8 @@ printer_rep::href (string label, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-printer_rep::toc_entry (string kind, string title, SI x, SI y) {
-  DI X= x, Y= y;
-  decode (X, Y);
+printer_rep::toc_entry (string kind, string title, DI x, DI y) {
+  decode (x, y);
   string ls= "1";
   if (kind == "toc-strong-1") ls= "1";
   if (kind == "toc-strong-2") ls= "2";
@@ -1027,8 +1025,8 @@ printer_rep::toc_entry (string kind, string title, SI x, SI y) {
   if (kind == "toc-4") ls= "6";
   if (kind == "toc-5") ls= "7";
   string ps= as_string (cur_page);
-  string xs= as_string (X - dpi);
-  string ys= as_string (Y - dpi);
+  string xs= as_string (x - dpi);
+  string ys= as_string (y - dpi);
   toc << tuple (title, ls, ps, xs, ys);
 }
 

@@ -184,11 +184,11 @@
   (:synopsis "Insert fixed animation")
   (:argument duration "Duration")
   (:proposals duration (list "1s" "2s" "5s" ""))
-  (insert-go-to `(anim-constant ,"" ,duration) '(0 0))
+  (insert-go-to `(anim-constant "" ,duration) '(0 0))
 ) ;tm-define
 
 (define (make-anim-translate duration start)
-  (insert-go-to `(anim-translate ,"" ,duration ,start ,"") '(0 0))
+  (insert-go-to `(anim-translate "" ,duration ,start "") '(0 0))
 ) ;define
 
 (tm-define (make-anim-translate-right duration)
@@ -220,7 +220,7 @@
 ) ;tm-define
 
 (define (make-anim-progressive duration start)
-  (insert-go-to `(anim-progressive ,"" ,duration ,start ,"") '(0 0))
+  (insert-go-to `(anim-progressive "" ,duration ,start "") '(0 0))
 ) ;define
 
 (tm-define (make-anim-progressive-right duration)
@@ -407,13 +407,13 @@
    ) ;
    ((not (tm-func? t 'morph))
     (checkout-animation
-      `(morph (tuple ,"0" ,(tm->stree t)) (tuple ,"1" ,(tm->stree t)))
+      `(morph (tuple "0" ,(tm->stree t)) (tuple "1" ,(tm->stree t)))
       len
     ) ;checkout-animation
    ) ;
    (else
      (with r
-       (animate-checkout `(anim-static ,t ,len ,"0.1s" ,"0s"))
+       (animate-checkout `(anim-static ,t ,len "0.1s" "0s"))
        (list r (cons 1 (path-start (tm-ref r 1) '())))
      ) ;with
    ) ;else

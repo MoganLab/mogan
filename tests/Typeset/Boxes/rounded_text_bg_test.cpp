@@ -27,7 +27,7 @@ public:
   brush     last_brush;
   int       clear_count;
   int       polygon_count;
-  SI        last_cx1, last_cy1, last_cx2, last_cy2;
+  DI        last_cx1, last_cy1, last_cx2, last_cy2;
   array<SI> last_px, last_py;
 
   mock_renderer_rep ()
@@ -43,14 +43,14 @@ public:
   void   set_background (brush b) { last_bg= b->get_color (); }
   void   set_brush (brush b) { last_brush= b; }
 
-  void draw (int glyph_index, font_glyphs fn, SI x, SI y, int codepoint= -1) {
+  void draw (int glyph_index, font_glyphs fn, DI x, DI y, int codepoint= -1) {
     (void) glyph_index;
     (void) fn;
     (void) x;
     (void) y;
     (void) codepoint;
   }
-  void line (SI x1, SI y1, SI x2, SI y2) {
+  void line (DI x1, DI y1, DI x2, DI y2) {
     (void) x1;
     (void) y1;
     (void) x2;
@@ -60,20 +60,20 @@ public:
     (void) x;
     (void) y;
   }
-  void clear (SI x1, SI y1, SI x2, SI y2) {
+  void clear (DI x1, DI y1, DI x2, DI y2) {
     last_cx1= x1;
     last_cy1= y1;
     last_cx2= x2;
     last_cy2= y2;
     clear_count++;
   }
-  void fill (SI x1, SI y1, SI x2, SI y2) {
+  void fill (DI x1, DI y1, DI x2, DI y2) {
     (void) x1;
     (void) y1;
     (void) x2;
     (void) y2;
   }
-  void arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta) {
+  void arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta) {
     (void) x1;
     (void) y1;
     (void) x2;
@@ -81,7 +81,7 @@ public:
     (void) alpha;
     (void) delta;
   }
-  void fill_arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta) {
+  void fill_arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta) {
     (void) x1;
     (void) y1;
     (void) x2;

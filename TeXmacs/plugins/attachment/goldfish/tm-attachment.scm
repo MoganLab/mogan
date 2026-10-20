@@ -31,22 +31,13 @@
 
 ;; 假附件插件不联网（与 llm 假插件同款自包含写法：只依赖 goldfish 内置
 ;; 库，不向内置 goldfish 树添加共享库）：收到 "%attachment {json}" ingest
-;; 请求后先按月清理缓存（同真实插件约定），再做插件侧预检（可访问性/
-;; 扩展名白名单/每轮数量/每轮总大小，违规回 error 事件），通过则回
-;; ready 事件。假 sha256 由 path 字符串确定性散列生成；假提取文本写入
-;; 抽取缓存，供 llm 插件按 sha256 取用——llm 插件只认 sha256、不接触
-;; 本地路径
-
-;; 预检策略（真实插件遵从同一约定与 error 事件形态，liii 侧只遵从不定义）
-
-(define attachment-max-count 10)
-
-(define attachment-max-total-bytes (* 80 1024 1024))
-
-(define attachment-allowed-extensions
-  '("pdf" "doc" "docx" "xls" "xlsx" "ppt" "pptx" "md" "txt" "csv" "epub" "stem"
-    "tmu" "html" "json" "log" "c" "cpp" "h" "java" "py" "js" "ts" "go" "rs")
-) ;define
+;; 请求后先按月清理缓存（同真实插件约定），再处理任务。
+;; 预检策略归属宿主（TeXmacs/plugins/attachment/progs/attachment-policy.scm
+;; 由 init-attachment.scm 加载）；本文件不再定义数量/总大小/扩展名常量
+;; 与 fake-attachment-precheck，禁入不可读路径仅靠宿主拦截。请求瘦身
+;; 为 {taskId, path}；违反宿主预检的请求根本不会到达本插件。
+;; 假 sha256 由 path 字符串确定性散列生成；假提取文本写入抽取缓存，供
+;; llm 插件按 sha256 取用——llm 插件只认 sha256、不接触本地路径
 
 ;;; ---------- 抽取缓存：平台基目录、月度布局、命中刷新、月度清理 ----------
 ;; 磁盘契约（真实插件遵从同一约定，tm-llm.scm 的读取方内联同一套约定）：
@@ -182,51 +173,19 @@
   (sha256 file-path)
 ) ;define
 
-(define (fake-attachment-precheck file-path filename size count bytes)
-  ;; count/bytes 为请求上报的本轮已选累计。通过返回 #f，违规返回原因
-  ;; 字符串（mogan UI 原样 toast，不再本地预检）。可访问性规则（存在且
-  ;; 为普通文件、可读）对齐真实插件读文件的先决条件，置于其余规则之前
-  (let ((ext
-          (let ((s (path->string (path-suffix (path filename)))))
-            (if (string-starts? s ".") (string-downcase (string-drop s 1)) "")
-          ) ;let
-        ) ;ext
-       ) ;
-    (cond ((not (path-file? file-path))
-           (string-append "附件文件不存在： " filename)
-          ) ;
-          ((not (access file-path 'R_OK))
-           (string-append "附件文件不可读取： " filename)
-          ) ;
-          ((not (member ext attachment-allowed-extensions))
-           (string-append "不支持的附件类型： " filename)
-          ) ;
-          ((>= count attachment-max-count)
-           (string-append "附件数量超过上限（"
-             (number->string attachment-max-count)
-             " 个）"
-           ) ;string-append
-          ) ;
-          ((> (+ bytes size) attachment-max-total-bytes)
-           (string-append "附件总大小超过上限（"
-             (number->string (/ attachment-max-total-bytes 1024 1024))
-             " MiB）"
-           ) ;string-append
-          ) ;
-          (else #f)
-    ) ;cond
-  ) ;let
-) ;define
-
 (define (fake-attachment-extracted-text filename)
   (string-append "[fake] extracted text of " filename)
 ) ;define
 
-(define (fake-attachment-ready-event task-id file-path filename size)
-  ;; filename/size 由 ingest 统一计算传入（预检与事件共用，不重复求值）；
-  ;; 参数名避开 path：(liii path) 的 path 构造函数在 s7 下被字符串参数
-  ;; 遮蔽后 (path x) 会被当作 string-ref 调用
-  (let* ((sha256 (fake-attachment-sha256 file-path))
+(define (fake-attachment-ready-event task-id file-path)
+  ;; 请求已瘦身：filename 与 size 由 file-path 在此计算（ready 事件六键形态
+  ;; 不变：filename/size 冗余但保留以稳定协议契约）；参数名避开 path：
+  ;; (liii path) 的 path 构造函数在 s7 下被字符串参数遮蔽后 (path x)
+  ;; 会被当作 string-ref 调用
+  (let* ((p (path file-path))
+         (filename (path->string (path-name p)))
+         (size (if (and (path-file? p) (access file-path 'R_OK)) (path-getsize p) 0))
+         (sha256 (fake-attachment-sha256 file-path))
          (content (fake-attachment-extracted-text filename))
         ) ;
     (attachment-cache-put! sha256 filename content)
@@ -247,10 +206,10 @@
 ) ;define
 
 (define (fake-attachment-ingest data)
-  ;; 入口先月度清理缓存（同真实插件约定），再做插件侧预检（可访问性 +
-  ;; count/bytes 为请求上报的本轮已选累计），通过则回 ready 事件；请求
-  ;; 非法或预检违规回 error 事件
-  (attachment-cache-sweep!)
+  ;; 先解析请求并取得 task-id，再在 catch #t 保护下执行缓存月度清理与
+  ;; ready 缓存写入。预检已上移宿主（attachment-policy.scm），请求只含
+  ;; {taskId, path}。每个能解析出 taskId 的合法请求无论发生何种异常都
+  ;; 必须返回带原 taskId 的 error 事件，不向 REPL 外抛出
   (let ((j
           (catch #t
             (lambda ()
@@ -262,24 +221,46 @@
        ) ;
     (if (not (json-object? j))
       (fake-attachment-error-event "" "invalid ingest request")
-      (let* ((task-id (json-ref-string j "taskId" ""))
-             (file-path (json-ref-string j "path" ""))
-             (count (json-ref-number j "count" 0))
-             (bytes (json-ref-number j "bytes" 0))
-             ;; 文件名与大小在此单点计算，预检与 ready 事件共用；size 仅在
-             ;; 可访问时求值：path-getsize 内的 file-exists? 对存在但不可读
-             ;; 的文件抛 permission-error（boot.scm），且不可访问时预检必拒、
-             ;; size 无意义，取 0
-             (p (path file-path))
-             (filename (path->string (path-name p)))
-             (size (if (and (path-file? p) (access file-path 'R_OK)) (path-getsize p) 0))
-             (err (fake-attachment-precheck file-path filename size count bytes))
-            ) ;
-        (if err
-          (fake-attachment-error-event task-id err)
-          (fake-attachment-ready-event task-id file-path filename size)
-        ) ;if
-      ) ;let*
+      (let ((task-id (json-ref-string j "taskId" "")))
+        (catch #t
+          (lambda ()
+            (attachment-cache-sweep!)
+            (let ((file-path (json-ref-string j "path" "")))
+              (fake-attachment-ready-event task-id file-path)
+            ) ;let
+          ) ;lambda
+          (lambda (tag . rest)
+            (let ((detail
+                    (catch #t
+                      (lambda ()
+                        (cond ((null? rest) (object->string tag))
+                              ;; TeXmacs/Guile catch 风格：(key subr message args ...)
+                              ((and (>= (length rest) 2) (string? (cadr rest)))
+                               (let ((msg (cadr rest))
+                                     (args
+                                       (if (and (>= (length rest) 3) (pair? (caddr rest))) (caddr rest) '())
+                                     ) ;args
+                                    ) ;
+                                 (if (null? args) msg (apply format #f msg args))
+                               ) ;let
+                              ) ;
+                              ;; 原生 S7 风格：(tag ((format-string . format-args)))
+                              ((and (pair? (car rest)) (string? (caar rest))) (apply format #f (car rest)))
+                              ((string? (car rest)) (car rest))
+                              (else (object->string (car rest)))
+                        ) ;cond
+                      ) ;lambda
+                      (lambda _ (object->string tag))
+                    ) ;catch
+                  ) ;detail
+                 ) ;
+              (fake-attachment-error-event task-id
+                (string-append "附件处理异常： " detail)
+              ) ;fake-attachment-error-event
+            ) ;let
+          ) ;lambda
+        ) ;catch
+      ) ;let
     ) ;if
   ) ;let
 ) ;define

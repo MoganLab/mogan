@@ -85,12 +85,12 @@ public:
     x= (SI) X;
     y= (SI) Y;
   }
-  virtual void encode (int& x, int& y);
-  inline void  encode (DI& x, DI& y) {
-    int X= (int) x, Y= (int) y;
+  virtual void encode (DI& x, DI& y);
+  inline void  encode (SI& x, SI& y) {
+    DI X= x, Y= y;
     encode (X, Y);
-    x= X;
-    y= Y;
+    x= (SI) X;
+    y= (SI) Y;
   }
   virtual void decode (DI x, DI y, double& rx, double& ry);
   virtual void encode (double x, double y, DI& rx, DI& ry);
@@ -119,8 +119,8 @@ public:
     x2= (SI) X2;
     y2= (SI) Y2;
   }
-  friend void abs_inner_round (SI& x1, SI& y1, SI& x2, SI& y2);
-  friend void abs_outer_round (SI& x1, SI& y1, SI& x2, SI& y2);
+  friend void abs_inner_round (DI& x1, DI& y1, DI& x2, DI& y2);
+  friend void abs_outer_round (DI& x1, DI& y1, DI& x2, DI& y2);
   bool        is_visible (DI x1, DI y1, DI x2, DI y2);
 
   /* graphical state */
@@ -132,26 +132,26 @@ public:
   virtual void   set_background (brush b)= 0;
 
   /* drawing */
-  virtual void draw (int glyph_index, font_glyphs fn, SI x, SI y,
+  virtual void draw (int glyph_index, font_glyphs fn, DI x, DI y,
                      int codepoint= -1)          = 0;
-  virtual void line (SI x1, SI y1, SI x2, SI y2) = 0;
+  virtual void line (DI x1, DI y1, DI x2, DI y2) = 0;
   virtual void lines (array<SI> x, array<SI> y)  = 0;
-  virtual void clear (SI x1, SI y1, SI x2, SI y2)= 0;
-  virtual void clear_pattern (SI mx1, SI my1, SI mx2, SI my2, SI x1, SI y1,
-                              SI x2, SI y2);
-  virtual void clear_pattern (SI x1, SI y1, SI x2, SI y2);
-  virtual void fill (SI x1, SI y1, SI x2, SI y2)                          = 0;
-  virtual void arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta)     = 0;
-  virtual void fill_arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta)= 0;
+  virtual void clear (DI x1, DI y1, DI x2, DI y2)= 0;
+  virtual void clear_pattern (DI mx1, DI my1, DI mx2, DI my2, DI x1, DI y1,
+                              DI x2, DI y2);
+  virtual void clear_pattern (DI x1, DI y1, DI x2, DI y2);
+  virtual void fill (DI x1, DI y1, DI x2, DI y2)                          = 0;
+  virtual void arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta)     = 0;
+  virtual void fill_arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta)= 0;
   virtual void polygon (array<SI> x, array<SI> y, bool convex= true)      = 0;
-  virtual void draw_triangle (SI x1, SI y1, SI x2, SI y2, SI x3, SI y3);
+  virtual void draw_triangle (DI x1, DI y1, DI x2, DI y2, DI x3, DI y3);
   virtual void draw_spacial (spacial obj);
   virtual void draw_rectangles (rectangles rs);
   virtual void draw_selection (rectangles rs);
   virtual void draw_curve (curve c, bool filled= false);
   virtual bool support_native_curve (curve c);
   virtual void end_text ();
-  bool         draw_emoji (int char_code, font_glyphs fn, SI x, SI y);
+  bool         draw_emoji (int char_code, font_glyphs fn, DI x, DI y);
 
   /* shadowing and copying rectangular regions across renderers */
   virtual void fetch (DI x1, DI y1, DI x2, DI y2, renderer ren, DI x, DI y)= 0;
@@ -162,19 +162,19 @@ public:
   virtual void apply_shadow (DI x1, DI y1, DI x2, DI y2)                   = 0;
 
   /* images */
-  virtual renderer shadow (picture& pic, SI x1, SI y1, SI x2, SI y2);
-  virtual renderer shadow (scalable& im, SI x1, SI y1, SI x2, SI y2);
-  virtual void     draw_picture (picture pic, SI x, SI y, int alpha= 255);
-  virtual void     draw_scalable (scalable im, SI x, SI y, int alpha= 255);
+  virtual renderer shadow (picture& pic, DI x1, DI y1, DI x2, DI y2);
+  virtual renderer shadow (scalable& im, DI x1, DI y1, DI x2, DI y2);
+  virtual void     draw_picture (picture pic, DI x, DI y, int alpha= 255);
+  virtual void     draw_scalable (scalable im, DI x, DI y, int alpha= 255);
 
   /* special routines for printers */
   virtual bool is_printer ();
   virtual void get_extents (int& w, int& h);
   virtual void set_page_nr (int nr);
   virtual void next_page ();
-  virtual void anchor (string label, SI x1, SI y1, SI x2, SI y2);
-  virtual void href (string label, SI x1, SI y1, SI x2, SI y2);
-  virtual void toc_entry (string kind, string title, SI x, SI y);
+  virtual void anchor (string label, DI x1, DI y1, DI x2, DI y2);
+  virtual void href (string label, DI x1, DI y1, DI x2, DI y2);
+  virtual void toc_entry (string kind, string title, DI x, DI y);
   virtual void set_metadata (string kind, string val);
 };
 
@@ -199,8 +199,8 @@ abs_round (SI& x, SI& y) {
   x= (SI) X;
   y= (SI) Y;
 }
-void abs_inner_round (SI& x1, SI& y1, SI& x2, SI& y2);
-void abs_outer_round (SI& x1, SI& y1, SI& x2, SI& y2);
+void abs_inner_round (DI& x1, DI& y1, DI& x2, DI& y2);
+void abs_outer_round (DI& x1, DI& y1, DI& x2, DI& y2);
 
 extern bool   retina_manual;
 extern bool   retina_iman;

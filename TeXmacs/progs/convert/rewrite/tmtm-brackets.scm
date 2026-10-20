@@ -19,13 +19,13 @@
 
 (tm-define (large-bracket l s)
   (cond
-   ((nstring? s) `(,l ,"."))
+   ((nstring? s) `(,l "."))
    ((<= (string-length s) 1) `(,l ,s))
-   ((== s "<nobracket>") `(,l ,"."))
+   ((== s "<nobracket>") `(,l "."))
    ((and (string-starts? s "<") (string-ends? s ">"))
     `(,l ,(substring s 1 (- (string-length s) 1)))
    ) ;
-   (else `(,l ,"."))
+   (else `(,l "."))
   ) ;cond
 ) ;tm-define
 

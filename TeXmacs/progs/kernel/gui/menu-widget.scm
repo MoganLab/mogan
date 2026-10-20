@@ -385,7 +385,7 @@
            (xvals (vals))
            (nvals
              (if (and (nnull? xvals) (== (cAr xvals) ""))
-               `(,@(cDr xvals) ,xval ,"")
+               `(,@(cDr xvals) ,xval "")
                `(,@xvals ,xval)
              ) ;if
            ) ;nvals
@@ -2124,12 +2124,11 @@
        (tm-widget (texmacs-side-tool ,(cadr tool) tool . opts)
          (,:require (== (car tool) (quote ,(car tool))))
          (if (and (in? :title opts) ,name)
-           (division ,"title"
+           (division "title"
              (hlist (text ,name)
                >>
-               (division ,"plain"
-                 (,"x"
-                  (tool-close ,:any (quote ,(car tool)) ,quit ,(cadr tool)))))))
+               (division "plain"
+                 ("x" (tool-close ,:any (quote ,(car tool)) ,quit ,(cadr tool)))))))
          (assuming (tool-side? tool win)
            ,(finalize-side `(dynamic (,(car tool)
                                       ,(cadr tool)

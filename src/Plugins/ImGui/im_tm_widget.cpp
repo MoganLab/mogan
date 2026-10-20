@@ -310,7 +310,7 @@ im_tm_widget_rep::render_editor () {
   DI sx= 0, sy= 0;
   if (!is_nil (main_widget)) get_scroll_position (main_widget, sx, sy);
   ren->set_origin (-sx, -sy);
-  SI x1= 0, y1= 0, x2= pic_w_px, y2= pic_h_px;
+  DI x1= 0, y1= 0, x2= pic_w_px, y2= pic_h_px;
   ren->encode (x1, y1);
   ren->encode (x2, y2);
   ren->set_clipping (x1, y2, x2, y1);

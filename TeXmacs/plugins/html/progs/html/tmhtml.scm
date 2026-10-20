@@ -296,7 +296,7 @@
             ) ;
             ((not title) "No title")
             ((or (in? "tmdoc" styles) (in? "tmweb" styles) (in? "tmweb2" styles))
-             `(concat ,(tmhtml-force-string title) ," (FSF GNU project)")
+             `(concat ,(tmhtml-force-string title) " (FSF GNU project)")
             ) ;
             (else (tmhtml-force-string title))
       ) ;cond
@@ -1026,11 +1026,11 @@
 ) ;define
 
 (define (tmhtml-below l)
-  `(,"below (" ,@(tmhtml (car l)) ,", " ,@(tmhtml (cadr l)) ,")")
+  `("below (" ,@(tmhtml (car l)) ", " ,@(tmhtml (cadr l)) ")")
 ) ;define
 
 (define (tmhtml-above l)
-  `(,"above (" ,@(tmhtml (car l)) ,", " ,@(tmhtml (cadr l)) ,")")
+  `("above (" ,@(tmhtml (car l)) ", " ,@(tmhtml (cadr l)) ")")
 ) ;define
 
 (define (tmhtml-sub l)
@@ -1076,8 +1076,8 @@
 
 (define (tmhtml-sqrt l)
   (if (= (length l) 1)
-    `(,"sqrt (" ,@(tmhtml (car l)) ,")")
-    `(,"sqrt" (h:sub ,@(tmhtml (cadr l))) ," (" ,@(tmhtml (car l)) ,")")
+    `("sqrt (" ,@(tmhtml (car l)) ")")
+    `("sqrt" (h:sub ,@(tmhtml (cadr l))) " (" ,@(tmhtml (car l)) ")")
   ) ;if
 ) ;define
 
@@ -1102,13 +1102,13 @@
         ) ;
     (if (tmhtml-short? body)
       `(,@body (h:sup (@ (class ,class)) ,@acc))
-      `(,"(" ,@body ,")" (h:sup ,@acc))
+      `("(" ,@body ")" (h:sup ,@acc))
     ) ;if
   ) ;let*
 ) ;define
 
 (define (tmhtml-neg l)
-  `(,"not(" ,@(tmhtml (car l)) ,")")
+  `("not(" ,@(tmhtml (car l)) ")")
 ) ;define
 
 (define (tmhtml-tree l)
@@ -1819,7 +1819,7 @@
              y
              (with nmag
                `(times (value "magnification") ,mag)
-               `(with ,"magnification" ,nmag ,y)
+               `(with "magnification" ,nmag ,y)
              ) ;with
            ) ;if
          ) ;x
@@ -2364,7 +2364,7 @@
   (with first
     (simplify-document (car l))
     (with x
-      `(with ,"mode" ,"math" (with ,"math-display" ,"true" ,first))
+      `(with "mode" "math" (with "math-display" "true" ,first))
       (ahash-with tmhtml-env :math-display #t `((h:center ,@(tmhtml x))))
     ) ;with
   ) ;with
@@ -2374,12 +2374,12 @@
   (with first
     (simplify-document (car l))
     (with x
-      `(with ,"mode" ,"math" (with ,"math-display" ,"true" ,first))
+      `(with "mode" "math" (with "math-display" "true" ,first))
       (ahash-with tmhtml-env
         :math-display #t
         `((h:table (@ (width "100%"))
             (h:tr (h:td (@ (align "center") (width "100%")) ,@(tmhtml x))
-              (h:td (@ (align "right")) ,"(" ,@(tmhtml (cadr l)) ,")"))))
+              (h:td (@ (align "right")) "(" ,@(tmhtml (cadr l)) ")"))))
       ) ;ahash-with
     ) ;with
   ) ;with
@@ -2654,17 +2654,15 @@
 ) ;define
 
 (define (tmhtml-tmdoc-copyright* l)
-  (if (null? l) l `(,", "
-                    ,@(tmhtml (car l))
-                    ,@(tmhtml-tmdoc-copyright* (cdr l))))
+  (if (null? l) l `(", " ,@(tmhtml (car l)) ,@(tmhtml-tmdoc-copyright* (cdr l))))
 ) ;define
 
 (define (tmhtml-tmdoc-copyright l)
   (with content
-    `(,"&copy;"
-      ," "
+    `("&copy;"
+      " "
       ,@(tmhtml (car l))
-      ," "
+      " "
       ,@(tmhtml (cadr l))
       ,@(tmhtml-tmdoc-copyright* (cddr l)))
     (list
@@ -2834,7 +2832,7 @@
            (ahash-ref tmhtml-env :math)
            (!= tmhtml-image-root-string "image")
          ) ;and
-         (tmhtml-png `(with ,"mode" ,"math" ,x))
+         (tmhtml-png `(with "mode" "math" ,x))
         ) ;
         ((string? x) (if (string-null? x) '() (tmhtml-text x)))
         (else (or (tmhtml-dispatch 'tmhtml-primitives% x) (tmhtml-implicit-compound x)))

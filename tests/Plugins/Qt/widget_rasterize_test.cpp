@@ -24,7 +24,7 @@ public:
     w= 100 * PIXEL;
     h= 60 * PIXEL;
   }
-  void handle_repaint (renderer win, SI x1, SI y1, SI x2, SI y2) override {
+  void handle_repaint (renderer win, DI x1, DI y1, DI x2, DI y2) override {
     win->set_background (rgb_color (200, 40, 40));
     win->clear (x1, y1, x2, y2);
   }

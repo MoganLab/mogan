@@ -11,6 +11,7 @@
 #include "Qt/qt_chat_controller.hpp"
 #include "base.hpp"
 #include <QPushButton>
+#include <QToolButton>
 #include <QtTest/QtTest>
 
 #include "converter.hpp"
@@ -361,6 +362,50 @@ private slots:
     object itemCjk= as_array_object (scmCjk)[0];
     string vCjk   = as_string (cdr (car (cdr (itemCjk))));
     QVERIFY (vCjk == "<#5317><#5927><#8BBA><#6587>.pdf");
+  }
+
+  void test_attachment_error_routing_and_send_gate () {
+    ChatController            ctrl;
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    ctrl.view_= &widget;
+
+    string                 sid  = ctrl.sessionManager_.createSession ();
+    ChatConversationPanel* panel= widget.createPanel (sid);
+    QVERIFY (panel != nullptr);
+    ChatSession* session= ctrl.sessionManager_.getSession (sid);
+    session->panel      = panel;
+
+    // 初始状态：无附件，发送按钮可用
+    ctrl.updateSendGate (sid);
+    QVERIFY (panel->sendButton ()->isEnabled ());
+
+    // 添加处理中附件：发送按钮被发送栅栏禁用
+    AttachmentItem it= make_attachment ("/tmp/noperm.pdf", "noperm.pdf", 10);
+    it.taskId        = "t-noperm";
+    it.ready         = false;
+    panel->setAttachments (QList<AttachmentItem>{it});
+    ctrl.updateSendGate (sid);
+    QVERIFY (panel->hasProcessingAttachments ());
+    QVERIFY (!panel->sendButton ()->isEnabled ());
+
+    // 注册该 task 所属 session
+    ctrl.attachTaskSession_.insert ("t-noperm", to_qstring (sid));
+
+    // 路由 onAttachmentError：panel 处理中条目被移除，发送栅栏重新使能发送按钮
+    ctrl.onAttachmentError ("t-noperm", "附件文件不可读取： noperm.pdf");
+    ctrl.updateSendGate (sid);
+
+    QVERIFY (!panel->hasProcessingAttachments ());
+    QVERIFY (panel->attachments ().isEmpty ());
+    QVERIFY (panel->sendButton ()->isEnabled ());
+    QVERIFY (!ctrl.attachTaskSession_.contains ("t-noperm"));
+
+    // 二次调用：已 take，安全无操作
+    ctrl.onAttachmentError ("t-noperm", "附件文件不可读取： noperm.pdf");
+    QVERIFY (!ctrl.attachTaskSession_.contains ("t-noperm"));
+
+    ctrl.view_= nullptr;
   }
 };
 

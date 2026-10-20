@@ -30,7 +30,7 @@ extern bool animated_flag;
  ******************************************************************************/
 
 void
-edit_interface_rep::draw_background (renderer ren, SI x1, SI y1, SI x2, SI y2) {
+edit_interface_rep::draw_background (renderer ren, DI x1, DI y1, DI x2, DI y2) {
   tree bg= get_init_value (BG_COLOR);
   ren->set_background (bg);
   if (get_init_value (PAGE_MEDIUM) == "paper") eb->clear (ren, x1, y1, x2, y2);
@@ -91,10 +91,10 @@ edit_interface_rep::draw_env (renderer ren) {
 void
 edit_interface_rep::draw_caret (renderer ren, cursor cu, color col, SI dw,
                                 SI zpixel) {
-  cu->y1-= 2 * zpixel + dw;
-  cu->y2+= 2 * zpixel + dw;
-  SI     x1= cu->ox + ((SI) (cu->y1 * cu->slope)), y1= cu->oy + cu->y1;
-  SI     x2= cu->ox + ((SI) (cu->y2 * cu->slope)), y2= cu->oy + cu->y2;
+  DI     cy1= cu->y1 - (2 * zpixel + dw);
+  DI     cy2= cu->y2 + (2 * zpixel + dw);
+  DI     x1= cu->ox + ((DI) (cy1 * cu->slope)), y1= cu->oy + cy1;
+  DI     x2= cu->ox + ((DI) (cy2 * cu->slope)), y2= cu->oy + cy2;
   string mode= get_env_string (MODE);
   string family, series;
   if ((mode == "text") || (mode == "src")) {
@@ -534,11 +534,11 @@ edit_interface_rep::draw_with_stored (renderer win, rectangle r) {
  ******************************************************************************/
 
 void
-edit_interface_rep::handle_clear (renderer win, SI x1, SI y1, SI x2, SI y2) {
-  x1= (SI) (x1 / magf);
-  y1= (SI) (y1 / magf);
-  x2= (SI) (x2 / magf);
-  y2= (SI) (y2 / magf);
+edit_interface_rep::handle_clear (renderer win, DI x1, DI y1, DI x2, DI y2) {
+  x1= (DI) (x1 / magf);
+  y1= (DI) (y1 / magf);
+  x2= (DI) (x2 / magf);
+  y2= (DI) (y2 / magf);
   win->set_zoom_factor (zoomf);
   draw_background (win, max (eb->x1, x1), max (eb->y1, y1), min (eb->x2, x2),
                    min (eb->y2, y2));
@@ -547,7 +547,7 @@ edit_interface_rep::handle_clear (renderer win, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-edit_interface_rep::handle_repaint (renderer win, SI x1, SI y1, SI x2, SI y2) {
+edit_interface_rep::handle_repaint (renderer win, DI x1, DI y1, DI x2, DI y2) {
   if (is_nil (eb) || env_change != 0) apply_changes ();
   // apply_changes 总会清零 env_change，理论上不会进入以下分支，仅作兜底
   if (env_change != 0) {

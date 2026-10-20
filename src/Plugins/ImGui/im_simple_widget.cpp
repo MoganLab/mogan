@@ -91,7 +91,7 @@ im_simple_widget_rep::handle_set_zoom_factor (double zoom) {
 }
 
 void
-im_simple_widget_rep::handle_clear (renderer ren, SI x1, SI y1, SI x2, SI y2) {
+im_simple_widget_rep::handle_clear (renderer ren, DI x1, DI y1, DI x2, DI y2) {
   (void) ren;
   (void) x1;
   (void) y1;
@@ -100,8 +100,8 @@ im_simple_widget_rep::handle_clear (renderer ren, SI x1, SI y1, SI x2, SI y2) {
 }
 
 void
-im_simple_widget_rep::handle_repaint (renderer ren, SI x1, SI y1, SI x2,
-                                      SI y2) {
+im_simple_widget_rep::handle_repaint (renderer ren, DI x1, DI y1, DI x2,
+                                      DI y2) {
   (void) ren;
   (void) x1;
   (void) y1;

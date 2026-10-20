@@ -69,7 +69,7 @@
     ((cut map <> attrs)
      (lambda (attr)
        (if (eq? 'xmlns (first attr))
-         `(,#f *default* ,(second attr))
+         `(#f *default* ,(second attr))
          (receive (ns-id ncname)
            (sxml-split-name (first attr))
            (if (== "xmlns" ns-id) (list #f (string->symbol ncname) (second attr)) attr)

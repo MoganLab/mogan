@@ -431,7 +431,7 @@
            (styps (embedded-style-list "macro-editor"))
            (body (add-context (tree-up (cursor-tree)) '(arg "body")))
            (def
-             `(assign ,l (inactive* (macro ,"body" ,body)))
+             `(assign ,l (inactive* (macro "body" ,body)))
            ) ;def
            (doc (build-macro-document* l def))
            (tool (list 'macro-tool u styps doc "Source"))
@@ -518,7 +518,7 @@
              ) ;if
            ) ;body
            (def
-             `(assign ,l (inactive* (macro ,"body" ,body)))
+             `(assign ,l (inactive* (macro "body" ,body)))
            ) ;def
            (doc (build-macro-document* l def))
            (tool (list 'macro-tool u styps doc "Source"))
@@ -603,7 +603,7 @@
             (resize "500px"
               "220px"
               (texmacs-output
-                `(document (mini-paragraph ,"476guipx"
+                `(document (mini-paragraph "476guipx"
                              ,(macros-editor-current-help)))
                 '(style "tmdoc")
               ) ;texmacs-output
@@ -691,8 +691,7 @@
         (resize "400px"
           "300px"
           (texmacs-output
-            `(document (mini-paragraph ,"376guipx"
-                         ,(macros-editor-current-help)))
+            `(document (mini-paragraph "376guipx" ,(macros-editor-current-help)))
             '(style (tuple "tmdoc" "side-tools"))
           ) ;texmacs-output
         ) ;resize

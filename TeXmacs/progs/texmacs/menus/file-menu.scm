@@ -229,7 +229,7 @@
     (for (fm l)
       (let* ((name (format-get-name fm))
              (load-text (string-append "Load " (string-downcase name) " file"))
-             (import-text `(concat ,"Import " ,name))
+             (import-text `(concat "Import " ,name))
              (text (if flag? import-text name))
              (format (if (== fm "verbatim") "text" fm))
             ) ;
@@ -250,7 +250,7 @@
       (string-save s dest)
       (save-buffer-save (current-buffer) (list) "latex_export")
       (set-message
-        `(concat ,"Exported " ,(url->system dest))
+        `(concat "Exported " ,(url->system dest))
         "Export LaTeX"
       ) ;set-message
     ) ;with
@@ -276,7 +276,7 @@
       (for (fm l2)
         (let* ((name (format-get-name fm))
                (save-text (string-append "Save " (string-downcase name) " file"))
-               (export-text `(concat ,"Export as " ,name))
+               (export-text `(concat "Export as " ,name))
                (text (if flag? export-text name))
                (format (if (== fm "verbatim") "text" fm))
               ) ;
@@ -558,6 +558,7 @@
 
 (tm-define (go-menu-meta)
   (list (cons "label_recent" (translate "Recent"))
+    (cons "label_open" (translate "Open file"))
     (cons "recent"
       (map (lambda (name) (list (url->system name) (short-file-name name)))
         (recent-file-list 15)

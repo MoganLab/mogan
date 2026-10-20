@@ -347,8 +347,8 @@
          ,@(map property-rewrite cur-props))
       `(begin
          (when (nnull? cur-conds)
-           (display* ,"warning: conditional master routine " (quote ,var) ,"\n")
-           (display* ,"   " (quote ,nval) ,"\n"))
+           (display* "warning: conditional master routine " (quote ,var) "\n")
+           (display* "   " (quote ,nval) "\n"))
          ;; (display* "Defined " ',var "\n")
          ;; (if (nnull? cur-conds) (display* "   " ',nval "\n"))
          (varlet (rootlet)
@@ -453,7 +453,7 @@
          ,@opts
          (let* ((m (resolve-module (quote ,module))) (r (m (quote ,name))))
            (if (not r)
-             (texmacs-error ,"lazy-define"
+             (texmacs-error "lazy-define"
                ,(string-append "Could not retrieve " (symbol->string name))))
            (apply r args))))
   ) ;with

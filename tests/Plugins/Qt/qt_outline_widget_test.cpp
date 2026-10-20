@@ -5,8 +5,10 @@
  ******************************************************************************/
 
 #include "base.hpp"
+#include "preferences.hpp"
 #include "qt_pdf_outline_widget.hpp"
 #include "qt_pdf_toolbar.hpp"
+#include <QQuickItem>
 #include <QSignalSpy>
 #include <QtTest/QtTest>
 
@@ -14,7 +16,10 @@ class TestOutlineWidget : public QObject {
   Q_OBJECT
 
 private slots:
-  void init () { init_lolly (); }
+  void init () {
+    init_lolly ();
+    set_preference ("outline sidebar", "on");
+  }
   void cleanup () { cleanup_qt_top_level_widgets (); }
 
   void test_creation () {
@@ -389,6 +394,108 @@ private slots:
     bridge.clear ();
     QCOMPARE (bridge.currentId (), QString ());
     QVERIFY (bridge.defaultExpandedMap ().isEmpty ());
+  }
+
+  void test_scrollbar_visibility_and_interaction () {
+    OutlineWidget* widget= new OutlineWidget ("目录");
+    widget->resize (300, 400);
+    widget->show ();
+    QTest::qWait (50);
+
+    QQuickWidget* qw= widget->quickWidget ();
+    QVERIFY (qw != nullptr);
+    QQuickItem* rootItem= qw->rootObject ();
+    QVERIFY (rootItem != nullptr);
+
+    QQuickItem* scrollbar= rootItem->findChild<QQuickItem*> ("scrollbar");
+    QVERIFY (scrollbar != nullptr);
+
+    // 1. 少量大纲未超出视口：滚动条隐藏
+    QVector<OutlineItem> shortOutline;
+    OutlineItem          i1;
+    i1.title = "Chapter 1";
+    i1.target= "0:1";
+    OutlineItem i2;
+    i2.title = "Chapter 2";
+    i2.target= "0:2";
+    shortOutline.append (i1);
+    shortOutline.append (i2);
+    widget->setOutline (shortOutline);
+    QTest::qWait (50);
+
+    QVERIFY (!scrollbar->isVisible ());
+
+    // 2. 超出视口的大量大纲项：滚动条按需显示
+    QVector<OutlineItem> longOutline;
+    for (int i= 0; i < 30; ++i) {
+      OutlineItem item;
+      item.title = QString ("Chapter %1").arg (i + 1);
+      item.target= QString ("0:%1").arg (i);
+      longOutline.append (item);
+    }
+    widget->setOutline (longOutline);
+    QTest::qWait (100);
+
+    QQuickItem* list= rootItem->findChild<QQuickItem*> ("outlineList");
+    QVERIFY (list != nullptr);
+
+    QVERIFY (scrollbar->isVisible ());
+
+    QQuickItem* thumb= rootItem->findChild<QQuickItem*> ("scrollbarThumb");
+    QVERIFY (thumb != nullptr);
+    qreal thumbH= thumb->property ("height").toReal ();
+    QVERIFY (thumbH >= 24.0); // 最小高度保护
+
+    qreal initialY= thumb->property ("y").toReal ();
+    QCOMPARE (initialY, 0.0); // 顶部贴顶
+
+    // 3. 模拟滚动列表，滑块位置同步联动
+    list->setProperty ("contentY", 100.0);
+    QTest::qWait (50);
+
+    qreal scrolledY= thumb->property ("y").toReal ();
+    QVERIFY (scrolledY > initialY);
+
+    // 4. 测试翻页操作（点击滑块下方/上方）
+    qreal yBeforePageDown= list->property ("contentY").toReal ();
+    QMetaObject::invokeMethod (scrollbar, "pageDown");
+    QTest::qWait (50);
+    qreal yAfterPageDown= list->property ("contentY").toReal ();
+    QVERIFY (yAfterPageDown > yBeforePageDown);
+
+    QMetaObject::invokeMethod (scrollbar, "pageUp");
+    QTest::qWait (50);
+    qreal yAfterPageUp= list->property ("contentY").toReal ();
+    QVERIFY (yAfterPageUp < yAfterPageDown);
+
+    // 5. 测试滑块拖拽换算联动
+    list->setProperty ("contentY", 0.0);
+    QTest::qWait (50);
+    QCOMPARE (thumb->property ("y").toReal (), 0.0);
+
+    // 模拟拖动滑块 20 像素
+    QMetaObject::invokeMethod (scrollbar, "scrollByThumbDelta",
+                               Q_ARG (QVariant, 20.0), Q_ARG (QVariant, 0.0));
+    QTest::qWait (50);
+    QVERIFY (list->property ("contentY").toReal () > 0.0);
+    QVERIFY (thumb->property ("y").toReal () > 0.0);
+
+    // 6. 测试搜索过滤：匹配条目减少至视口内时，滚动条自动隐藏
+    rootItem->setProperty ("searchQuery", "Chapter 10");
+    QTest::qWait (100);
+    QVERIFY (!scrollbar->isVisible ());
+
+    // 清空搜索后滚动条恢复显示
+    rootItem->setProperty ("searchQuery", "");
+    QTest::qWait (100);
+    QVERIFY (scrollbar->isVisible ());
+
+    // 7. 全部收起/折叠或清空后自动隐藏
+    widget->clear ();
+    QTest::qWait (50);
+    QVERIFY (!scrollbar->isVisible ());
+
+    delete widget;
   }
 };
 

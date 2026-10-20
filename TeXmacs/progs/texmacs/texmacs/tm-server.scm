@@ -432,14 +432,14 @@
      ((and (not (url-test? name "f")) (url-exists? name))
       (with msg
         "The file cannot be created:"
-        (notify-now `(concat ,msg ,"<br>" ,vname))
+        (notify-now `(concat ,msg "<br>" ,vname))
       ) ;with
       #t
      ) ;
      ((and (url-test? name "f") (not (url-test? name "w")))
       (with msg
         "You do not have write access for:"
-        (notify-now `(concat ,msg ,"<br>" ,vname))
+        (notify-now `(concat ,msg "<br>" ,vname))
       ) ;with
       #t
      ) ;
@@ -459,12 +459,12 @@
       (if (buffer-save name)
         (begin
           (buffer-pretend-modified name)
-          (set-message `(concat ,"Could not save " ,vname) "Save file")
+          (set-message `(concat "Could not save " ,vname) "Save file")
           (callback #f)
         ) ;begin
         (begin
           (if (== (url-suffix name) "ts") (style-clear-cache))
-          (set-message `(concat ,"Saved " ,vname) "Save file")
+          (set-message `(concat "Saved " ,vname) "Save file")
           (save-buffer-post name opts)
           (callback #t)
         ) ;begin

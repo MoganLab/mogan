@@ -302,7 +302,7 @@
     (cond ((and (string? tabstop*) (string->number tabstop*)) (string->number tabstop*))
           ((and (number? tabstop*) (> tabstop* 0)) tabstop*)
           (else
-            (set-message `(replace ,"Wrong tabstop: %1" ,tabstop*) "User preferences")
+            (set-message `(replace "Wrong tabstop: %1" ,tabstop*) "User preferences")
             8
           ) ;else
     ) ;cond

@@ -279,10 +279,10 @@
          (spc (count (in? :space p) (tmconcat l " " r)))
          (com (count (in? :comma p) (tmconcat l "," r)))
          (app
-           (count (in? :apply p) (tmconcat l `(around ,"(" ,r ,")")))
+           (count (in? :apply p) (tmconcat l `(around "(" ,r ")")))
          ) ;app
          (bra
-           (count (in? :brackets p) (tmconcat l `(around ,"[" ,r ,"]")))
+           (count (in? :brackets p) (tmconcat l `(around "[" ,r "]")))
          ) ;bra
          (sub
            (count (in? :subscript p) (tmconcat l `(rsub ,r)))
@@ -482,8 +482,8 @@
     (cond ((== impl :multiply) (tmconcat prev "*" x))
           ((== impl :space) (tmconcat prev " " x))
           ((== impl :comma) (tmconcat prev "," x))
-          ((== impl :apply) (tmconcat prev `(around ,"(" ,x ,")")))
-          ((== impl :brackets) (tmconcat prev `(around ,"[" ,x ,"]")))
+          ((== impl :apply) (tmconcat prev `(around "(" ,x ")")))
+          ((== impl :brackets) (tmconcat prev `(around "[" ,x "]")))
           ((== impl :subscript) (tmconcat prev `(rsub ,x)))
           ((== impl :superscript) (tmconcat prev `(rsub ,x)))
           (else #f)
@@ -577,10 +577,10 @@
     (stats-in-role (tmconcat x " " y))
     (stats-in-role (tmconcat x "," y))
     (stats-in-role
-      (tmconcat x `(around ,"(" ,y ,")"))
+      (tmconcat x `(around "(" ,y ")"))
     ) ;stats-in-role
     (stats-in-role
-      (tmconcat x `(around ,"[" ,y ,"]"))
+      (tmconcat x `(around "[" ,y "]"))
     ) ;stats-in-role
     (stats-in-role
       (tmconcat x `(rsub ,y))

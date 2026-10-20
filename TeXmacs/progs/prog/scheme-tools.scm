@@ -90,13 +90,13 @@
          (lst2 (list-filter lst (lambda (x) (nnull? x))))
          (inputs
            (map-in-order
-             (lambda (x) `(input ,"Scheme] " (document ,@x)))
+             (lambda (x) `(input "Scheme] " (document ,@x)))
              lst2
            ) ;map-in-order
          ) ;inputs
         ) ;
     (insert
-      `(session ,"scheme" ,"default" (document ,@inputs))
+      `(session "scheme" "default" (document ,@inputs))
     ) ;insert
   ) ;let*
 ) ;tm-define
@@ -182,13 +182,13 @@
         (if save? (buffer-save u))
         (load s)
         (set-message
-          `(replace ,"File %1 was executed" (verbatim ,s))
+          `(replace "File %1 was executed" (verbatim ,s))
           ""
         ) ;set-message
       ) ;lambda
       (if (and (buffer-exists? u) (buffer-modified? u))
         (user-confirm
-          `(replace ,"File %1 is currently open and modified. Save before running?"
+          `(replace "File %1 is currently open and modified. Save before running?"
              (verbatim ,s))
           #t
           run

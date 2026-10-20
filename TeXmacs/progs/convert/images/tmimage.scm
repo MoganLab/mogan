@@ -408,15 +408,15 @@
                (if needbaseline
                  ;; if needbaseline insert fragment in table having a background
 
-                 `(with (tabular (tformat (twith ,"table-width" ,parcm)
+                 `(with (tabular (tformat (twith "table-width" ,parcm)
                                    (twith "table-hmode" "min")
                                    (twith "table-valign" "B")
                                    ;; =baseline of top line
-                                   (cwith ,"1"
-                                     ,"1"
-                                     ,"1"
-                                     ,"1"
-                                     ,"cell-background"
+                                   (cwith "1"
+                                     "1"
+                                     "1"
+                                     "1"
+                                     "cell-background"
                                      ,fillcolor)
                                    (cwith "1" "1" "1" "1" "cell-lsep" "0spc")
                                    (cwith "1" "1" "1" "1" "cell-tsep" "0sep")
@@ -424,14 +424,14 @@
                                    (cwith "1" "1" "1" "1" "cell-bsep" "0sep")
                                    (table (row (cell ,tm-fragment1))))))
                  ;; otherwise (multiline selection) use doc-at to get proper pagewidth
-                 `(with ,"fill-color"
+                 `(with "fill-color"
                     ,fillcolor
-                    ,"doc-at-width"
+                    "doc-at-width"
                     ,parcm
-                    ,"doc-at-hmode"
+                    "doc-at-hmode"
                     ,(if (or iseqnarray indisplaymath inmath) "min" "exact")
-                    ,"doc-at-padding"
-                    ,"0spc"
+                    "doc-at-padding"
+                    "0spc"
                     (document-at (document ,tm-fragment1) (point "0par" "0")))
                ) ;if
              ) ;tm-fragment-formated

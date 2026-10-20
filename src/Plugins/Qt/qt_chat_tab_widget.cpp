@@ -459,13 +459,19 @@ ChatConversationPanel::setup_ui () {
   chipsRow_->hide ();
   inputAreaLayout->insertWidget (0, chipsRow_);
 
-  inputWidget= texmacs_input_widget (
-      tree (WITH, "par-par-sep", "0.05fn", "font", "sys-chinese", "zoom-factor",
-            as_string (chatZoom), tree (DOCUMENT, "")),
-      chat_embedded_style (), inputBufferUrl_);
-  set_zoom_factor (inputWidget, chatZoom);
-  QWidget* inputQWidget= concrete (inputWidget)->as_qwidget ();
-  inputEditorWidget_   = inputQWidget;
+  QWidget* inputQWidget= nullptr;
+  if (!is_none (get_current_buffer_safe ()) &&
+      !is_none (get_current_view_safe ())) {
+    inputWidget= texmacs_input_widget (
+        tree (WITH, "par-par-sep", "0.05fn", "font", "sys-chinese",
+              "zoom-factor", as_string (chatZoom), tree (DOCUMENT, "")),
+        chat_embedded_style (), inputBufferUrl_);
+    set_zoom_factor (inputWidget, chatZoom);
+    if (concrete (inputWidget).rep && concrete (inputWidget)->as_qwidget ())
+      inputQWidget= concrete (inputWidget)->as_qwidget ();
+  }
+  if (!inputQWidget) inputQWidget= new QWidget (inputArea);
+  inputEditorWidget_= inputQWidget;
   // TeXmacs 尺寸提示不得传导到 dock 几何（同消息区垂直方向的处理）；
   // 输入区宽度方向也要 Ignored——否则输入框长高后编辑器的提示宽度
   // 会把 dock 侧边栏整体撑宽且不回退

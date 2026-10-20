@@ -128,7 +128,7 @@ public:
   bool is_embedded_widget ();
 
   void handle_get_size_hint (SI& w, SI& h);
-  void handle_repaint (renderer ren, SI x1, SI y1, SI x2, SI y2);
+  void handle_repaint (renderer ren, DI x1, DI y1, DI x2, DI y2);
   void handle_mouse (string kind, SI x, SI y, int m, time_t t,
                      array<double> data);
 };
@@ -156,7 +156,7 @@ box_widget_rep::handle_get_size_hint (SI& w, SI& h) {
 }
 
 void
-box_widget_rep::handle_repaint (renderer ren, SI x1, SI y1, SI x2, SI y2) {
+box_widget_rep::handle_repaint (renderer ren, DI x1, DI y1, DI x2, DI y2) {
   SI w, h;
   handle_get_size_hint (w, h);
   if (!transparent) {

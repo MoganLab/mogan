@@ -131,7 +131,7 @@
       ;; 如果找不到文档，显示错误消息
       ((url-none? name)
        (set-message
-         `(concat ,"Error: help file " (verbatim ,s) ," not found")
+         `(concat "Error: help file " (verbatim ,s) " not found")
          "load help file"
        ) ;set-message
       ) ;

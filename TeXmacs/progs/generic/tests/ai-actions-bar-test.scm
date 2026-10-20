@@ -43,7 +43,7 @@
   ) ;check
   (check
     (ai-selection-only-images?
-      (tm->tree `(document ," " ,img ,""))
+      (tm->tree `(document " " ,img ""))
     ) ;ai-selection-only-images?
     =>
     #t
@@ -51,14 +51,14 @@
   ;; 图片夹杂文字/其它内容：照常弹出
   (check
     (ai-selection-only-images?
-      (tm->tree `(concat ,img ,"text"))
+      (tm->tree `(concat ,img "text"))
     ) ;ai-selection-only-images?
     =>
     #f
   ) ;check
   (check
     (ai-selection-only-images?
-      (tm->tree `(document ,img ,"x"))
+      (tm->tree `(document ,img "x"))
     ) ;ai-selection-only-images?
     =>
     #f
@@ -67,14 +67,14 @@
   ;; (with "par-mode" "center" (image ...))，body 只有图片时不弹）
   (check
     (ai-selection-only-images?
-      (tm->tree `(with ,"par-mode" ,"center" ,img))
+      (tm->tree `(with "par-mode" "center" ,img))
     ) ;ai-selection-only-images?
     =>
     #t
   ) ;check
   (check
     (ai-selection-only-images?
-      (tm->tree `(with ,"color" ,"red" ,img))
+      (tm->tree `(with "color" "red" ,img))
     ) ;ai-selection-only-images?
     =>
     #t
@@ -83,7 +83,7 @@
   (check
     (ai-selection-only-images?
       (tm->tree
-        `(with ,"par-mode" ,"center" (concat ,img ,"text"))
+        `(with "par-mode" "center" (concat ,img "text"))
       ) ;tm->tree
     ) ;ai-selection-only-images?
     =>
@@ -145,7 +145,7 @@
        ) ;
     (ai-subtree-store-reset!)
     (check
-      (ai-flatten-text `(para ,"see " ,tab ," here"))
+      (ai-flatten-text `(para "see " ,tab " here"))
       =>
       "see <#Z0G> here"
     ) ;check

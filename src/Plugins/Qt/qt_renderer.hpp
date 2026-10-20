@@ -44,24 +44,24 @@ public:
 
   void set_clipping (DI x1, DI y1, DI x2, DI y2, bool restore= false);
 
-  void draw_bis (int char_code, font_glyphs fn, SI x, SI y);
-  void draw (int glyph_index, font_glyphs fn, SI x, SI y, int codepoint= -1);
-  void draw (const QFont& qfn, const QString& s, SI x, SI y, double zoom);
+  void draw_bis (int char_code, font_glyphs fn, DI x, DI y);
+  void draw (int glyph_index, font_glyphs fn, DI x, DI y, int codepoint= -1);
+  void draw (const QFont& qfn, const QString& s, DI x, DI y, double zoom);
   void set_pencil (pencil p);
   void set_brush (brush b);
-  void line (SI x1, SI y1, SI x2, SI y2);
+  void line (DI x1, DI y1, DI x2, DI y2);
   void lines (array<SI> x, array<SI> y);
-  void clear (SI x1, SI y1, SI x2, SI y2);
-  void fill (SI x1, SI y1, SI x2, SI y2);
-  void arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta);
-  void fill_arc (SI x1, SI y1, SI x2, SI y2, int alpha, int delta);
+  void clear (DI x1, DI y1, DI x2, DI y2);
+  void fill (DI x1, DI y1, DI x2, DI y2);
+  void arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta);
+  void fill_arc (DI x1, DI y1, DI x2, DI y2, int alpha, int delta);
   void polygon (array<SI> x, array<SI> y, bool convex= true);
-  void draw_triangle (SI x1, SI y1, SI x2, SI y2, SI x3, SI y3);
+  void draw_triangle (DI x1, DI y1, DI x2, DI y2, DI x3, DI y3);
   void draw_curve (curve c, bool filled= false) override;
   bool support_native_curve (curve c) override;
 
-  void draw_clipped (QImage* im, int w, int h, SI x, SI y);
-  void draw_clipped (QTMPixmapOrImage* im, int w, int h, SI x, SI y);
+  void draw_clipped (QImage* im, int w, int h, DI x, DI y);
+  void draw_clipped (QTMPixmapOrImage* im, int w, int h, DI x, DI y);
   void draw_ellipse (const curve& c);
 
   void new_shadow (renderer& ren);
@@ -71,7 +71,7 @@ public:
 
   void apply_shadow (DI x1, DI y1, DI x2, DI y2);
 
-  void draw_picture (picture pict, SI x, SI y, int alpha);
+  void draw_picture (picture pict, DI x, DI y, int alpha);
 };
 
 qt_renderer_rep* the_qt_renderer ();

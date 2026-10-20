@@ -573,7 +573,7 @@
                 ((and (tree-in? enc (algorithm-tag-list))
                    (< (tree-index (tree-up doc)) (- (tree-arity enc) 1))
                  ) ;and
-                 (set! doc `(with ,"par-first" ,"0em" ,(tree-up doc)))
+                 (set! doc `(with "par-first" "0em" ,(tree-up doc)))
                 ) ;
           ) ;cond
         ) ;with
@@ -584,7 +584,7 @@
       (set! doc (clean-preview doc))
       (set! doc (fix-fig_or_tb-number doc id))
       (when math?
-        (set! doc `(with ,"math-display" ,"true" (math ,doc)))
+        (set! doc `(with "math-display" "true" (math ,doc)))
       ) ;when
       `(preview-balloon ,doc)
     ) ;with
@@ -666,7 +666,7 @@
                 (show-tooltip id (cursor-tree) tip "Top" "Top" "keyboard" 1.8)
                 (when (not tip1)
                   (set-message
-                    `(concat (verbatim ,id1) ," <rightarrow> " (verbatim ,id2))
+                    `(concat (verbatim ,id1) " <rightarrow> " (verbatim ,id2))
                     ""
                   ) ;set-message
                 ) ;when

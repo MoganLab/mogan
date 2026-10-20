@@ -118,7 +118,7 @@
 (tm-define (make-interactive-with-opacity)
   (:interactive #t)
   (interactive
-    (lambda (s) (make-with-like `(with-opacity ,s ,"")))
+    (lambda (s) (make-with-like `(with-opacity ,s "")))
     (list "opacity" "string" '())
   ) ;interactive
 ) ;tm-define
@@ -161,7 +161,7 @@
       ) ;with
      ) ;
      (else
-       (insert-go-to `(with ,@l ,"") (list (length l) 0))
+       (insert-go-to `(with ,@l "") (list (length l) 0))
        (with-simplify (cursor-tree))
      ) ;else
     ) ;cond
@@ -269,8 +269,8 @@
    ((and-with u (with-like-search (cursor-tree)) (with-same-type? t u))
     (with sym
       (symbol->string (tree-label t))
-      (set-message `(concat ,"Warning: already inside '" ,sym ,"'")
-        `(concat ,"make '" ,sym ,"'")
+      (set-message `(concat "Warning: already inside '" ,sym "'")
+        `(concat "make '" ,sym "'")
       ) ;set-message
       #t
     ) ;with
@@ -636,7 +636,7 @@
 (tm-define (make-alternate prompt default-val tag)
   (:interactive #t)
   (interactive
-    (lambda (x) (make-with-like `(,tag ,x ,"")))
+    (lambda (x) (make-with-like `(,tag ,x "")))
     (list prompt "string" default-val)
   ) ;interactive
 ) ;tm-define

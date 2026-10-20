@@ -28,7 +28,7 @@
         ((bib-null? (car x)) (new-list-rec s (cdr x)))
         ((null? (cdr x)) (car x))
         ((and (func? (car x) 'concat) (== (cAr (car x)) "''") (== s ", "))
-         `(concat ,@(cdr (cDr (car x))) ,",'' " ,(new-list-rec s (cdr x)))
+         `(concat ,@(cdr (cDr (car x))) ",'' " ,(new-list-rec s (cdr x)))
         ) ;
         (else
           `(concat ,(car x) ,s ,(new-list-rec s (cdr x)))
@@ -49,7 +49,7 @@
          ) ;vv
          (ll (if (bib-null? (list-ref x 3)) "" (bib-purify (list-ref x 3))))
          (jj
-           (if (bib-null? (list-ref x 4)) "" `(concat ,", " ,(list-ref x 4)))
+           (if (bib-null? (list-ref x 4)) "" `(concat ", " ,(list-ref x 4)))
          ) ;jj
         ) ;
     `(concat ,f ,vv ,ll ,jj)
@@ -68,8 +68,8 @@
     (if (or (bib-null? a) (nlist? a))
       ""
       (if (equal? (length a) 2)
-        `(concat ,(bib-format-names a) ,", ed.")
-        `(concat ,(bib-format-names a) ,", eds.")
+        `(concat ,(bib-format-names a) ", ed.")
+        `(concat ,(bib-format-names a) ", eds.")
       ) ;if
     ) ;if
   ) ;with
@@ -84,12 +84,12 @@
               (if (bib-null? s)
                 ""
                 `(concat ,(bib-translate " of ")
-                   (with ,"font-shape" ,"italic" ,s))
+                   (with "font-shape" "italic" ,s))
               ) ;if
             ) ;series
             (sep (if (< (bib-text-length v) 3) '(nbsp) " "))
            ) ;
-        `(concat ,"vol." ,sep ,v ,series)
+        `(concat "vol." ,sep ,v ,series)
       ) ;let
     ) ;if
   ) ;let*
@@ -109,7 +109,7 @@
               ) ;series
               (sep (if (< (bib-text-length n) 3) '(nbsp) " "))
              ) ;
-          `(concat ,"no." ,sep ,n ,series)
+          `(concat "no." ,sep ,n ,series)
         ) ;let
       ) ;if
       ""
@@ -118,7 +118,7 @@
 ) ;tm-define
 
 (define (bib-format-edition x)
-  (with e (bib-field x "edition") (if (bib-null? e) "" `(concat ,e ," ed.")))
+  (with e (bib-field x "edition") (if (bib-null? e) "" `(concat ,e " ed.")))
 ) ;define
 
 (tm-define (bib-format-in-ed-booktitle x)
@@ -127,12 +127,12 @@
     (if (bib-null? b)
       ""
       (if (bib-null? e)
-        `(concat ,(bib-translate "in ") (with ,"font-shape" ,"italic" ,b))
+        `(concat ,(bib-translate "in ") (with "font-shape" "italic" ,b))
         `(concat ,(bib-translate "in ")
-           (with ,"font-shape" ,"italic" ,b)
-           ," ("
+           (with "font-shape" "italic" ,b)
+           " ("
            ,(bib-format-editor x)
-           ,")")
+           ")")
       ) ;if
     ) ;if
   ) ;let*
@@ -140,7 +140,7 @@
 
 (define (bib-format-address-publisher x)
   (let* ((a (bib-field x "address")) (p (bib-field x "publisher")))
-    (if (bib-null? a) p (if (bib-null? p) a `(concat ,a ,": " ,p)))
+    (if (bib-null? a) p (if (bib-null? p) a `(concat ,a ": " ,p)))
   ) ;let*
 ) ;define
 
@@ -150,9 +150,9 @@
     (bib-field x "pages")
     (cond ((or (bib-null? p) (nlist? p)) "")
           ((== (length p) 1) "")
-          ((== (length p) 2) `(concat ,"p." (nbsp) ,(list-ref p 1)))
+          ((== (length p) 2) `(concat "p." (nbsp) ,(list-ref p 1)))
           (else
-            `(concat ,"pp."
+            `(concat "pp."
                (nbsp)
                ,(list-ref p 1)
                ,bib-range-symbol
@@ -167,10 +167,10 @@
   `(concat ,(bib-format-bibitem n x)
      ,(bib-label (list-ref x 2))
      ,(bib-new-list-spc `(,(bib-new-block (bib-new-sentence `(,(bib-format-author x)
-                                                              (concat ,"``"
+                                                              (concat "``"
                                                                 ,(bib-format-field-Locase x
                                                                    "title")
-                                                                ,"''")
+                                                                "''")
                                                               ,@(if (bib-empty? x
                                                                       "crossref")
                                                                   `(,(bib-emphasize (bib-format-field x
@@ -178,14 +178,14 @@
                                                                     ,(if (bib-empty? x
                                                                            "volume")
                                                                        ""
-                                                                       `(concat ,"vol."
+                                                                       `(concat "vol."
                                                                           (nbsp)
                                                                           ,(bib-field x
                                                                              "volume")))
                                                                     ,(if (bib-empty? x
                                                                            "number")
                                                                        ""
-                                                                       `(concat ,"no."
+                                                                       `(concat "no."
                                                                           (nbsp)
                                                                           ,(bib-field x
                                                                              "number")))
@@ -232,10 +232,10 @@
   `(concat ,(bib-format-bibitem n x)
      ,(bib-label (list-ref x 2))
      ,(bib-new-list-spc `(,(bib-new-block (bib-new-sentence `(,(bib-format-author x)
-                                                              (concat ,"``"
+                                                              (concat "``"
                                                                 ,(bib-format-field-Locase x
                                                                    "title")
-                                                                ,"''"))))
+                                                                "''"))))
                           ,(bib-new-block (bib-new-sentence `(,(bib-format-field-preserve-case x
                                                                  "howpublished")
                                                               ,(bib-format-field x
@@ -274,10 +274,10 @@
   `(concat ,(bib-format-bibitem n x)
      ,(bib-label (list-ref x 2))
      ,(bib-new-list-spc `(,(bib-new-block (bib-new-sentence `(,(bib-format-author x)
-                                                              (concat ,"``"
+                                                              (concat "``"
                                                                 ,(bib-format-field-Locase x
                                                                    "title")
-                                                                ,"''")
+                                                                "''")
                                                               ,@(if (bib-empty? x
                                                                       "crossref")
                                                                   `(,(bib-format-in-ed-booktitle x)
@@ -299,19 +299,19 @@
   `(concat ,(bib-format-bibitem n x)
      ,(bib-label (list-ref x 2))
      ,(bib-new-list-spc `(,(bib-new-block (bib-new-sentence `(,(bib-format-author x)
-                                                              (concat ,"``"
+                                                              (concat "``"
                                                                 ,(bib-format-field-Locase x
                                                                    "title")
-                                                                ,"''")
+                                                                "''")
                                                               ,@(if (bib-empty? x
                                                                       "crossref")
                                                                   `(,(bib-format-in-ed-booktitle x)
                                                                     ,(bib-format-bvolume x)
                                                                     ,(bib-format-number-series x)
-                                                                    (concat ,"("
+                                                                    (concat "("
                                                                       ,(bib-format-field x
                                                                          "address")
-                                                                      ,")")
+                                                                      ")")
                                                                     ,(bib-format-pages x)
                                                                     ,(bib-format-field x
                                                                        "organization")
@@ -355,10 +355,10 @@
   `(concat ,(bib-format-bibitem n x)
      ,(bib-label (list-ref x 2))
      ,(bib-new-list-spc `(,(bib-new-block (bib-new-sentence `(,(bib-format-author x)
-                                                              (concat ,"``"
+                                                              (concat "``"
                                                                 ,(bib-format-field-Locase x
                                                                    "title")
-                                                                ,"''")
+                                                                "''")
                                                               ,(if (bib-empty? x
                                                                      "type")
                                                                  (bib-translate "Master's thesis")
@@ -377,10 +377,10 @@
   `(concat ,(bib-format-bibitem n x)
      ,(bib-label (list-ref x 2))
      ,(bib-new-list-spc `(,(bib-new-case-preserved-block (bib-new-case-preserved-sentence `(,(bib-format-author x)
-                                                                                            (concat ,"``"
+                                                                                            (concat "``"
                                                                                               ,(bib-format-field-Locase x
                                                                                                  "title")
-                                                                                              ,"''")
+                                                                                              "''")
                                                                                             ,(bib-format-field-preserve-case x
                                                                                                "howpublished")
                                                                                             ,(bib-format-date x))))
@@ -425,10 +425,10 @@
                                                                  ""
                                                                  (bib-format-field x
                                                                    "organization"))
-                                                              (concat ,"("
+                                                              (concat "("
                                                                 ,(bib-format-field x
                                                                    "address")
-                                                                ,")")
+                                                                ")")
                                                               ,(bib-format-field x
                                                                  "publisher")
                                                               ,(bib-format-date x))))
@@ -440,10 +440,10 @@
   `(concat ,(bib-format-bibitem n x)
      ,(bib-label (list-ref x 2))
      ,(bib-new-list-spc `(,(bib-new-block (bib-new-sentence `(,(bib-format-author x)
-                                                              (concat ,"``"
+                                                              (concat "``"
                                                                 ,(bib-format-field-Locase x
                                                                    "title")
-                                                                ,"''")
+                                                                "''")
                                                               ,(bib-format-tr-number x)
                                                               ,(bib-format-field x
                                                                  "institution")
@@ -458,10 +458,10 @@
   `(concat ,(bib-format-bibitem n x)
      ,(bib-label (list-ref x 2))
      ,(bib-new-list-spc `(,(bib-new-block (bib-new-sentence `(,(bib-format-author x)
-                                                              (concat ,"``"
+                                                              (concat "``"
                                                                 ,(bib-format-field-Locase x
                                                                    "title")
-                                                                ,"''"))))
+                                                                "''"))))
                           ,(bib-new-block (bib-new-sentence `(,(bib-format-field x
                                                                  "note")
                                                               ,(bib-format-date x)))))))
