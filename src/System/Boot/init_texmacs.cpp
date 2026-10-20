@@ -823,17 +823,35 @@ TeXmacs_main (int argc, char** argv) {
                           scm_quote (as_string (out)) * "))";
           }
           else {
-            // Default conversion: load the input buffer, then export
-            my_init_cmds= my_init_cmds * " " * "(load-buffer " *
-                          scm_quote (as_string (in)) * " :strict) ";
             if (out_suffix == "pdf") {
               // pdf export additionally expands screens into slides
-              my_init_cmds= my_init_cmds * "(export-buffer-to-pdf " *
+              my_init_cmds= my_init_cmds * " (load-buffer " *
+                            scm_quote (as_string (in)) * " :strict) " *
+                            "(export-buffer-to-pdf " *
                             scm_quote (as_string (out)) * ")";
             }
             else {
-              my_init_cmds= my_init_cmds * "(export-buffer " *
-                            scm_quote (as_string (out)) * ")";
+              // headless 无活动 view，export-buffer 依赖
+              // current-buffer 不可靠，改为按 URL 显式加载/导出；
+              // latex/tmu 等格式由插件注册，lazy-plugin-force
+              // 须先于格式解析（目标文件尚不存在，目标格式取自
+              // 后缀，url-format 只会答 generic）；headless 下
+              // scheme 输出进日志，错误写 current-error-port 到终端。
+              my_init_cmds=
+                  my_init_cmds * " " *
+                  "(let* ((dummy (lazy-plugin-force)) (source (system->url " *
+                  scm_quote (as_string (in)) * ")) " *
+                  "       (target (system->url " * scm_quote (as_string (out)) *
+                  ")) " *
+                  "       (target-format (format-from-suffix (url-suffix "
+                  "target)))) " *
+                  "  (if (buffer-load source) " *
+                  "      (display (string-append \"TeXmacs] Could not load "
+                  "\" " *
+                  "(url->system source) \"\\n\") (current-error-port)) " *
+                  "      (when (buffer-export source target target-format) " *
+                  "        (display (string-append \"TeXmacs] Could not export "
+                  "\" (url->system target) \"\\n\") (current-error-port)))))";
             }
           }
           // -c 默认隐含 -q：转换完成后自动退出
