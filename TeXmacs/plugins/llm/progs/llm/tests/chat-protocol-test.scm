@@ -109,6 +109,7 @@
 ;;; ---------- 假插件加载（预定义测试模式跳过 REPL） ----------
 
 (define *tm-attachment-test-mode* #t)
+(load "./TeXmacs/plugins/attachment/progs/attachment-policy.scm")
 (load "./TeXmacs/plugins/attachment/goldfish/tm-attachment.scm")
 
 (define *tm-llm-test-mode* #t)
@@ -116,17 +117,12 @@
 
 ;;; ---------- 假附件插件：ingest → ready + 抽取缓存 ----------
 
-;; 协议行构造 helper：%attachment ingest 请求（count/bytes 为本轮已选
-;; 累计，插件侧预检用）与 %chat 消息（后者只差 attachments 实参）
+;; 协议行构造 helper：%attachment ingest 请求（只含 taskId/path，
+;; 预检已上移宿主）与 %chat 消息（后者只差 attachments 实参）
 
-(define (make-ingest-line task-id path count bytes)
+(define (make-ingest-line task-id path)
   (string-append "%attachment "
-    (json->string (list (cons "taskId" task-id)
-                    (cons "path" path)
-                    (cons "count" count)
-                    (cons "bytes" bytes)
-                  ) ;list
-    ) ;json->string
+    (json->string (list (cons "taskId" task-id) (cons "path" path)))
   ) ;string-append
 ) ;define
 
@@ -158,7 +154,7 @@
          (path "/tmp/chat-protocol-test-fake.pdf")
          (content "fake pdf bytes")
          (ignored (path-write-text path content))
-         (line (make-ingest-line task-id path 0 0))
+         (line (make-ingest-line task-id path))
          (j (string->json (fake-attachment-ingest line)))
          (sha256 (json-ref-string j "sha256" #f))
         ) ;
@@ -184,13 +180,13 @@
   ) ;let
 ) ;define
 
-;;; ---------- 插件侧预检：可访问性 / 扩展名白名单 / 数量 / 总大小 ----------
+;;; ---------- 宿主侧预检：可访问性 / 扩展名白名单 / 数量 / 总大小 ----------
 
-;; 预检在附件插件内（mogan UI 不再本地预检）：可访问性（存在且为普通
-;; 文件、可读）+ count/bytes 为本轮已选累计；通过返回 #f，违规返回
-;; 原因字符串
+;; 预检策略上移宿主（attachment-policy.scm，真假插件共同遵从同一约定）：
+;; 可访问性（存在且为普通文件、可读）+ count/bytes 为本轮已选累计；
+;; 通过返回 #f，违规返回原因字符串
 
-(define (test-fake-attachment-precheck)
+(define (test-attachment-host-precheck)
   ;; 通过用例的 path 基准：存在且可读的真实文件（filename 与 path 解耦，
   ;; 逐规则独立断言）
   (let ((ok "/tmp/chat-protocol-test-ok.pdf")
@@ -198,32 +194,32 @@
        ) ;
     (path-write-text ok "x")
     ;; 可访问性：不存在 / 目录拒绝，存在且可读通过
-    (check (string? (fake-attachment-precheck missing "a.pdf" 1 0 0)) => #t)
-    (check (string? (fake-attachment-precheck (path-temp-dir) "a.pdf" 1 0 0)) => #t)
-    (check (fake-attachment-precheck ok "a.PDF" 1 0 0) => #f)
+    (check (string? (attachment-host-precheck missing "a.pdf" 1 0 0)) => #t)
+    (check (string? (attachment-host-precheck (path-temp-dir) "a.pdf" 1 0 0)) => #t)
+    (check (attachment-host-precheck ok "a.PDF" 1 0 0) => #f)
     ;; 扩展名白名单：文档 + 源码，大小写不敏感；无扩展名与隐藏文件拒绝
-    (check (fake-attachment-precheck ok "a.Md" 1 0 0) => #f)
-    (check (fake-attachment-precheck ok "a.py" 1 0 0) => #f)
-    (check (fake-attachment-precheck ok "a.rs" 1 0 0) => #f)
+    (check (attachment-host-precheck ok "a.Md" 1 0 0) => #f)
+    (check (attachment-host-precheck ok "a.py" 1 0 0) => #f)
+    (check (attachment-host-precheck ok "a.rs" 1 0 0) => #f)
     ;; Mogan 文档格式
-    (check (fake-attachment-precheck ok "a.stem" 1 0 0) => #f)
-    (check (fake-attachment-precheck ok "a.tmu" 1 0 0) => #f)
-    (check (string? (fake-attachment-precheck ok "noext" 1 0 0)) => #t)
-    (check (string? (fake-attachment-precheck ok ".hidden" 1 0 0)) => #t)
-    (let ((err (fake-attachment-precheck ok "a.exe" 1 0 0)))
+    (check (attachment-host-precheck ok "a.stem" 1 0 0) => #f)
+    (check (attachment-host-precheck ok "a.tmu" 1 0 0) => #f)
+    (check (string? (attachment-host-precheck ok "noext" 1 0 0)) => #t)
+    (check (string? (attachment-host-precheck ok ".hidden" 1 0 0)) => #t)
+    (let ((err (attachment-host-precheck ok "a.exe" 1 0 0)))
       (check (string? err) => #t)
       (check (string-contains? err "a.exe") => #t)
     ) ;let
     ;; 数量上限（含已选累计）：已选 9 可加第 10，已选 10 拒绝
-    (check (fake-attachment-precheck ok "a.pdf" 1 9 0) => #f)
-    (check (string? (fake-attachment-precheck ok "a.pdf" 1 10 0)) => #t)
+    (check (attachment-host-precheck ok "a.pdf" 1 9 0) => #f)
+    (check (string? (attachment-host-precheck ok "a.pdf" 1 10 0)) => #t)
     ;; 总大小上限 80 MiB（含已选累计）：恰好通过，+1 拒绝
-    (check (fake-attachment-precheck ok "a.pdf" 100 0 (- (* 80 1024 1024) 100))
+    (check (attachment-host-precheck ok "a.pdf" 100 0 (- (* 80 1024 1024) 100))
       =>
       #f
     ) ;check
     (check
-      (string? (fake-attachment-precheck ok "a.pdf" 100 0 (- (* 80 1024 1024) 99)))
+      (string? (attachment-host-precheck ok "a.pdf" 100 0 (- (* 80 1024 1024) 99)))
       =>
       #t
     ) ;check
@@ -234,23 +230,17 @@
 ;; 不可读分支：chmod 000 构造；探测仍可读（root 或无 chmod 的 Windows）
 ;; 则跳过断言，不断言环境不可达的分支
 
-(define (test-fake-attachment-precheck-unreadable)
+(define (test-attachment-host-precheck-unreadable)
   ;; 变量名避开 path：(liii path) 的 path 构造函数会被同名局部变量遮蔽
   (let ((noperm "/tmp/chat-protocol-test-noperm.pdf"))
     (path-write-text noperm "x")
     (if (not (os-windows?)) (os-call (string-append "chmod 000 " noperm)))
     (if (not (access noperm 'R_OK))
-      (let* ((err (fake-attachment-precheck noperm "a.pdf" 1 0 0))
-             ;; 回归：ingest 对不可读文件回 error 事件而非抛
-             ;; permission-error（size 求值经 file-exists?）
-             (j (string->json (fake-attachment-ingest (make-ingest-line "t-noperm" noperm 0 0)))
-             ) ;j
-            ) ;
+      (let ((err (attachment-host-precheck noperm "a.pdf" 1 0 0)))
         (check (string? err) => #t)
         (check (string-contains? err "a.pdf") => #t)
-        (check (json-ref-string j "event" #f) => "error")
-        (check (json-ref-string j "taskId" #f) => "t-noperm")
-      ) ;let*
+        (check (string-contains? err "不可读取") => #t)
+      ) ;let
     ) ;if
     ;; 先恢复权限再清理：file-exists? 对存在但不可读的文件抛
     ;; permission-error，path-unlink 内部经 file-exists?
@@ -259,46 +249,87 @@
   ) ;let
 ) ;define
 
-;; 预检违规经 ingest 回 error 事件（mogan UI 原样 toast reason）
+;; 非 ASCII 路径：宿主预检直接做文件系统调用（不经 wire，无
+;; connection_write 的 tree_herk_to_utf8），故须验证 herk 形态路径
+;; 先解回真实 UTF-8 后才查得到文件。attachment-ingest 依赖 tm-server
+;; 的 connection/plugin 设施，headless 单测不加载；此处直接验证解码
+;; 后的等价条件与 policy 行为。
 
-(define (test-fake-attachment-ingest-precheck)
-  (let* ((bad-path "/tmp/chat-protocol-test-precheck.exe")
-         (ignored (path-write-text bad-path "x"))
-         (bad-j (string->json (fake-attachment-ingest (make-ingest-line "t-bad" bad-path 0 0)))
-         ) ;bad-j
-         ;; 可访问性：不存在的路径同样经 ingest 回 error 事件
-         (gone-j (string->json (fake-attachment-ingest (make-ingest-line "t-gone" "/tmp/chat-protocol-test-gone.pdf" 0 0)
-                               ) ;fake-attachment-ingest
-                 ) ;string->json
-         ) ;gone-j
-         (ok-path "/tmp/chat-protocol-test-precheck.pdf")
-         (ignored2 (path-write-text ok-path "x"))
-         (cnt-j (string->json (fake-attachment-ingest (make-ingest-line "t-cnt" ok-path 10 0)))
-         ) ;cnt-j
-         (bytes-j
-           (string->json
-             (fake-attachment-ingest (make-ingest-line "t-bytes" ok-path 0 (+ (* 80 1024 1024) 1))
-             ) ;fake-attachment-ingest
-           ) ;string->json
-         ) ;bytes-j
+(define (test-attachment-host-precheck-nonascii-path)
+  (let ((dir "/tmp/chat-protocol-test-论文")
+        (file "/tmp/chat-protocol-test-论文/ok.pdf")
+       ) ;
+    (path-mkdir dir)
+    (path-write-text file "x")
+    ;; herk 形态（C++ from_qstring 契约下 attachment-ingest 的入参形态）
+    ;; 直接做 path-file? 必为假；cork->utf8 解码后为真
+    (let ((herk (utf8->cork file)))
+      (check (path-file? herk) => #f)
+      (check (path-file? (cork->utf8 herk)) => #t)
+      ;; 解码后走 policy：存在且可读 → #f
+      (check
+        (attachment-host-precheck (cork->utf8 herk)
+          (path->string (path-name (path herk)))
+          1
+          0
+          0
+        ) ;attachment-host-precheck
+        =>
+        #f
+      ) ;check
+    ) ;let
+    (path-unlink file #t)
+    (path-rmdir dir)
+  ) ;let
+) ;define
+
+;; 异常兜底测试：通过故障注入让缓存清理或 ready 缓存写入抛错，
+;; 仍返回带原 taskId 的 error 事件而不是向外抛出异常
+
+(define (test-fake-attachment-ingest-exception-fallback)
+  (let* ((ok-path "/tmp/chat-protocol-test-fallback.pdf")
+         (ignored (path-write-text ok-path "x"))
+         ;; 1. 注入缓存清理异常
+         (orig-sweep attachment-cache-sweep!)
+         (ignored-sweep (set! attachment-cache-sweep!
+                          (lambda () (error 'io-error "disk failure during sweep"))
+                        ) ;set!
+         ) ;ignored-sweep
+         (sweep-j (string->json (fake-attachment-ingest (make-ingest-line "t-sweep-err" ok-path)))
+         ) ;sweep-j
+         (ignored-restore-sweep (set! attachment-cache-sweep! orig-sweep))
+         ;; 2. 注入 ready 缓存写入异常
+         (orig-put attachment-cache-put!)
+         (ignored-put (set! attachment-cache-put!
+                        (lambda (sha name content) (error 'disk-full "cannot put cache"))
+                      ) ;set!
+         ) ;ignored-put
+         (put-j (string->json (fake-attachment-ingest (make-ingest-line "t-put-err" ok-path)))
+         ) ;put-j
+         (ignored-restore-put (set! attachment-cache-put! orig-put))
         ) ;
-    (check (json-ref-string bad-j "event" #f) => "error")
-    (check (json-ref-string bad-j "taskId" #f) => "t-bad")
-    (check (string-contains? (json-ref-string bad-j "reason" "") "precheck.exe")
+    (check (json-ref-string sweep-j "event" #f) => "error")
+    (check (json-ref-string sweep-j "taskId" #f) => "t-sweep-err")
+    (check (string-contains? (json-ref-string sweep-j "reason" "") "附件处理异常")
       =>
       #t
     ) ;check
-    (check (json-ref-string gone-j "event" #f) => "error")
-    (check (json-ref-string gone-j "taskId" #f) => "t-gone")
-    (check (string-contains? (json-ref-string gone-j "reason" "")
-             "chat-protocol-test-gone.pdf"
+    (check (string-contains? (json-ref-string sweep-j "reason" "")
+             "disk failure during sweep"
            ) ;string-contains?
       =>
       #t
     ) ;check
-    (check (json-ref-string cnt-j "event" #f) => "error")
-    (check (json-ref-string bytes-j "event" #f) => "error")
-    (path-unlink bad-path #t)
+    (check (json-ref-string put-j "event" #f) => "error")
+    (check (json-ref-string put-j "taskId" #f) => "t-put-err")
+    (check (string-contains? (json-ref-string put-j "reason" "") "附件处理异常")
+      =>
+      #t
+    ) ;check
+    (check (string-contains? (json-ref-string put-j "reason" "") "cannot put cache")
+      =>
+      #t
+    ) ;check
     (path-unlink ok-path #t)
   ) ;let*
 ) ;define
@@ -320,7 +351,7 @@
              (path-write-text (path->string (path-join stale "result.json")) "[]")
            ) ;begin
          ) ;ignored
-         (ignored2 (fake-attachment-ingest (make-ingest-line "t-sweep" path 0 0)))
+         (ignored2 (fake-attachment-ingest (make-ingest-line "t-sweep" path)))
         ) ;
     (check (path-dir? (path-join (path->string root) "202001")) => #f)
     ;; 命中刷新：预置缓存原文后再次 ingest，原文被保留（仅刷新 ts 重写
@@ -339,7 +370,7 @@
                (path-write-text (path->string (path-join dir "result.json")) payload)
              ) ;begin
            ) ;ignored3
-           (ignored4 (fake-attachment-ingest (make-ingest-line "t-refresh" path 0 0)))
+           (ignored4 (fake-attachment-ingest (make-ingest-line "t-refresh" path)))
           ) ;
       (check (fake-llm-attachment-content sha256) => custom)
     ) ;let*
@@ -358,7 +389,7 @@
          ;; 用后清理，避免 /tmp 残留掩盖后续同类遗漏
          (ignored0 (path-write-text path "x"))
          (sha256 (fake-attachment-sha256 path))
-         (ignored (fake-attachment-ingest (make-ingest-line "t-llm" path 0 0)))
+         (ignored (fake-attachment-ingest (make-ingest-line "t-llm" path)))
          (chat-line
            (make-chat-line (vector (list (cons "sha256" sha256) (cons "filename" "f.pdf")))
            ) ;make-chat-line
@@ -409,12 +440,7 @@
          ;; %attachment ingest 行（attachment-ingest 的组行方式）
          (ingest
            (string-append "%attachment "
-             (json->string (list (cons "taskId" "t-enc")
-                             (cons "path" herk)
-                             (cons "count" 0)
-                             (cons "bytes" 0)
-                           ) ;list
-             ) ;json->string
+             (json->string (list (cons "taskId" "t-enc") (cons "path" herk)))
            ) ;string-append
          ) ;ingest
          (ingest-wire (cadr (wire-convert ingest)))
@@ -450,9 +476,10 @@
   (test-fake-attachment-sha256-deterministic)
   (test-fake-attachment-ingest-ready)
   (test-fake-attachment-ingest-error)
-  (test-fake-attachment-precheck)
-  (test-fake-attachment-precheck-unreadable)
-  (test-fake-attachment-ingest-precheck)
+  (test-attachment-host-precheck)
+  (test-attachment-host-precheck-unreadable)
+  (test-attachment-host-precheck-nonascii-path)
+  (test-fake-attachment-ingest-exception-fallback)
   (test-attachment-cache-sweep-and-refresh)
   (test-fake-llm-attachment-injection)
   (test-fake-llm-no-attachments)
