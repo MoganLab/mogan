@@ -276,7 +276,8 @@ ChatController::onAttachRequested (const string& sessionId) {
       static_cast<ChatConversationPanel*> (session->panel);
   if (!panel) return;
 
-  // 扩展名白名单在附件插件侧（预检归属插件），文件对话框不做类型过滤
+  // 扩展名白名单在附件宿主侧（init-attachment.scm 加载 attachment-policy.scm
+  // 做终态预检，插件遵从同一文案），文件对话框不做类型过滤
   QStringList files= QFileDialog::getOpenFileNames (
       view_, qt_translate ("Add Attachment"), QString (),
       qt_translate ("All files") + QString (" (*)"));
@@ -304,9 +305,11 @@ ChatController::onAttachRequested (const string& sessionId) {
     item.filename= fi.fileName ();
     item.size    = fi.size ();
     // 派发 %attachment ingest：path 只流向附件插件，不进 %chat 协议；
-    // 请求附带本轮已选累计 count/bytes，可访问性/扩展名/数量/总大小预检
-    // 由插件判定，违规经 error 事件 toast。失败（插件不可用）则不入选。
-    // taskId 为不透明序号，路由只靠 attachTaskSession_（单一事实源）
+    // 宿主侧 attachment-ingest 接收 count/bytes 用于本轮已选累计预检，
+    // 请求实际只下传 {taskId, path}；可访问性/扩展名/数量/总大小预检由
+    // 宿主（attachment-policy.scm）判定，违规经 error 事件 toast。失败
+    // （插件不可用）则不入选。taskId 为不透明序号，路由只靠
+    // attachTaskSession_（单一事实源）
     // path 须经 from_qstring 转 herk 内部形态：connection_write 会先做
     // tree_herk_to_utf8，裸 UTF-8（from_qstring_utf8）会被逐字节二次映射
     // 打乱，中文路径到插件侧变乱码而预检误报「文件不存在」

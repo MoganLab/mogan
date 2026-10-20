@@ -11,6 +11,12 @@
 
 (import (liii path) (liii json) (liii string))
 
+;; 宿主侧终态预检：真插件与假插件共同遵从同一规则与文案；显式
+;; TEXMACS_PATH，宿主所有，不认用户目录覆盖（与 init-research.scm:121
+;; load 惯例一致）
+(load (url-concretize "$TEXMACS_PATH/plugins/attachment/progs/attachment-policy.scm")
+) ;load
+
 ;; 与 llm 假插件同款自包含写法（内置 goldfish 与共享设施不改，插件各自
 ;; 持有 launcher/serializer）：% 开头的单字符串文档（%attachment 协议行）
 ;; 须原样透传，object->string 会加引号/转义并包 (document ...) 外壳
@@ -118,22 +124,26 @@
   ) ;let
 ) ;define
 
+(define (attachment-dispatch-error task-id reason)
+  ;; 终态派发：C++ 侧在 glue 调用返回后才注册 attachTaskSession_，
+  ;; 宿主预检或兜底报错必须 exec-delayed 派发，避免在 UI 注册前被丢弃；
+  ;; 通过 attachment-mark-task-finalized! 防止多通道重复报错
+  (when (and (string? task-id)
+          (not (string-null? task-id))
+          (not (attachment-task-finalized? task-id))
+        ) ;and
+    (attachment-mark-task-finalized! task-id)
+    (exec-delayed (lambda () (qt-chat-attachment-error task-id reason)))
+  ) ;when
+) ;define
+
 (define (attachment-session-fallback-error lan ses reason)
   ;; 插件通道异常或损坏协议输出时的事件兜底：使用当前 pending 任务的
   ;; taskId 投递 error 事件，避免 C++ 面板永久等待处理中动画与发送栅栏
   (with l
     (pending-ref lan ses)
     (when (nnull? l)
-      (with task-id
-        (third (car l))
-        (when (and (string? task-id)
-                (not (string-null? task-id))
-                (not (attachment-task-finalized? task-id))
-              ) ;and
-          (attachment-mark-task-finalized! task-id)
-          (exec-delayed (lambda () (qt-chat-attachment-error task-id reason)))
-        ) ;when
-      ) ;with
+      (with task-id (third (car l)) (attachment-dispatch-error task-id reason))
     ) ;when
   ) ;with
 ) ;define
@@ -207,14 +217,7 @@
     (when (nnull? l)
       (with task-id
         (third (car l))
-        (when (and (string? task-id)
-                (not (string-null? task-id))
-                (not (attachment-task-finalized? task-id))
-              ) ;and
-          (attachment-mark-task-finalized! task-id)
-          (exec-delayed (lambda () (qt-chat-attachment-error task-id "attachment plugin stopped"))
-          ) ;exec-delayed
-        ) ;when
+        (attachment-dispatch-error task-id "attachment plugin stopped")
       ) ;with
     ) ;when
   ) ;with
@@ -226,30 +229,44 @@
   (:argument path "Local absolute path (only flows to the attachment plugin)")
   (:argument count "Already-selected attachment count this round")
   (:argument bytes "Already-selected total bytes this round")
-  ;; count/bytes 为本轮已选累计，供插件侧预检（可访问性/扩展名白名单/
-  ;; 数量/总大小上限均在插件内判定，违规回 error 事件）
+  ;; 宿主侧终态预检：违规走 attachment-mark-task-finalized! + exec-delayed
+  ;; qt-chat-attachment-error 派发，条目录常入面板，由既有 error 清理链移除
+  ;; 并 toast。count/bytes 仍作为宿主预检入参；请求 JSON 瘦身只带
+  ;; {taskId, path}，插件侧不再二次预检
   (if (not (connection-defined? "attachment"))
     #f
-    (let ((input
-            (stree->tree
-              `(document ,(string-append "%attachment "
-                            (json->string (list (cons "taskId" task-id)
-                                            (cons "path" path)
-                                            (cons "count" count)
-                                            (cons "bytes" bytes)))))
-            ) ;stree->tree
-          ) ;input
-         ) ;
-      (plugin-feed "attachment"
-        "default"
-        attachment-session-do
-        attachment-session-notify
-        attachment-session-next
-        attachment-session-cancel
-        (list input task-id)
-      ) ;plugin-feed
-      #t
-    ) ;let
+    (let* ((p (path path))
+           (filename (path->string (path-name p)))
+           ;; size 在可访问时求值：path-getsize 内的 file-exists? 对存在
+           ;; 但不可读的文件抛 permission-error（boot.scm）
+           (size (if (and (path-file? p) (access path 'R_OK)) (path-getsize p) 0))
+           (reason (attachment-host-precheck path filename size count bytes))
+          ) ;
+      (if reason
+        (begin
+          (attachment-dispatch-error task-id reason)
+          #t
+        ) ;begin
+        (let ((input
+                (stree->tree
+                  `(document ,(string-append "%attachment "
+                                (json->string (list (cons "taskId" task-id)
+                                                (cons "path" path)))))
+                ) ;stree->tree
+              ) ;input
+             ) ;
+          (plugin-feed "attachment"
+            "default"
+            attachment-session-do
+            attachment-session-notify
+            attachment-session-next
+            attachment-session-cancel
+            (list input task-id)
+          ) ;plugin-feed
+          #t
+        ) ;let
+      ) ;if
+    ) ;let*
   ) ;if
 ) ;tm-define
 
