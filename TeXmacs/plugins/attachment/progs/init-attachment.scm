@@ -77,18 +77,15 @@
   ) ;let
 ) ;define
 
-(define attachment-finalized-tasks (make-ahash-table))
-
-(define (attachment-task-finalized? task-id)
-  (ahash-ref attachment-finalized-tasks task-id)
-) ;define
-
-(define (attachment-mark-task-finalized! task-id)
-  (ahash-set! attachment-finalized-tasks task-id #t)
-) ;define
-
-(define (attachment-clear-task-finalized! task-id)
-  (ahash-remove! attachment-finalized-tasks task-id)
+(define (attachment-dispatch-error task-id reason)
+  ;; 终态派发：C++ 侧在 glue 调用返回后才注册 attachTaskSession_，
+  ;; 宿主预检或兜底报错必须 exec-delayed 派发，避免在 UI 注册前被丢弃；
+  ;; 重复派发由 attachTaskSession_ 的 take 幂等吸收，宿主无需防重表。
+  ;; reason 到达此处应为 cork/herk 实体形态（中文宿主字面量须先经
+  ;; utf8->cork，通道文本已是实体，勿二次转换）
+  (when (and (string? task-id) (not (string-null? task-id)))
+    (exec-delayed (lambda () (qt-chat-attachment-error task-id reason)))
+  ) ;when
 ) ;define
 
 (define (attachment-event-dispatch j)
@@ -101,40 +98,16 @@
      ((== event "ready")
       ;; chip 展示用的 filename/size 在选择时已填入条目，事件只需 taskId
       ;; 定位与 sha256 回填
-      (when (and (string? task-id)
-              (not (string-null? task-id))
-              (not (attachment-task-finalized? task-id))
-            ) ;and
-        (attachment-mark-task-finalized! task-id)
+      (when (and (string? task-id) (not (string-null? task-id)))
         (exec-delayed (lambda () (qt-chat-attachment-ready task-id (json-ref-string j "sha256" "")))
         ) ;exec-delayed
       ) ;when
      ) ;
      ((== event "error")
-      (when (and (string? task-id)
-              (not (string-null? task-id))
-              (not (attachment-task-finalized? task-id))
-            ) ;and
-        (attachment-mark-task-finalized! task-id)
-        (exec-delayed (lambda () (qt-chat-attachment-error task-id (json-ref-string j "reason" "")))
-        ) ;exec-delayed
-      ) ;when
+      (attachment-dispatch-error task-id (json-ref-string j "reason" ""))
      ) ;
     ) ;cond
   ) ;let
-) ;define
-
-(define (attachment-dispatch-error task-id reason)
-  ;; 终态派发：C++ 侧在 glue 调用返回后才注册 attachTaskSession_，
-  ;; 宿主预检或兜底报错必须 exec-delayed 派发，避免在 UI 注册前被丢弃；
-  ;; 通过 attachment-mark-task-finalized! 防止多通道重复报错
-  (when (and (string? task-id)
-          (not (string-null? task-id))
-          (not (attachment-task-finalized? task-id))
-        ) ;and
-    (attachment-mark-task-finalized! task-id)
-    (exec-delayed (lambda () (qt-chat-attachment-error task-id reason)))
-  ) ;when
 ) ;define
 
 (define (attachment-session-fallback-error lan ses reason)
@@ -167,14 +140,14 @@
                  (attachment-event-dispatch j)
                  (attachment-session-fallback-error lan
                    ses
-                   (string-append "附件协议格式错误： " text)
+                   (string-append (utf8->cork "附件协议格式错误： ") text)
                  ) ;attachment-session-fallback-error
                ) ;if
              ) ;with
             ) ;
             (else (attachment-session-fallback-error lan
                     ses
-                    (string-append "附件插件异常输出： " text)
+                    (string-append (utf8->cork "附件插件异常输出： ") text)
                   ) ;attachment-session-fallback-error
             ) ;else
       ) ;cond
@@ -186,8 +159,8 @@
       (attachment-session-fallback-error lan
         ses
         (if (string-null? text)
-          "附件插件异常"
-          (string-append "附件插件异常： " text)
+          (utf8->cork "附件插件异常")
+          (string-append (utf8->cork "附件插件异常： ") text)
         ) ;if
       ) ;attachment-session-fallback-error
     ) ;with
@@ -196,18 +169,8 @@
 ) ;define
 
 (define (attachment-session-next lan ses)
-  ;; 出队与推进由 plugin-next 统一完成，清理已完成任务的终态标记
-  (with l
-    (pending-ref lan ses)
-    (when (nnull? l)
-      (with task-id
-        (third (car l))
-        (when (string? task-id)
-          (attachment-clear-task-finalized! task-id)
-        ) ;when
-      ) ;with
-    ) ;when
-  ) ;with
+  ;; 出队与推进由 plugin-next 统一完成，附件任务无额外收尾
+  (noop)
 ) ;define
 
 (define (attachment-session-cancel lan ses dead?)
@@ -223,35 +186,49 @@
   ) ;with
 ) ;define
 
-(tm-define (attachment-ingest task-id path count bytes)
+;; 形参不得命名为 path：会遮蔽 (liii path) 的 path 构造器，s7 中字符串
+;; 可直接被调用（等价 string-ref），(path path) 会按字符串应用抛错并被
+;; C++ call 降级为假值，误报「附件插件不可用」
+(tm-define (attachment-ingest task-id file-path count bytes)
   (:synopsis "Ingest an attachment file through the attachment plugin")
   (:argument task-id "Ingest task id")
-  (:argument path "Local absolute path (only flows to the attachment plugin)")
+  (:argument file-path
+    "Local absolute path (only flows to the attachment plugin)"
+  ) ;:argument
   (:argument count "Already-selected attachment count this round")
   (:argument bytes "Already-selected total bytes this round")
-  ;; 宿主侧终态预检：违规走 attachment-mark-task-finalized! + exec-delayed
+  ;; 宿主侧终态预检：违规经 attachment-dispatch-error 以 exec-delayed
   ;; qt-chat-attachment-error 派发，条目录常入面板，由既有 error 清理链移除
   ;; 并 toast。count/bytes 仍作为宿主预检入参；请求 JSON 瘦身只带
   ;; {taskId, path}，插件侧不再二次预检
   (if (not (connection-defined? "attachment"))
     #f
-    (let* ((p (path path))
-           (filename (path->string (path-name p)))
+    (let* ((fs-path (cork->utf8 file-path))
+           ;; file-path 自 glue 传入为 herk 实体形态（6217 的 from_qstring
+           ;; 契约，wire 侧 connection_write 才做 tree_herk_to_utf8）；
+           ;; 宿主预检不经 wire，文件系统调用必须先解回真实 UTF-8，
+           ;; 否则中文路径 path-file? 恒假、误报「文件不存在」
+           (p (path fs-path))
+           ;; 文案文件名取 herk 形态：toast 侧 cork_to_utf8 会解码实体；
+           ;; 扩展名判定只看最后一个点后的 ASCII，实体无点不受影响
+           (filename (path->string (path-name (path file-path))))
            ;; size 在可访问时求值：path-getsize 内的 file-exists? 对存在
            ;; 但不可读的文件抛 permission-error（boot.scm）
-           (size (if (and (path-file? p) (access path 'R_OK)) (path-getsize p) 0))
-           (reason (attachment-host-precheck path filename size count bytes))
+           (size (if (and (path-file? p) (access fs-path 'R_OK)) (path-getsize p) 0))
+           (reason (attachment-host-precheck fs-path filename size count bytes))
           ) ;
       (if reason
         (begin
-          (attachment-dispatch-error task-id reason)
+          ;; 宿主字面量为裸 UTF-8，过 glue 前转 <#XXXX> 实体（toast 侧
+          ;; cork_to_utf8 只认实体形态）
+          (attachment-dispatch-error task-id (utf8->cork reason))
           #t
         ) ;begin
         (let ((input
                 (stree->tree
                   `(document ,(string-append "%attachment "
                                 (json->string (list (cons "taskId" task-id)
-                                                (cons "path" path)))))
+                                                (cons "path" file-path)))))
                 ) ;stree->tree
               ) ;input
              ) ;

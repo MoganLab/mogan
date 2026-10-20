@@ -249,6 +249,40 @@
   ) ;let
 ) ;define
 
+;; 非 ASCII 路径：宿主预检直接做文件系统调用（不经 wire，无
+;; connection_write 的 tree_herk_to_utf8），故须验证 herk 形态路径
+;; 先解回真实 UTF-8 后才查得到文件。attachment-ingest 依赖 tm-server
+;; 的 connection/plugin 设施，headless 单测不加载；此处直接验证解码
+;; 后的等价条件与 policy 行为。
+
+(define (test-attachment-host-precheck-nonascii-path)
+  (let ((dir "/tmp/chat-protocol-test-论文")
+        (file "/tmp/chat-protocol-test-论文/ok.pdf")
+       ) ;
+    (path-mkdir dir)
+    (path-write-text file "x")
+    ;; herk 形态（C++ from_qstring 契约下 attachment-ingest 的入参形态）
+    ;; 直接做 path-file? 必为假；cork->utf8 解码后为真
+    (let ((herk (utf8->cork file)))
+      (check (path-file? herk) => #f)
+      (check (path-file? (cork->utf8 herk)) => #t)
+      ;; 解码后走 policy：存在且可读 → #f
+      (check
+        (attachment-host-precheck (cork->utf8 herk)
+          (path->string (path-name (path herk)))
+          1
+          0
+          0
+        ) ;attachment-host-precheck
+        =>
+        #f
+      ) ;check
+    ) ;let
+    (path-unlink file #t)
+    (path-rmdir dir)
+  ) ;let
+) ;define
+
 ;; 异常兜底测试：通过故障注入让缓存清理或 ready 缓存写入抛错，
 ;; 仍返回带原 taskId 的 error 事件而不是向外抛出异常
 
@@ -444,6 +478,7 @@
   (test-fake-attachment-ingest-error)
   (test-attachment-host-precheck)
   (test-attachment-host-precheck-unreadable)
+  (test-attachment-host-precheck-nonascii-path)
   (test-fake-attachment-ingest-exception-fallback)
   (test-attachment-cache-sweep-and-refresh)
   (test-fake-llm-attachment-injection)
