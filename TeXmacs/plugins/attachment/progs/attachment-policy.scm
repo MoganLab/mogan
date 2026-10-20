@@ -35,6 +35,7 @@
 ;;
 ;; 通过返回 #f；违规返回原因字符串（mogan UI 原样 toast）。
 ;; 规则顺序：不存在 → 不可读 → 类型不支持 → 数量超限 → 总大小超限
+
 (define (attachment-host-precheck file-path filename size count bytes)
   (let ((ext
           (let ((s (path->string (path-suffix (path filename)))))
