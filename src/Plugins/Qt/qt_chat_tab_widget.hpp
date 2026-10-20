@@ -225,8 +225,9 @@ signals:
   /// 菜单由 Controller 在按钮上方完整弹出（不遮挡按钮）
   void modelMenuRequested (const string& sessionId, const QPoint& globalPos);
   void closeSidebarInDockModeRequested ();
-  /// 请求选择附件（多选由 Controller 完成，预检在附件插件侧）
-  void attachRequested (const string& sessionId);
+  /// 请求弹出附件菜单；globalPos 为 Attach 按钮左上角全局坐标，
+  /// 菜单由 Controller 在按钮上方弹出
+  void attachRequested (const string& sessionId, const QPoint& globalPos);
   /// 附件处理中状态变化（驱动 Controller 的发送按钮安全栅栏）
   void attachmentProcessingChanged (const string& sessionId);
 
