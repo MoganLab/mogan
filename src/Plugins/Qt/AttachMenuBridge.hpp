@@ -21,8 +21,10 @@ class ChatController;
 /**
  * @brief 附件菜单的 C++ ↔ QML 桥接对象。
  *
- * 负责从 Scheme 中获取最近使用的文档列表提供给 QML 菜单，
- * 同时暴露选择最近文档、打开系统文件对话框及关闭菜单的槽函数供 QML 触发。
+ * 复用 GoMenu.qml：与 GoMenuBridge 同形（Q_INVOKABLE loadBuffer / openFile /
+ * closeMenu + QVariantMap meta），由 QML 上下文属性 "goBridge" 注入。
+ * loadBuffer(url) 把最近文档走 attachment-ingest；openFile() 走多选文件
+ * 对话框；closeMenu() 关闭宿主浮层。QML 端无任何「附件」命名。
  */
 class AttachMenuBridge : public QObject {
   Q_OBJECT
@@ -36,8 +38,8 @@ public:
 
   QVariantMap meta () const { return m_meta; }
 
-  Q_INVOKABLE void attachFile (const QString& url);
-  Q_INVOKABLE void chooseFiles ();
+  Q_INVOKABLE void loadBuffer (const QString& url);
+  Q_INVOKABLE void openFile ();
   Q_INVOKABLE void closeMenu ();
 
 private:

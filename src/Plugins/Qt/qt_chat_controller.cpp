@@ -356,6 +356,10 @@ ChatController::onAttachRequested (const string& sessionId,
   popup->setAttribute (Qt::WA_DeleteOnClose);
   attachMenuPopup_= popup;
 
+  // 复用 GoMenu.qml：AttachMenuBridge 与 GoMenuBridge 同形（Q_INVOKABLE
+  // loadBuffer / openFile / closeMenu + QVariantMap meta），context property
+  // 名仍叫 "goBridge"，QML 端无需感知差异。meta["label_open"] 由 bridge
+  // 端 qt_translate("Choose file") 覆盖默认 "Open file"。
   auto* bridge= new AttachMenuBridge (popup, sessionId, this);
 
   auto* quick= new QQuickWidget (popup);
@@ -363,8 +367,8 @@ ChatController::onAttachRequested (const string& sessionId,
   quick->setClearColor (Qt::transparent);
   quick->setStyleSheet ("background: transparent;");
   qt_inject_theme_context (quick);
-  quick->rootContext ()->setContextProperty ("attachBridge", bridge);
-  quick->setSource (QUrl ("qrc:/qml/AttachMenu.qml"));
+  quick->rootContext ()->setContextProperty ("goBridge", bridge);
+  quick->setSource (QUrl ("qrc:/qml/GoMenu.qml"));
 
   auto* layout= new QVBoxLayout (popup);
   layout->setContentsMargins (0, 0, 0, 0);

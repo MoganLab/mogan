@@ -42,11 +42,11 @@ TestAttachMenuBridge::test_bridge_actions () {
   AttachMenuBridge bridge (&host);
 
   // 验证各 invokable 方法能安全调用且不崩溃
-  bridge.attachFile ("");
+  bridge.loadBuffer ("");
   bridge.closeMenu ();
 
   qputenv ("MOGAN_TEST_CHOOSE_FILES", "cancel");
-  bridge.chooseFiles ();
+  bridge.openFile ();
   qunsetenv ("MOGAN_TEST_CHOOSE_FILES");
 }
 
@@ -59,7 +59,7 @@ TestAttachMenuBridge::test_choose_files_defers_menu_deletion () {
   auto*             bridge= new AttachMenuBridge (host);
 
   qputenv ("MOGAN_TEST_CHOOSE_FILES", "event-loop-cancel");
-  bridge->chooseFiles ();
+  bridge->openFile ();
   qunsetenv ("MOGAN_TEST_CHOOSE_FILES");
 
   // 对话框的嵌套事件循环返回后，QML 回调退出前菜单仍须存活。

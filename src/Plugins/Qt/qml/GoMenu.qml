@@ -12,7 +12,7 @@ Item {
 
     readonly property var meta: (typeof goBridge !== "undefined" && goBridge && goBridge.meta) ? goBridge.meta : ({})
     readonly property string labelRecent: meta.label_recent || qsTr("Recent")
-    readonly property string labelOpen: (meta.label_open || qsTr("Open file")) + "…"
+    readonly property string labelOpen: (meta.label_open || qsTr("Open file")).replace(/<[^>]*>/g, "") + "…"
     readonly property var recent: meta.recent || []
 
     readonly property real itemH: 32 * Theme.scaleFactor

@@ -94,7 +94,7 @@ AttachMenuBridge::closeMenu () {
 }
 
 void
-AttachMenuBridge::chooseFiles () {
+AttachMenuBridge::openFile () {
   QWidget* parent= m_host ? m_host->parentWidget () : nullptr;
   if (!parent) parent= m_host;
   // 原生对话框会运行嵌套事件循环，返回前仅隐藏菜单，避免销毁仍在回调的 QML。
@@ -131,7 +131,7 @@ AttachMenuBridge::chooseFiles () {
 }
 
 void
-AttachMenuBridge::attachFile (const QString& url) {
+AttachMenuBridge::loadBuffer (const QString& url) {
   closeMenu ();
   if (url.isEmpty ()) return;
   auto* ctrl= m_controller ? m_controller : get_chat_controller ();

@@ -310,9 +310,10 @@ public:
     }
     m_meta["recent"]= recs;
   }
-  QVariantMap      meta () const { return m_meta; }
-  Q_INVOKABLE void attachFile (const QString&) {}
-  Q_INVOKABLE void chooseFiles () {}
+  QVariantMap meta () const { return m_meta; }
+  // 与 GoMenu.qml 同形：loadBuffer / openFile / closeMenu。
+  Q_INVOKABLE void loadBuffer (const QString&) {}
+  Q_INVOKABLE void openFile () {}
   Q_INVOKABLE void closeMenu () {}
 
 private:
@@ -1283,7 +1284,10 @@ TestQmlLoad::test_go_menu_loads () {
 
 void
 TestQmlLoad::test_attach_menu_loads () {
-  // 1. 包含 recent 列表项时
+  // 附件菜单复用 GoMenu.qml：用 AttachMenuStubBridge 注入 meta label_open =
+  // "Choose file"、同名 loadBuffer/openFile Q_INVOKABLE，验证 GoMenu.qml 在该
+  // bridge 下也能成功加载、且 objectName 仍为 goMenu 系列（验证 attach 路径
+  // 不引入自己的 objectName 体系）。
   {
     QDialog              host;
     AttachMenuStubBridge bridge (&host, false);
@@ -1291,47 +1295,24 @@ TestQmlLoad::test_attach_menu_loads () {
     qw->setResizeMode (QQuickWidget::SizeViewToRootObject);
     qw->rootContext ()->setContextProperty ("dpScale", 1.0);
     qw->rootContext ()->setContextProperty ("isDark", false);
-    qw->rootContext ()->setContextProperty ("attachBridge", &bridge);
-    qw->setSource (QUrl ("qrc:/qml/AttachMenu.qml"));
+    qw->rootContext ()->setContextProperty ("goBridge", &bridge);
+    qw->setSource (QUrl ("qrc:/qml/GoMenu.qml"));
     QCOMPARE (qw->status (), QQuickWidget::Ready);
     QVERIFY (qw->rootObject ()->property ("implicitHeight").toDouble () > 50.0);
     QCOMPARE (qw->rootObject ()->property ("menuWidth").toDouble (), 360.0);
+    // attach 路径注入 label_open = "Choose file"，QML 渲染时应在末尾拼 "…"
+    QCOMPARE (qw->rootObject ()->property ("labelOpen").toString (),
+              QString ("Choose file…"));
 
-    QList<QQuickItem*> chooseItems=
-        collect_items_by_name (qw->rootObject (), "attachMenuChooseItem");
-    QCOMPARE (chooseItems.size (), 1);
+    QList<QQuickItem*> openItems=
+        collect_items_by_name (qw->rootObject (), "goMenuOpenItem");
+    QCOMPARE (openItems.size (), 1);
 
     QList<QQuickItem*> menuItems=
-        collect_items_by_name (qw->rootObject (), "attachMenuItem");
+        collect_items_by_name (qw->rootObject (), "goMenuItem");
     QCOMPARE (menuItems.size (), 2);
-
-    QList<QQuickItem*> emptyItems=
-        collect_items_by_name (qw->rootObject (), "attachMenuEmptyItem");
-    QCOMPARE (emptyItems.size (), 1);
-    QCOMPARE (emptyItems.first ()->isVisible (), false);
   }
-
-  // 2. recent 为空时空态占位可见
-  {
-    QDialog              host;
-    AttachMenuStubBridge bridge (&host, true);
-    auto*                qw= new QQuickWidget (&host);
-    qw->setResizeMode (QQuickWidget::SizeViewToRootObject);
-    qw->rootContext ()->setContextProperty ("dpScale", 1.0);
-    qw->rootContext ()->setContextProperty ("isDark", false);
-    qw->rootContext ()->setContextProperty ("attachBridge", &bridge);
-    qw->setSource (QUrl ("qrc:/qml/AttachMenu.qml"));
-    QCOMPARE (qw->status (), QQuickWidget::Ready);
-
-    QList<QQuickItem*> chooseItems=
-        collect_items_by_name (qw->rootObject (), "attachMenuChooseItem");
-    QCOMPARE (chooseItems.size (), 1);
-
-    QList<QQuickItem*> emptyItems=
-        collect_items_by_name (qw->rootObject (), "attachMenuEmptyItem");
-    QCOMPARE (emptyItems.size (), 1);
-    QCOMPARE (emptyItems.first ()->isVisible (), true);
-  }
+  // recent 为空时不再断言（attach 路径不显示空态占位，与 Go 共用 QML 即可）
 }
 
 static QList<QQuickItem*>
