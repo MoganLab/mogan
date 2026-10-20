@@ -393,7 +393,11 @@
 (tm-property (open-table-properties) (:interactive #t))
 
 ;; (display "Booting graphics mode\n")
-(lazy-menu (graphics graphics-menu) graphics-menu graphics-icons)
+(lazy-menu (graphics graphics-menu)
+  graphics-menu
+  graphics-icons
+  graphics-focus-icons
+) ;lazy-menu
 (lazy-define (graphics graphics-object)
   graphics-init-state
   graphics-decorations-update
@@ -414,6 +418,8 @@
   graphics-update-proviso
   graphics-get-proviso
   graphics-set-proviso
+  graphics-export-png
+  graphics-tree-to-export
 ) ;lazy-define
 (lazy-define (graphics graphics-markup)
   arrow-with-text

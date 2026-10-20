@@ -342,6 +342,9 @@
  (when (selection-active-any?)
    (=> "Export selection as image" (link export-as-image-menu))
  ) ;when
+ (when (and (in-graphics?) (not (selection-active-any?)))
+   ("Export graphics as PNG" (graphics-export-png))
+ ) ;when
 ) ;menu-bind
 
 (menu-bind print-menu-sub
@@ -505,6 +508,9 @@
      ) ;
      (when (selection-active-any?)
        (=> "Export selection as image" (link export-as-image-menu))
+     ) ;when
+     (when (and (in-graphics?) (not (selection-active-any?)))
+       ("Export graphics as PNG" (graphics-export-png))
      ) ;when
    ) ;->
    ---
