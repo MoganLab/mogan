@@ -140,9 +140,11 @@ renderer_rep::href (string label, DI x1, DI y1, DI x2, DI y2) {
 }
 
 void
-renderer_rep::toc_entry (string kind, string title, DI x, DI y) {
+renderer_rep::toc_entry (string kind, string title, string raw_title, DI x,
+                         DI y) {
   (void) kind;
   (void) title;
+  (void) raw_title;
   (void) x;
   (void) y;
   return;

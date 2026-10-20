@@ -224,6 +224,39 @@
           ) ;quasi
         ) ;macro
       ) ;assign
+      ;; 与 toc-entry 同义，但携带 raw（章节原始名，无章节编号前缀）。
+      ;; raw 用于 PDF 书签大纲，避免 "Chapter 1 Chapter 1" 之类的标题重复。
+      (assign "toc-entry-raw"
+        (macro "type"
+          "what"
+          "raw"
+          (quasi
+            (style-with "src-compact"
+              "none"
+              ""
+              ""
+              (concat (flag (localize "table of contents") "dark green" "what")
+                (auto-label)
+                (write (value "toc-prefix")
+                  (compound (unquote (arg "type"))
+                    (hlink (arg "what") (merge "#" (the-auto)))
+                    (pageref (the-auto))
+                  ) ;compound
+                ) ;write
+                (style-with "src-compact"
+                  "none"
+                  (if (equal (value "toc-next") "")
+                    (toc-notify (arg "type") (arg "what") (arg "raw"))
+                    (concat (toc-notify (arg "type") (value "toc-next") (arg "raw"))
+                      (assign "toc-next" "")
+                    ) ;concat
+                  ) ;if
+                ) ;style-with
+              ) ;concat
+            ) ;style-with
+          ) ;quasi
+        ) ;macro
+      ) ;assign
       (assign "toc-main-1" (macro "what" (toc-entry "toc-strong-1" (arg "what"))))
       (assign "toc-main-2" (macro "what" (toc-entry "toc-strong-2" (arg "what"))))
       (assign "toc-normal-1" (macro "what" (toc-entry "toc-1" (arg "what"))))
@@ -231,6 +264,28 @@
       (assign "toc-normal-3" (macro "what" (toc-entry "toc-3" (arg "what"))))
       (assign "toc-small-1" (macro "what" (toc-entry "toc-4" (arg "what"))))
       (assign "toc-small-2" (macro "what" (toc-entry "toc-5" (arg "what"))))
+      ;; raw 变体：携带章节原始名，供 PDF 大纲使用以避免标题重复
+      (assign "toc-main-1-raw"
+        (macro "what" "raw" (toc-entry-raw "toc-strong-1" (arg "what") (arg "raw")))
+      ) ;assign
+      (assign "toc-main-2-raw"
+        (macro "what" "raw" (toc-entry-raw "toc-strong-2" (arg "what") (arg "raw")))
+      ) ;assign
+      (assign "toc-normal-1-raw"
+        (macro "what" "raw" (toc-entry-raw "toc-1" (arg "what") (arg "raw")))
+      ) ;assign
+      (assign "toc-normal-2-raw"
+        (macro "what" "raw" (toc-entry-raw "toc-2" (arg "what") (arg "raw")))
+      ) ;assign
+      (assign "toc-normal-3-raw"
+        (macro "what" "raw" (toc-entry-raw "toc-3" (arg "what") (arg "raw")))
+      ) ;assign
+      (assign "toc-small-1-raw"
+        (macro "what" "raw" (toc-entry-raw "toc-4" (arg "what") (arg "raw")))
+      ) ;assign
+      (assign "toc-small-2-raw"
+        (macro "what" "raw" (toc-entry-raw "toc-5" (arg "what") (arg "raw")))
+      ) ;assign
       ""
       (assign "toc-dots"
         (macro

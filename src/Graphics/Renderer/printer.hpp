@@ -80,7 +80,7 @@ public:
 
   void anchor (string label, DI x1, DI y1, DI x2, DI y2);
   void href (string label, DI x1, DI y1, DI x2, DI y2);
-  void toc_entry (string kind, string title, DI x, DI y);
+  void toc_entry (string kind, string title, string raw_title, DI x, DI y);
   void generate_toc_item (tree t);
   void generate_toc ();
   void set_metadata (string kind, string val);

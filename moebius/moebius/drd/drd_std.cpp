@@ -619,11 +619,13 @@ init_std_drd () {
             ->regular (1)
             ->name (1, "content"));
   init (TOC_NOTIFY, "toc-notify",
-        fixed (1, 1, BIFORM)
+        options (2, 1, DETAILED)
             ->string_type (0)
             ->name (0, "kind")
             ->string_type (1)
-            ->name (1, "title"));
+            ->name (1, "title")
+            ->string_type (2)
+            ->name (2, "raw"));
 
   init (TUPLE, "tuple", repeat (0, 1)->accessible (0));
   init (ATTR, "attr",

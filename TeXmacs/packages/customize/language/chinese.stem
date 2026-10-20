@@ -94,19 +94,20 @@
           (style-with "src-compact"
             "none"
             (if (sectional-short-style)
-              (toc-main-1 (toc-title "chapter" (arg "name")))
-              (toc-main-2 (if (chapter-numbered)
-                            (concat (ordinal-text)
-                              " "
-                              (the-chapter)
-                              " "
-                              (chapter-text)
-                              (chapter-sep)
-                              (arg "name")
-                            ) ;concat
-                            (arg "name")
-                          ) ;if
-              ) ;toc-main-2
+              (toc-main-1-raw (toc-title "chapter" (arg "name")) (arg "name"))
+              (toc-main-2-raw (if (chapter-numbered)
+                                (concat (ordinal-text)
+                                  " "
+                                  (the-chapter)
+                                  " "
+                                  (chapter-text)
+                                  (chapter-sep)
+                                  (arg "name")
+                                ) ;concat
+                                (arg "name")
+                              ) ;if
+                (arg "name")
+              ) ;toc-main-2-raw
             ) ;if
           ) ;style-with
         ) ;macro

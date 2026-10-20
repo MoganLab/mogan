@@ -281,7 +281,7 @@ public:
 
   void anchor (string label, DI x1, DI y1, DI x2, DI y2);
   void href (string label, DI x1, DI y1, DI x2, DI y2);
-  void toc_entry (string kind, string title, DI x, DI y);
+  void toc_entry (string kind, string title, string raw_title, DI x, DI y);
   void set_metadata (string kind, string val);
   void flush_metadata ();
 };
@@ -1918,9 +1918,13 @@ pdf_hummus_renderer_rep::flush_dests () {
 }
 
 void
-pdf_hummus_renderer_rep::toc_entry (string kind, string title, DI x, DI y) {
+pdf_hummus_renderer_rep::toc_entry (string kind, string title, string raw_title,
+                                    DI x, DI y) {
   (void) kind;
-  (void) title;
+  // 当 raw_title 非空时（如 chapter-toc 携带的章节原始名），
+  // 用作 PDF 大纲标题，避免 "Chapter 1 Chapter 1"
+  // 这种因章节前缀与原始标题重复。
+  if (raw_title != "") title= raw_title;
   (void) x;
   (void) y;
   // debug_convert << kind << ", " << title << "\n";
