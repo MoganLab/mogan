@@ -59,15 +59,17 @@ struct specific_box_rep : public box_rep {
  ******************************************************************************/
 
 struct toc_box_rep : public box_rep {
-  string kind, title;
-  toc_box_rep (path ip, string kind2, string title2, font fn)
-      : box_rep (ip), kind (kind2), title (title2) {
+  string kind, title, raw_title;
+  toc_box_rep (path ip, string kind2, string title2, string raw_title2, font fn)
+      : box_rep (ip), kind (kind2), title (title2), raw_title (raw_title2) {
     x1= x2= y1= 0;
     y2        = fn->yx;
     x3= x4= y3= y4= 0;
   }
-  operator tree () { return tuple ("toc", kind, title); }
-  void display (renderer ren) { ren->toc_entry (kind, title, 0, y2); }
+  operator tree () { return tuple ("toc", kind, title, raw_title); }
+  void display (renderer ren) {
+    ren->toc_entry (kind, title, raw_title, 0, y2);
+  }
 };
 
 /******************************************************************************
@@ -201,8 +203,8 @@ specific_box (path ip, box b, string filter, font fn, bool keep_size) {
 }
 
 box
-toc_box (path ip, string kind, string title, font fn) {
-  return tm_new<toc_box_rep> (ip, kind, title, fn);
+toc_box (path ip, string kind, string title, string raw_title, font fn) {
+  return tm_new<toc_box_rep> (ip, kind, title, raw_title, fn);
 }
 
 box

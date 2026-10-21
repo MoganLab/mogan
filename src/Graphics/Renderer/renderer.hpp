@@ -174,7 +174,8 @@ public:
   virtual void next_page ();
   virtual void anchor (string label, DI x1, DI y1, DI x2, DI y2);
   virtual void href (string label, DI x1, DI y1, DI x2, DI y2);
-  virtual void toc_entry (string kind, string title, DI x, DI y);
+  virtual void toc_entry (string kind, string title, string raw_title, DI x,
+                          DI y);
   virtual void set_metadata (string kind, string val);
 };
 

@@ -478,18 +478,21 @@
           ) ;quasi
         ) ;macro
       ) ;assign
-      (assign "part-toc" (macro "name" (toc-main-1 (toc-title "part" (arg "name")))))
+      (assign "part-toc"
+        (macro "name" (toc-main-1-raw (toc-title "part" (arg "name")) (arg "name")))
+      ) ;assign
       (assign "chapter-toc"
         (macro "name"
           (style-with "src-compact"
             "none"
             (if (sectional-short-style)
-              (toc-main-1 (toc-title "chapter" (arg "name")))
-              (toc-main-2 (if (chapter-numbered)
-                            (concat (chapter-text) " " (the-chapter) (chapter-sep) (arg "name"))
-                            (arg "name")
-                          ) ;if
-              ) ;toc-main-2
+              (toc-main-1-raw (toc-title "chapter" (arg "name")) (arg "name"))
+              (toc-main-2-raw (if (chapter-numbered)
+                                (concat (chapter-text) " " (the-chapter) (chapter-sep) (arg "name"))
+                                (arg "name")
+                              ) ;if
+                (arg "name")
+              ) ;toc-main-2-raw
             ) ;if
           ) ;style-with
         ) ;macro
@@ -499,8 +502,11 @@
           (style-with "src-compact"
             "none"
             (if (sectional-short-style)
-              (toc-main-2 (toc-title "section" (arg "name")))
-              (if (value "in-appendix") "" (toc-normal-2 (toc-title "section" (arg "name"))))
+              (toc-main-2-raw (toc-title "section" (arg "name")) (arg "name"))
+              (if (value "in-appendix")
+                ""
+                (toc-normal-2-raw (toc-title "section" (arg "name")) (arg "name"))
+              ) ;if
             ) ;if
           ) ;style-with
         ) ;macro
@@ -510,10 +516,10 @@
           (style-with "src-compact"
             "none"
             (if (sectional-short-style)
-              (toc-normal-2 (toc-title "subsection" (arg "name")))
+              (toc-normal-2-raw (toc-title "subsection" (arg "name")) (arg "name"))
               (if (value "in-appendix")
                 ""
-                (toc-normal-3 (toc-title "subsection" (arg "name")))
+                (toc-normal-3-raw (toc-title "subsection" (arg "name")) (arg "name"))
               ) ;if
             ) ;if
           ) ;style-with
@@ -524,29 +530,35 @@
           (style-with "src-compact"
             "none"
             (if (sectional-short-style)
-              (toc-normal-3 (toc-title "subsubsection" (arg "name")))
+              (toc-normal-3-raw (toc-title "subsubsection" (arg "name")) (arg "name"))
               ""
             ) ;if
           ) ;style-with
         ) ;macro
       ) ;assign
       (assign "paragraph-toc"
-        (macro "name" (toc-small-1 (toc-title "paragraph" (arg "name"))))
+        (macro "name"
+          (toc-small-1-raw (toc-title "paragraph" (arg "name")) (arg "name"))
+        ) ;macro
       ) ;assign
       (assign "subparagraph-toc"
-        (macro "name" (toc-small-2 (toc-title "subparagraph" (arg "name"))))
+        (macro "name"
+          (toc-small-2-raw (toc-title "subparagraph" (arg "name")) (arg "name"))
+        ) ;macro
       ) ;assign
+
       (assign "appendix-toc"
         (macro "name"
           (style-with "src-compact"
             "none"
-            (toc-main-2
+            (toc-main-2-raw
               (concat (appendix-text)
                 (if (appendix-numbered) (concat " " (the-appendix)))
                 (appendix-sep)
                 (arg "name")
               ) ;concat
-            ) ;toc-main-2
+              (arg "name")
+            ) ;toc-main-2-raw
           ) ;style-with
         ) ;macro
       ) ;assign
