@@ -661,7 +661,9 @@ finalize_layout (tree t) {
         }
       }
 
-      if (is_func (v, BEGIN, 2) && is_enunciation (v) && v[0] != "proof*") {
+      // A titled proof was already rewritten to render-proof above; the rest
+      // get the heading kept and the option appended as a dueto.
+      if (is_func (v, BEGIN, 2) && is_enunciation (v)) {
         string s= as_string (v[0]);
         s       = s (0, N (s) - 1);
         r << tree (BEGIN, s) << compound ("dueto", v[1]);

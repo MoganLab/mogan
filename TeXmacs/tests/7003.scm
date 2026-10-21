@@ -52,11 +52,28 @@
   ) ;with
 ) ;define
 
+;; 断言整棵树而非仅搜索标签：带标题的 proof 由 render-proof 承载标题，
+;; 无标题的保持 proof，两者嵌套时各自闭合到正确的标签上。
+
 (define (test-nested)
   (with t
     (import-body "\\begin{proof}[Outer]a\\begin{proof}b\\end{proof}c\\end{proof}")
-    (check (contains? t 'render-proof) => #t)
-    (check (contains? t 'proof) => #t)
+    (check t
+      =>
+      '(document (TeXmacs "2.1.4")
+         (style (tuple "article" "std-latex"))
+         (body (document (render-proof "Outer"
+                           (document "a" (proof (document "b")) "c")))))
+    ) ;check
+  ) ;with
+  (with t
+    (import-body "\\begin{proof}a\\begin{proof}[Inner]b\\end{proof}c\\end{proof}")
+    (check t
+      =>
+      '(document (TeXmacs "2.1.4")
+         (style (tuple "article" "std-latex"))
+         (body (document (proof (document "a" (render-proof "Inner" "b") "c")))))
+    ) ;check
   ) ;with
 ) ;define
 
