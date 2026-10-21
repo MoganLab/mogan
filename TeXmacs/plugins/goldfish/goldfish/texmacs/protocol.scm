@@ -64,10 +64,36 @@
       (flush-any (string-append "latex:" msg))
     ) ;define
 
+    ;; 行尾归一：R7RS 的 read-line 不保留行尾换行（goldfish >= 18.11.40 的
+    ;; stdin 实现）；18.11.39 及更早的 stdin 实现用 fgets，保留换行。插件
+    ;; 协议以逐行拼接还原段落，故新语义下须补回换行。
+    (define (read-paragraph-line-with-eol line)
+      (let ((n (string-length line)))
+        (if
+          (and (> n 0) (char=? (string-ref line (- n 1)) #\newline))
+          line
+          (string-append line "\n")
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 段末标记：同时接受带/不带行尾换行（含 CRLF）的 "<EOF>"。旧 goldfish
+    ;; 送来的行自带 "\n"，新 goldfish 不带；两种都认，升级前后行为一致。
+    (define (read-paragraph-eof-marker? line)
+      (or (string=? line "<EOF>")
+        (string=? line "<EOF>\n")
+        (string=? line "<EOF>\r")
+        (string=? line "<EOF>\r\n")
+      ) ;or
+    ) ;define
+
     (define (read-paragraph-by-visible-eof)
       (define (read-code code)
         (let ((line (read-line)))
-          (if (string=? line "<EOF>\n") code (read-code (string-append code line)))
+          (if (read-paragraph-eof-marker? line)
+            code
+            (read-code (string-append code (read-paragraph-line-with-eol line)))
+          ) ;if
         ) ;let
       ) ;define
 

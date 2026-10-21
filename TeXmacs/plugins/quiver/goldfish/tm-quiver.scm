@@ -43,16 +43,11 @@
   (flush-verbatim "Liii STEM interface to Quiver")
 ) ;define
 
+;; 协议读取统一由 (texmacs protocol) 承担：兼容 R7RS read-line（不保留行尾
+;; 换行），实现见 read-paragraph-by-visible-eof
+
 (define (quiver-read-code)
-  (define (read-code code)
-    (let ((line (read-line)))
-      (if (or (eof-object? line) (string=? line "<EOF>\n"))
-        code
-        (read-code (string-append code line))
-      ) ;if
-    ) ;let
-  ) ;define
-  (read-code "")
+  (read-paragraph-by-visible-eof)
 ) ;define
 
 (define (gen-temp-path)

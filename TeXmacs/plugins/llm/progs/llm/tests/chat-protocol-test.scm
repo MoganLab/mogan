@@ -16,6 +16,7 @@
 (import (liii json))
 (import (liii os))
 (import (liii path))
+(import (texmacs protocol))
 
 (check-set-mode! 'report-failed)
 
@@ -467,6 +468,24 @@
   ) ;let*
 ) ;define
 
+;;; ---------- read-paragraph-by-visible-eof：R7RS read-line 兼容 ----------
+
+(define (test-read-paragraph-eof-marker)
+  ;; 18.11.40：read-line 不带行尾换行，helper 需自行补回；
+  ;; 18.11.39：行内已带换行，helper 原样拼接。两种语义期望结果相同。
+  (with-input-from-string "line1\nline2\n<EOF>\n"
+    (lambda () (check (read-paragraph-by-visible-eof) => "line1\nline2\n"))
+  ) ;with-input-from-string
+  ;; 空段落
+  (with-input-from-string "<EOF>\n"
+    (lambda () (check (read-paragraph-by-visible-eof) => ""))
+  ) ;with-input-from-string
+  ;; 空行也保留
+  (with-input-from-string "a\n\nb\n<EOF>\n"
+    (lambda () (check (read-paragraph-by-visible-eof) => "a\n\nb\n"))
+  ) ;with-input-from-string
+) ;define
+
 ;;; ---------- 测试套件入口 ----------
 
 (tm-define (regtest-chat-protocol)
@@ -484,5 +503,6 @@
   (test-fake-llm-attachment-injection)
   (test-fake-llm-no-attachments)
   (test-chat-wire-encoding)
+  (test-read-paragraph-eof-marker)
   (check-report)
 ) ;tm-define
