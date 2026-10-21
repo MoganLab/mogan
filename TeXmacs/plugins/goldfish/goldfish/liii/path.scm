@@ -1,14 +1,14 @@
 (define-library (liii path)
   (export path path? path-copy path-copy-into path-dir? path-file? path-exists?
-    path-getsize path-read-text path-read-bytes path-write-text path-write-bytes
-    path-append-text path-touch path-root path-of-drive path-from-parts
-    path-from-env path-cwd path-home path-temp-dir path-parts path-type
-    path-drive path->string path-from-string path-name path-stem path-suffix
-    path-suffixes path-with-name path-with-stem path-with-suffix
+    path-getsize path-read-text path-read-lines path-read-bytes path-write-text
+    path-write-bytes path-append-text path-touch path-root path-of-drive
+    path-from-parts path-from-env path-cwd path-home path-temp-dir path-parts
+    path-type path-drive path->string path-from-string path-name path-stem
+    path-suffix path-suffixes path-with-name path-with-stem path-with-suffix
     path-relative-to path-starts-with? path-equals? path=? path-absolute?
     path-relative? path-join path-parent path-parents path-list path-list-path
     path-rmdir path-unlink path-rename path-mkdir path-absolute path-expanduser
-    path-match path-as-posix path-resolve
+    path-match path-as-posix path-resolve path-glob path-rglob
   ) ;export
   (import (liii base)
     (liii error)
@@ -914,6 +914,35 @@
       ) ;let
     ) ;define
 
+    ;; ; 按行读取文本文件，返回行字符串列表
+    ;; ; keepends 为 #t 时保留每行末尾的换行符
+    ;; ; offset 指定从第几行（0-based）开始读取
+    ;; ; limit 指定最多读取的行数，#f 表示读到文件末尾
+    (define* (path-read-lines p (keepends #f) (offset 0) (limit #f))
+      (if (not (or (string? p) (path? p)))
+        (type-error "path-read-lines: path must be string or path")
+      ) ;if
+      (if (not (boolean? keepends))
+        (type-error "path-read-lines: keepends must be boolean")
+      ) ;if
+      (if (not (exact-integer? offset))
+        (type-error "path-read-lines: offset must be exact integer")
+      ) ;if
+      (if (not (or (not limit) (exact-integer? limit)))
+        (type-error "path-read-lines: limit must be exact integer or #f")
+      ) ;if
+      (if (< offset 0) (value-error "path-read-lines: offset must be non-negative"))
+      (if (and limit (<= limit 0))
+        (value-error "path-read-lines: limit must be a positive integer")
+      ) ;if
+      (let ((s (path->string p)))
+        (if (not (file-exists? s))
+          (file-not-found-error (string-append "No such file or directory: '" s "'"))
+          (g_path-read-lines s keepends offset (or limit -1))
+        ) ;if
+      ) ;let
+    ) ;define*
+
     ;; ; 读取文件为字节向量。不存在时抛 file-not-found-error。
     (define (path-read-bytes p)
       (let ((s (path->string p)))
@@ -1155,6 +1184,31 @@
       ) ;let*
     ) ;define
 
+    ;; ; 目录存在性/类型由 C 层单次 stat 判定，此处仅做类型校验
+    (define (%glob-entries who p pattern recursive)
+      (unless (or (string? p) (path? p))
+        (type-error (string-append who ": path must be string or path"))
+      ) ;unless
+      (unless (string? pattern)
+        (type-error (string-append who ": pattern must be string"))
+      ) ;unless
+      (map (lambda (entry) (path-join p entry))
+        (g_path-glob (path->string p) pattern recursive)
+      ) ;map
+    ) ;define
+
+    ;; ; 对齐 pathlib.Path.glob(pattern)
+    ;; ; 单层目录通配检索，返回包含匹配项的 <path> 记录列表。
+    (define (path-glob p pattern)
+      (%glob-entries "path-glob" p pattern #f)
+    ) ;define
+
+    ;; ; 对齐 pathlib.Path.rglob(pattern)
+    ;; ; 递归全目录树通配检索，返回包含匹配项的 <path> 记录列表。
+    (define (path-rglob p pattern)
+      (%glob-entries "path-rglob" p pattern #t)
+    ) ;define
+
     ;; ; 对齐 pathlib.Path.resolve(strict=False) 简化版
     ;; ; 差异:绝对化 + 折叠 . / .. 段;不解析符号链接(无 realpath 原语)。
     ;; ; Windows 与 posix 均适用,基于 path-absolute 取 cwd 作种子。
@@ -1173,7 +1227,15 @@
         (cond ((and (not exist-ok) (file-exists? s))
                (file-exists-error (string-append "File exists: '" s "'"))
               ) ;
-              ((not parents) (ensure-one s))
+              ((not parents)
+               (let* ((path-s (path s)) (parent (path-parent path-s)))
+                 (if (and (not (path=? parent path-s)) (not (path-dir? parent)))
+                   (file-not-found-error (string-append "Parent directory not found: '" (path->string parent) "'")
+                   ) ;file-not-found-error
+                   (ensure-one s)
+                 ) ;if
+               ) ;let*
+              ) ;
               (else
                 ;; parents:从根向下逐级创建(跳过已存在的)
                 (let loop

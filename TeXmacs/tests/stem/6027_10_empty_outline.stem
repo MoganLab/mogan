@@ -1,0 +1,5 @@
+(document (TeXmacs "2.1.4")
+  (style (tuple "generic"))
+  (body (document "This is a document with plain paragraphs and no section headings.")
+  ) ;body
+) ;document

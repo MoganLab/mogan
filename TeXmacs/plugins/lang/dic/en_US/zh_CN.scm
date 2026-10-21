@@ -579,6 +579,7 @@
 ("Choose source directory" "选择源目录")
 ("Choose destination directory" "选择目标目录")
 ("Choose binary file" "选择可执行文件")
+("Choose file" "选择文件…")
 ("circle" "圆圈")
 ("citation" "引用")
 ("cite TeXmacs" "引用TeXmacs")

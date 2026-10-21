@@ -208,6 +208,194 @@ private slots:
     delete toolBar;
   }
 
+  static QVariantMap makeTestNode (const QString& id, const QString& title,
+                                   const QVariantList& children= {}) {
+    QVariantMap map;
+    map["id"]      = id;
+    map["title"]   = title;
+    map["children"]= children;
+    return map;
+  }
+
+  void test_defaultExpandedMap_empty () {
+    QVariantMap map= OutlineBridge::computeDefaultExpandedMap ({});
+    QVERIFY (map.isEmpty ());
+  }
+
+  void test_defaultExpandedMap_rule1_single_child () {
+    // 6027_01: Part I -> Chapter 1, Chapter 2
+    QVariantList chaps;
+    chaps.append (makeTestNode ("0/0", "Chapter 1"));
+    chaps.append (makeTestNode ("0/1", "Chapter 2"));
+    QVariantList root;
+    root.append (makeTestNode ("0", "Part I", chaps));
+
+    QVariantMap map= OutlineBridge::computeDefaultExpandedMap (root);
+    QCOMPARE (map.value ("0").toBool (), true);
+  }
+
+  void test_defaultExpandedMap_rule1_chain () {
+    // 6027_02: Part I -> Chapter 1 -> Section 1, Section 2
+    QVariantList secs;
+    secs.append (makeTestNode ("0/0/0", "Section 1"));
+    secs.append (makeTestNode ("0/0/1", "Section 2"));
+    QVariantList chaps;
+    chaps.append (makeTestNode ("0/0", "Chapter 1", secs));
+    QVariantList root;
+    root.append (makeTestNode ("0", "Part I", chaps));
+
+    QVariantMap map= OutlineBridge::computeDefaultExpandedMap (root);
+    QCOMPARE (map.value ("0").toBool (), true);
+    QCOMPARE (map.value ("0/0").toBool (), true);
+  }
+
+  void test_defaultExpandedMap_rule1_sibling_leaf () {
+    // 6027_03: Chapter 1 (with 30 sections) and Chapter* (leaf)
+    QVariantList secs;
+    for (int i= 0; i < 30; ++i) {
+      secs.append (
+          makeTestNode (QString ("0/%1").arg (i), QString ("Sec %1").arg (i)));
+    }
+    QVariantList root;
+    root.append (makeTestNode ("0", "Chapter 1", secs));
+    root.append (makeTestNode ("1", "Appendix"));
+
+    QVariantMap map= OutlineBridge::computeDefaultExpandedMap (root);
+    // Sibling leaf blocks Rule 1; 30 sections exceed threshold for Rule 2
+    QCOMPARE (map.value ("0").toBool (), false);
+  }
+
+  void test_defaultExpandedMap_rule2_large_book () {
+    // 6027_04: 10 Chapters, each with 5 Sections (total 60 > 30)
+    QVariantList root;
+    for (int c= 0; c < 10; ++c) {
+      QVariantList secs;
+      for (int s= 0; s < 5; ++s) {
+        secs.append (makeTestNode (QString ("%1/%2").arg (c).arg (s), "Sec"));
+      }
+      root.append (makeTestNode (QString::number (c),
+                                 QString ("Chapter %1").arg (c), secs));
+    }
+
+    QVariantMap map= OutlineBridge::computeDefaultExpandedMap (root);
+    for (int c= 0; c < 10; ++c) {
+      QCOMPARE (map.value (QString::number (c)).toBool (), false);
+    }
+  }
+
+  void test_defaultExpandedMap_rule2_small_article () {
+    // 6027_05: 3 Chapters, each with 2 Sections (total 9 <= 30)
+    QVariantList root;
+    for (int c= 0; c < 3; ++c) {
+      QVariantList secs;
+      for (int s= 0; s < 2; ++s) {
+        secs.append (makeTestNode (QString ("%1/%2").arg (c).arg (s), "Sec"));
+      }
+      root.append (makeTestNode (QString::number (c),
+                                 QString ("Chapter %1").arg (c), secs));
+    }
+
+    QVariantMap map= OutlineBridge::computeDefaultExpandedMap (root);
+    for (int c= 0; c < 3; ++c) {
+      QCOMPARE (map.value (QString::number (c)).toBool (), true);
+    }
+  }
+
+  void test_defaultExpandedMap_rule2_boundary_30_and_31 () {
+    // 6027_06: 5 Chapters, each 5 Sections = 30 <= 30 -> all expand
+    QVariantList root30;
+    for (int c= 0; c < 5; ++c) {
+      QVariantList secs;
+      for (int s= 0; s < 5; ++s) {
+        secs.append (makeTestNode (QString ("%1/%2").arg (c).arg (s), "Sec"));
+      }
+      root30.append (makeTestNode (QString::number (c),
+                                   QString ("Chapter %1").arg (c), secs));
+    }
+    QVariantMap map30= OutlineBridge::computeDefaultExpandedMap (root30);
+    for (int c= 0; c < 5; ++c) {
+      QCOMPARE (map30.value (QString::number (c)).toBool (), true);
+    }
+
+    // 6027_07: 5 Chapters, 4 with 5, 1 with 6 = 31 > 30 -> all collapsed
+    QVariantList root31;
+    for (int c= 0; c < 5; ++c) {
+      QVariantList secs;
+      int          count= (c == 4) ? 6 : 5;
+      for (int s= 0; s < count; ++s) {
+        secs.append (makeTestNode (QString ("%1/%2").arg (c).arg (s), "Sec"));
+      }
+      root31.append (makeTestNode (QString::number (c),
+                                   QString ("Chapter %1").arg (c), secs));
+    }
+    QVariantMap map31= OutlineBridge::computeDefaultExpandedMap (root31);
+    for (int c= 0; c < 5; ++c) {
+      QCOMPARE (map31.value (QString::number (c)).toBool (), false);
+    }
+  }
+
+  void test_defaultExpandedMap_rule2_deep_three_levels () {
+    // 6027_08: 2 Chapters, each 2 Sections, each 2 Subsections = 14 <= 30
+    QVariantList root;
+    for (int c= 0; c < 2; ++c) {
+      QVariantList secs;
+      for (int s= 0; s < 2; ++s) {
+        QVariantList subs;
+        for (int sub= 0; sub < 2; ++sub) {
+          subs.append (makeTestNode (
+              QString ("%1/%2/%3").arg (c).arg (s).arg (sub), "Sub"));
+        }
+        secs.append (
+            makeTestNode (QString ("%1/%2").arg (c).arg (s), "Sec", subs));
+      }
+      root.append (makeTestNode (QString::number (c),
+                                 QString ("Chapter %1").arg (c), secs));
+    }
+
+    QVariantMap map= OutlineBridge::computeDefaultExpandedMap (root);
+    for (int c= 0; c < 2; ++c) {
+      QCOMPARE (map.value (QString::number (c)).toBool (), true);
+      for (int s= 0; s < 2; ++s) {
+        QCOMPARE (map.value (QString ("%1/%2").arg (c).arg (s)).toBool (),
+                  true);
+      }
+    }
+  }
+
+  void test_bridge_defaultExpandedMap_and_activeId_reset () {
+    OutlineBridge bridge;
+    QCOMPARE (bridge.currentId (), QString ());
+
+    QVector<OutlineItem> items;
+    OutlineItem          chap;
+    chap.title = "Chapter 1";
+    chap.target= "0";
+    OutlineItem sec;
+    sec.title = "Section 1.1";
+    sec.target= "0:0";
+    chap.children.append (sec);
+    items.append (chap);
+
+    bridge.setOutline (items);
+    QCOMPARE (bridge.currentId (), QString ());
+    // Rule 1 single child penetration: Chapter 1 is expanded
+    QCOMPARE (bridge.defaultExpandedMap ().value ("0").toBool (), true);
+
+    // Active item set on click
+    bridge.itemClicked ("0", "0");
+    QCOMPARE (bridge.currentId (), QString ("0"));
+
+    // Reloading outline resets currentId and recomputes defaultExpandedMap
+    bridge.setOutline (items);
+    QCOMPARE (bridge.currentId (), QString ());
+    QCOMPARE (bridge.defaultExpandedMap ().value ("0").toBool (), true);
+
+    // Clear clears both
+    bridge.clear ();
+    QCOMPARE (bridge.currentId (), QString ());
+    QVERIFY (bridge.defaultExpandedMap ().isEmpty ());
+  }
+
   void test_scrollbar_visibility_and_interaction () {
     OutlineWidget* widget= new OutlineWidget ("目录");
     widget->resize (300, 400);

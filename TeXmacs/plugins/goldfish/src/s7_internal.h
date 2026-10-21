@@ -514,6 +514,11 @@ typedef uint64_t s7_uint;
 /* #define lu64 PRIu64 */
 #define p64 PRIdPTR
 
+#ifndef S7_INT32_MAX
+#define S7_INT32_MAX 2147483647LL
+#define S7_INT32_MIN (-S7_INT32_MAX - 1LL)
+#endif
+
 #define MAX_FLOAT_FORMAT_PRECISION 128 /* does this make any sense? 53 bits in mantissa: 16 digits, are the extra digits just garbage? */
 
 /* types */
@@ -2559,6 +2564,28 @@ enum {OP_UNOPT, OP_GC_PROTECT, /* must be an even number of ops here, op_gc_prot
 #define L_FUNC                         (1LL << 41)
 #define T_HAS_FN                       (1 << 13)
 
+#define has_location(p)                has_mid_type_bit(T_Pair(p), T_MID_LOCATION)
+#define set_has_location(p)            set_mid_type_bit(T_Pair(p), T_MID_LOCATION)
+
+#define PAIR_LINE_BITS                 24
+#define PAIR_FILE_BITS                 12
+#define PAIR_POSITION_BITS             28
+#define PAIR_LINE_OFFSET               0
+#define PAIR_FILE_OFFSET               PAIR_LINE_BITS
+#define PAIR_POSITION_OFFSET           (PAIR_LINE_BITS + PAIR_FILE_BITS)
+#define PAIR_LINE_MASK                 ((1 << PAIR_LINE_BITS) - 1)
+#define PAIR_FILE_MASK                 ((1 << PAIR_FILE_BITS) - 1)
+#define PAIR_POSITION_MASK             ((1 << PAIR_POSITION_BITS) - 1)
+
+#define location_to_line(Loc)          ((Loc >> PAIR_LINE_OFFSET) & PAIR_LINE_MASK)
+#define location_to_file(Loc)          ((Loc >> PAIR_FILE_OFFSET) & PAIR_FILE_MASK)
+#define location_to_position(Loc)      ((Loc >> PAIR_POSITION_OFFSET) & PAIR_POSITION_MASK)
+
+#define pair_location(p)               (p)->object.sym_cons.location
+#define pair_line_number(p)            location_to_line(pair_location(p))
+#define pair_file_number(p)            location_to_file(pair_location(p))
+#define pair_position(p)               location_to_position(pair_location(p))
+
 /* ---- extern globals from s7.c for s7_scheme_let.c ---- */
 extern bool t_any_macro_p[NUM_TYPES], t_any_closure_p[NUM_TYPES], t_has_closure_let[NUM_TYPES], t_applicable_p[NUM_TYPES];
 extern s7_pointer too_many_arguments_string, a_boolean_string, a_let_string, a_non_constant_symbol_string,
@@ -2585,8 +2612,10 @@ s7_pointer add_slot_checked_with_id(s7_scheme *sc, s7_pointer let, s7_pointer sy
 void add_slot_unchecked(s7_scheme *sc, s7_pointer let, s7_pointer symbol, s7_pointer value, s7_uint id);
 s7_pointer call_setter(s7_scheme *sc, s7_pointer slot, s7_pointer old_value);
 s7_pointer checked_slot_set_value(s7_scheme *sc, s7_pointer slot, s7_pointer value);
+bool direct_memq(const s7_pointer symbol, s7_pointer symbols);
 s7_pointer find_let(s7_scheme *sc, s7_pointer obj);
 no_return void find_let_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer let, s7_pointer new_let, int32_t arg_num, s7_pointer args);
+no_return void starlet_wrong_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer arg, s7_pointer typ);
 s7_pointer find_method(s7_scheme *sc, s7_pointer let, s7_pointer symbol);
 bool is_constant_symbol(s7_scheme *sc, s7_pointer sym);
 bool is_eq_initial_value(s7_pointer symbol, s7_pointer other);
@@ -2600,6 +2629,7 @@ s7_pointer proper_list_reverse_in_place(s7_scheme *sc, s7_pointer list);
 s7_pointer set_elist_3(s7_scheme *sc, s7_pointer x1, s7_pointer x2, s7_pointer x3);
 s7_pointer set_elist_4(s7_scheme *sc, s7_pointer x1, s7_pointer x2, s7_pointer x3, s7_pointer x4);
 s7_pointer set_elist_5(s7_scheme *sc, s7_pointer x1, s7_pointer x2, s7_pointer x3, s7_pointer x4, s7_pointer x5);
+s7_pointer set_elist_6(s7_scheme *sc, s7_pointer x1, s7_pointer x2, s7_pointer x3, s7_pointer x4, s7_pointer x5, s7_pointer x6);
 s7_pointer set_mlist_1(s7_scheme *sc, s7_pointer x1);
 s7_pointer set_mlist_2(s7_scheme *sc, s7_pointer x1, s7_pointer x2);
 s7_pointer set_plist_2(s7_scheme *sc, s7_pointer x1, s7_pointer x2);

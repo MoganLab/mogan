@@ -200,14 +200,7 @@ s7_pointer function_read_line(s7_scheme *sc, s7_pointer port, bool with_eol)
 
 s7_pointer stdin_read_line(s7_scheme *sc, s7_pointer port, bool with_eol)
 {
-  if (!sc->read_line_buf)
-    {
-      sc->read_line_buf_size = 1024;
-      sc->read_line_buf = (char *)malloc(sc->read_line_buf_size);
-    }
-  if (fgets(sc->read_line_buf, sc->read_line_buf_size, stdin))
-    return(s7_make_string(sc, sc->read_line_buf)); /* fgets adds the trailing '\0' */
-  return(eof_object);
+  return(file_read_line(sc, port, with_eol));
 }
 
 s7_pointer file_read_line(s7_scheme *sc, s7_pointer port, bool with_eol)
@@ -556,26 +549,6 @@ s7_pointer read_file(s7_scheme *sc, FILE *fp, const char *name, s7_int max_size,
 
 /* -------- current-input-port handling -------- */
 
-s7_pointer input_port_if_not_loading(s7_scheme *sc)
-{
-  const s7_pointer port = current_input_port(sc);
-  int32_t c;
-  if (!s7i_is_loader_port(port)) /* this flag is turned off by the reader macros, so we aren't in that context */
-    return(port);
-  c = port_read_white_space(port)(sc, port);
-  if (c > 0)            /* we can get either EOF or NULL at the end */
-    {
-      s7i_backchar(c, port);
-      return(NULL);
-    }
-  return(sc->standard_input);
-}
-
-s7_pointer s7i_input_port_if_not_loading(s7_scheme *sc)
-{
-  return(input_port_if_not_loading(sc));
-}
-
 s7_pointer s7i_port_read_line(s7_scheme *sc, s7_pointer port, bool with_eol)
 {
   return(port_read_line(port)(sc, port, with_eol));
@@ -599,7 +572,7 @@ s7_pointer g_read_char(s7_scheme *sc, s7_pointer args)
     port = car(args);
   else
     {
-      port = input_port_if_not_loading(sc);
+      port = s7_current_input_port(sc);
       if (!port) return(eof_object);
     }
   if (!is_input_port(port))
@@ -680,7 +653,7 @@ s7_pointer g_read_byte(s7_scheme *sc, s7_pointer args)
     port = car(args);
   else
     {
-      port = input_port_if_not_loading(sc);
+      port = s7_current_input_port(sc);
       if (!port) return(eof_object);
     }
   if (!is_input_port(port))
@@ -745,7 +718,7 @@ s7_pointer g_read_string(s7_scheme *sc, s7_pointer args)
     port = cadr(args);
   else
     {
-      port = input_port_if_not_loading(sc);
+      port = s7_current_input_port(sc);
       if (!port) return(eof_object);
     }
   if (!is_input_port(port))
@@ -846,7 +819,7 @@ s7_pointer g_read(s7_scheme *sc, s7_pointer args)
     port = car(args);
   else
     {
-      port = input_port_if_not_loading(sc);
+      port = s7_current_input_port(sc);
       if (!port) return(eof_object);
     }
   if (!is_input_port(port))

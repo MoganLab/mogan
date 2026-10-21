@@ -286,11 +286,37 @@ f_json_to_string (s7_scheme* sc, s7_pointer args) {
   return json_raise_write_error (sc, err);
 }
 
+static s7_pointer
+f_write_json (s7_scheme* sc, s7_pointer args) {
+  s7_pointer x   = s7_car (args);
+  s7_pointer port= s7_is_pair (s7_cdr (args)) ? s7_cadr (args) : s7_current_output_port (sc);
+  if (!s7_is_output_port (sc, port)) {
+    return s7_error (sc, s7_make_symbol (sc, "type-error"),
+                     s7_list (sc, 2, s7_make_string (sc, "write-json: port must be an output port"), port));
+  }
+  if (s7_is_procedure (x)) {
+    return s7_error (sc, s7_make_symbol (sc, "type-error"),
+                     s7_list (sc, 1, s7_make_string (sc, "write-json: input must not be a procedure")));
+  }
+  json_write_exception err{};
+  s7_pointer           str= json_write_to_s7_string (sc, x, err);
+  if (!str) return json_raise_write_error (sc, err);
+  s7_display (sc, str, port);
+  return s7_unspecified (sc);
+}
+
 static void
 glue_json_to_string (s7_scheme* sc) {
   const char* name= "g_json->string";
   const char* desc= "(g_json->string data) => string, encode Scheme-form JSON data to a JSON string";
   s7_define_function (sc, name, f_json_to_string, 1, 0, false, desc);
+}
+
+static void
+glue_write_json (s7_scheme* sc) {
+  const char* name= "g_write_json";
+  const char* desc= "(g_write_json data [port]) => unspecified, serialize JSON data to an output port";
+  s7_define_function (sc, name, f_write_json, 1, 1, false, desc);
 }
 
 // json-string-escape 的 C++ 实现，复用 json_write_escaped_string（与 json->string 的
@@ -799,6 +825,439 @@ glue_string_to_json (s7_scheme* sc) {
   s7_define_function (sc, name, f_string_to_json, 1, 0, false, desc);
   cached_string_to_number= s7_name_to_value (sc, "string->number");
   s7_gc_protect (sc, cached_string_to_number);
+}
+
+// 基于 s7 端口的流式 JSON 解析器
+struct json_port_reader {
+  s7_scheme* sc;
+  s7_pointer port;
+  int        ungot[8];
+  int        ungot_cnt= 0;
+
+  void unget (int c) {
+    if (c != -1 && ungot_cnt < 8) {
+      ungot[ungot_cnt++]= c;
+    }
+  }
+
+  int peek () {
+    if (ungot_cnt > 0) return ungot[ungot_cnt - 1];
+    s7_pointer ch= s7_peek_char (sc, port);
+    if (ch == s7_eof_object (sc)) return -1;
+    return (int) (unsigned char) s7_character (ch);
+  }
+
+  int get () {
+    if (ungot_cnt > 0) return ungot[--ungot_cnt];
+    s7_pointer ch= s7_read_char (sc, port);
+    if (ch == s7_eof_object (sc)) return -1;
+    return (int) (unsigned char) s7_character (ch);
+  }
+};
+
+struct json_port_parser {
+  s7_scheme*        sc;
+  json_port_reader& r;
+  s7_int            depth= 0;
+
+  int peek () { return r.peek (); }
+  int get () { return r.get (); }
+};
+
+static void
+json_port_skip_ws (json_port_parser* p) {
+  while (true) {
+    int c= p->peek ();
+    if (c == ' ' || c == '\t' || c == '\n' || c == '\r') p->get ();
+    else break;
+  }
+}
+
+static bool
+json_port_parse_hex4 (json_port_parser* p, s7_int& cp) {
+  char buf[4];
+  for (int i= 0; i < 4; i++) {
+    int c= p->get ();
+    if (c == -1) return false;
+    buf[i]= (char) c;
+  }
+  return json_parse_hex4 (buf, 4, cp);
+}
+
+static s7_pointer json_port_parse_value (json_port_parser* p);
+
+static s7_pointer
+json_port_parse_string_body (json_port_parser* p) {
+  s7_scheme*  sc= p->sc;
+  std::string out;
+  while (true) {
+    int c= p->get ();
+    if (c == -1) return NULL; // 未闭合
+    if (c == '"') {
+      return s7_make_string_with_length (sc, out.data (), (s7_int) out.size ());
+    }
+    if (c < 0x20) {
+      return NULL; // 裸控制字符
+    }
+    if (c != '\\') {
+      out.push_back ((char) c);
+      continue;
+    }
+    int next= p->get ();
+    if (next == -1) return NULL;
+    switch (next) {
+    case '"':
+      out.push_back ('"');
+      break;
+    case '\\':
+      out.push_back ('\\');
+      break;
+    case '/':
+      out.push_back ('/');
+      break;
+    case 'b':
+      out.push_back ('\b');
+      break;
+    case 'f':
+      out.push_back ('\f');
+      break;
+    case 'n':
+      out.push_back ('\n');
+      break;
+    case 'r':
+      out.push_back ('\r');
+      break;
+    case 't':
+      out.push_back ('\t');
+      break;
+    case 'u': {
+      s7_int cp;
+      if (!json_port_parse_hex4 (p, cp)) return NULL;
+      if (cp >= 55296 && cp <= 56319) {
+        if (p->peek () == '\\') {
+          int b1= p->get ();
+          if (p->peek () == 'u') {
+            int  b2= p->get ();
+            char hex2[4];
+            bool ok_hex= true;
+            for (int i= 0; i < 4; i++) {
+              int ch= p->get ();
+              if (ch == -1) {
+                ok_hex= false;
+                break;
+              }
+              hex2[i]= (char) ch;
+            }
+            s7_int next_cp= 0;
+            if (ok_hex && json_parse_hex4 (hex2, 4, next_cp) && next_cp >= 56320 && next_cp <= 57343) {
+              cp= (cp - 55296) * 1024 + (next_cp - 56320) + 65536;
+            }
+            else {
+              for (int i= 3; i >= 0; i--) {
+                if (ok_hex) p->r.unget ((unsigned char) hex2[i]);
+              }
+              p->r.unget (b2);
+              p->r.unget (b1);
+            }
+          }
+          else {
+            p->r.unget (b1);
+          }
+        }
+      }
+      if (!json_append_utf8 (out, cp)) return NULL;
+      break;
+    }
+    default:
+      return NULL;
+    }
+  }
+}
+
+static bool
+json_port_peek_is_digit (json_port_parser* p) {
+  int c= p->peek ();
+  return c >= '0' && c <= '9';
+}
+
+static void
+json_port_take_digits (json_port_parser* p, std::string& out) {
+  int c;
+  while ((c= p->peek ()) >= '0' && c <= '9') {
+    out.push_back ((char) p->get ());
+  }
+}
+
+static s7_pointer
+json_port_parse_number (json_port_parser* p) {
+  s7_scheme*  sc= p->sc;
+  std::string num_str;
+  bool        is_real= false;
+  if (p->peek () == '-') {
+    num_str.push_back ((char) p->get ());
+  }
+  int c= p->peek ();
+  if (c == '0') {
+    num_str.push_back ((char) p->get ());
+  }
+  else if (c >= '1' && c <= '9') {
+    json_port_take_digits (p, num_str);
+  }
+  else {
+    return NULL;
+  }
+  if (p->peek () == '.') {
+    is_real= true;
+    num_str.push_back ((char) p->get ());
+    if (!json_port_peek_is_digit (p)) return NULL;
+    json_port_take_digits (p, num_str);
+  }
+  c= p->peek ();
+  if (c == 'e' || c == 'E') {
+    is_real= true;
+    num_str.push_back ((char) p->get ());
+    c= p->peek ();
+    if (c == '+' || c == '-') {
+      num_str.push_back ((char) p->get ());
+    }
+    if (!json_port_peek_is_digit (p)) return NULL;
+    json_port_take_digits (p, num_str);
+  }
+
+  char* endp= NULL;
+  if (!is_real) {
+    errno      = 0;
+    long long v= strtoll (num_str.c_str (), &endp, 10);
+    if (errno != ERANGE && endp == num_str.c_str () + num_str.size ()) {
+      return s7_make_integer (sc, (s7_int) v);
+    }
+  }
+  else {
+    double d= strtod (num_str.c_str (), &endp);
+    if (endp == num_str.c_str () + num_str.size ()) {
+      return s7_make_real (sc, d);
+    }
+  }
+  // 回退：超大整数等罕见情形
+  s7_pointer txt= s7_make_string_with_length (sc, num_str.data (), (s7_int) num_str.size ());
+  s7_gc_protect_via_stack (sc, txt);
+  s7_pointer num= s7_call (sc, cached_string_to_number, s7_list (sc, 1, txt));
+  s7_gc_unprotect_via_stack (sc, txt);
+  if (!s7_is_number (num)) return NULL;
+  return num;
+}
+
+static s7_pointer
+json_port_parse_symbol_key (json_port_parser* p) {
+  std::string name;
+  while (true) {
+    int c= p->peek ();
+    if (c == -1 || c == ':' || c == ',' || c == '}' || c == ']' || c == '[' || c == ' ' || c == '\t' || c == '\n' ||
+        c == '\r' || c == '\'' || c == '"') {
+      break;
+    }
+    name.push_back ((char) p->get ());
+  }
+  if (name.empty ()) return NULL;
+  char c0= name[0];
+  if ((c0 >= '0' && c0 <= '9') || c0 == '-') return NULL;
+  if (name == "null" || name == "true" || name == "false") return NULL;
+  return s7_make_symbol (p->sc, name.c_str ());
+}
+
+static s7_pointer
+json_port_parse_object (json_port_parser* p) {
+  s7_scheme* sc= p->sc;
+  if (++p->depth > JSON_MAX_DEPTH) {
+    p->depth--;
+    return NULL;
+  }
+  p->get (); // 跳过 '{'
+  json_port_skip_ws (p);
+  if (p->peek () == '}') {
+    p->get ();
+    p->depth--;
+    // 空对象 '(())
+    return s7_cons (sc, s7_nil (sc), s7_nil (sc));
+  }
+  std::vector<s7_pointer> kv;
+  kv.reserve (32);
+  while (true) {
+    json_port_skip_ws (p);
+    s7_pointer key;
+    if (p->peek () == '"') {
+      p->get ();
+      key= json_port_parse_string_body (p);
+    }
+    else {
+      key= json_port_parse_symbol_key (p);
+    }
+    if (key == NULL) {
+      p->depth--;
+      return NULL;
+    }
+    json_port_skip_ws (p);
+    if (p->peek () != ':') {
+      p->depth--;
+      return NULL;
+    }
+    p->get (); // 跳过 ':'
+    json_port_skip_ws (p);
+    s7_pointer val= json_port_parse_value (p);
+    if (val == NULL) {
+      p->depth--;
+      return NULL;
+    }
+    kv.push_back (key);
+    kv.push_back (val);
+    json_port_skip_ws (p);
+    int c= p->peek ();
+    if (c == ',') {
+      p->get ();
+      continue;
+    }
+    p->depth--;
+    if (c == '}') {
+      p->get ();
+      s7_pointer lst= s7_nil (sc);
+      for (size_t i= kv.size (); i > 0; i-= 2) {
+        lst= s7_cons (sc, s7_cons (sc, kv[i - 2], kv[i - 1]), lst);
+      }
+      return lst;
+    }
+    return NULL;
+  }
+}
+
+static s7_pointer
+json_port_parse_array (json_port_parser* p) {
+  s7_scheme* sc= p->sc;
+  if (++p->depth > JSON_MAX_DEPTH) {
+    p->depth--;
+    return NULL;
+  }
+  p->get (); // 跳过 '['
+  json_port_skip_ws (p);
+  if (p->peek () == ']') {
+    p->get ();
+    p->depth--;
+    return s7_make_vector (sc, 0);
+  }
+  std::vector<s7_pointer> elems;
+  elems.reserve (32);
+  while (true) {
+    json_port_skip_ws (p);
+    s7_pointer val= json_port_parse_value (p);
+    if (val == NULL) {
+      p->depth--;
+      return NULL;
+    }
+    elems.push_back (val);
+    json_port_skip_ws (p);
+    int c= p->peek ();
+    if (c == ',') {
+      p->get ();
+      continue;
+    }
+    p->depth--;
+    if (c == ']') {
+      p->get ();
+      s7_pointer  vec= s7_make_vector (sc, (s7_int) elems.size ());
+      s7_pointer* dst= s7_vector_elements (vec);
+      for (size_t i= 0; i < elems.size (); i++)
+        dst[i]= elems[i];
+      return vec;
+    }
+    return NULL;
+  }
+}
+
+static bool
+json_port_parse_literal (json_port_parser* p, const char* lit) {
+  for (size_t i= 0; lit[i] != '\0'; i++) {
+    if (p->peek () != (unsigned char) lit[i]) return false;
+    p->get ();
+  }
+  return true;
+}
+
+static s7_pointer
+json_port_parse_value (json_port_parser* p) {
+  int c= p->peek ();
+  switch (c) {
+  case '{':
+    return json_port_parse_object (p);
+  case '[':
+    return json_port_parse_array (p);
+  case '"':
+    p->get ();
+    return json_port_parse_string_body (p);
+  case 't':
+    if (!json_port_parse_literal (p, "true")) return NULL;
+    return symbol_true;
+  case 'f':
+    if (!json_port_parse_literal (p, "false")) return NULL;
+    return symbol_false;
+  case 'n':
+    if (!json_port_parse_literal (p, "null")) return NULL;
+    return symbol_null;
+  case '\'':
+    return NULL;
+  default:
+    return json_port_parse_number (p);
+  }
+}
+
+static s7_pointer
+f_read_json (s7_scheme* sc, s7_pointer args) {
+  s7_pointer port= s7_is_pair (args) ? s7_car (args) : s7_current_input_port (sc);
+  if (!s7_is_input_port (sc, port)) {
+    return s7_error (sc, s7_make_symbol (sc, "type-error"),
+                     s7_list (sc, 2, s7_make_string (sc, "read-json: port must be an input port"), port));
+  }
+
+  json_port_reader reader{sc, port};
+  // 剥离开头的 UTF-8 BOM
+  if (reader.peek () == 0xEF) {
+    int b1= reader.get ();
+    if (reader.peek () == 0xBB) {
+      int b2= reader.get ();
+      if (reader.peek () == 0xBF) {
+        reader.get ();
+      }
+      else {
+        reader.unget (b2);
+        reader.unget (b1);
+      }
+    }
+    else {
+      reader.unget (b1);
+    }
+  }
+
+  json_port_parser p{sc, reader, 0};
+  json_port_skip_ws (&p);
+  if (p.peek () == -1) {
+    return s7_eof_object (sc);
+  }
+
+  s7_gc_on (sc, false);
+  s7_pointer result= json_port_parse_value (&p);
+  int        next_c= p.peek ();
+  bool       ok= (result != NULL) && (json_is_value_end (next_c) || next_c == '{' || next_c == '[' || next_c == '"');
+  s7_gc_on (sc, true);
+
+  if (!ok) {
+    return json_parse_error (sc, "read-json: invalid JSON");
+  }
+  return result;
+}
+
+static void
+glue_read_json (s7_scheme* sc) {
+  const char* name= "g_read_json";
+  const char* desc= "(g_read_json [port]) => data, read and parse a JSON entity from an input port";
+  s7_define_function (sc, name, f_read_json, 0, 1, false, desc);
 }
 
 // json-ref / json-set 的 C++ 实现，语义与历史上 (liii json) 包装 (guenchi json)
@@ -1412,8 +1871,10 @@ glue_json_reduce (s7_scheme* sc) {
 void
 glue_liii_json (s7_scheme* sc) {
   glue_json_to_string (sc);
+  glue_write_json (sc);
   glue_json_string_escape (sc);
   glue_string_to_json (sc);
+  glue_read_json (sc);
   glue_json_ref (sc);
   glue_json_set (sc);
   glue_json_push (sc);

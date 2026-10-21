@@ -23,6 +23,7 @@
  */
 
 #include "s7_r7rs_library.h"
+#include "s7_scheme_read.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -248,8 +249,8 @@ r7rs_str_dup (const char* s) {
  * as-is.  Returns a malloc'd path, or NULL if not found. */
 static char*
 r7rs_find_include_file (s7_scheme* sc, const char* name) {
-  s7_pointer port= s7_current_input_port (sc);
-  const char* current= s7_port_filename (sc, port);
+  s7_pointer port= s7i_loader_port (sc);
+  const char* current= s7_is_input_port (sc, port) ? s7_port_filename (sc, port) : NULL;
   if (current) {
     const char* sep= strrchr (current, '/');
     if (!sep) sep= strrchr (current, '\\');

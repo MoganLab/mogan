@@ -25,7 +25,11 @@
 #include <tbox/tbox.h>
 
 #ifdef TB_CONFIG_OS_WINDOWS
+#include <io.h>
 #include <windows.h>
+#ifdef _MSC_VER
+#include <crtdbg.h>
+#endif
 #elif TB_CONFIG_OS_MACOSX
 #include <limits.h>
 #elif defined(__EMSCRIPTEN__)
@@ -442,6 +446,34 @@ glue_getpid (s7_scheme* sc) {
   glue_define (sc, name, desc, f_getpid, 0, 0);
 }
 
+static s7_pointer
+f_os_tty_p (s7_scheme* sc, s7_pointer args) {
+  s7_pointer fd_arg= s7_car (args);
+  if (!s7_is_integer (fd_arg)) {
+    return string_type_error (sc, "os-tty?: fd must be an integer", fd_arg);
+  }
+  s7_int fd= s7_integer (fd_arg);
+#if defined(TB_CONFIG_OS_WINDOWS) && defined(_MSC_VER)
+  _invalid_parameter_handler old_handler= _set_thread_local_invalid_parameter_handler (
+      [] (const wchar_t*, const wchar_t*, const wchar_t*, unsigned int, uintptr_t) {});
+  _CrtSetReportMode (_CRT_ASSERT, 0);
+  int ret= (fd >= 0) ? _isatty ((int) fd) : 0;
+  _set_thread_local_invalid_parameter_handler (old_handler);
+#elif defined(TB_CONFIG_OS_WINDOWS)
+  int ret= (fd >= 0) ? _isatty ((int) fd) : 0;
+#else
+  int ret= (fd >= 0) ? isatty ((int) fd) : 0;
+#endif
+  return s7_make_boolean (sc, ret != 0);
+}
+
+static void
+glue_os_tty_p (s7_scheme* sc) {
+  const char* name= "g_os_tty_p";
+  const char* desc= "(g_os_tty_p fd) => boolean, check if fd is a tty";
+  glue_define (sc, name, desc, f_os_tty_p, 1, 0);
+}
+
 void
 glue_liii_os (s7_scheme* sc) {
   glue_os_arch (sc);
@@ -461,6 +493,7 @@ glue_liii_os (s7_scheme* sc) {
   glue_listdir (sc);
   glue_getlogin (sc);
   glue_getpid (sc);
+  glue_os_tty_p (sc);
 }
 
 } // namespace goldfish

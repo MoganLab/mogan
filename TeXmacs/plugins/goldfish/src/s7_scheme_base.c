@@ -949,7 +949,7 @@ s7_pointer g_read_line(s7_scheme *sc, s7_pointer args)
     }
   else
     {
-      port = s7i_input_port_if_not_loading(sc);
+      port = s7_current_input_port(sc);
       if (!port) return s7_eof_object(sc);
     }
   return s7i_port_read_line(sc, port, with_eol);

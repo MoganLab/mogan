@@ -20,6 +20,8 @@ class OutlineBridge : public QObject {
   Q_PROPERTY (
       QVariantList outlineModel READ outlineModel NOTIFY outlineModelChanged)
   Q_PROPERTY (bool hasContent READ hasContent NOTIFY outlineModelChanged)
+  Q_PROPERTY (QVariantMap defaultExpandedMap READ defaultExpandedMap NOTIFY
+                  defaultExpandedMapChanged)
   Q_PROPERTY (QString currentId READ currentId WRITE setCurrentId NOTIFY
                   currentIdChanged)
 
@@ -29,24 +31,32 @@ public:
 
   const QVariantList& outlineModel () const { return m_model; }
   bool                hasContent () const { return !m_model.isEmpty (); }
-  QString             currentId () const { return m_currentId; }
-  void                setCurrentId (const QString& id);
+  const QVariantMap&  defaultExpandedMap () const {
+    return m_defaultExpandedMap;
+  }
+  QString currentId () const { return m_currentId; }
+  void    setCurrentId (const QString& id);
 
   void setOutline (const QVector<PdfOutlineItem>& outline);
   void setOutline (const QVector<OutlineItem>& outline);
   void clear ();
+
+  static QVariantMap computeDefaultExpandedMap (const QVariantList& model,
+                                                int threshold= 30);
 
   Q_INVOKABLE void itemClicked (const QString& id, const QString& target);
   Q_INVOKABLE void closeOutline ();
 
 signals:
   void outlineModelChanged ();
+  void defaultExpandedMapChanged ();
   void currentIdChanged ();
   void outlineActivated (const QString& target);
   void closeRequested ();
 
 private:
   QVariantList m_model;
+  QVariantMap  m_defaultExpandedMap;
   QString      m_currentId;
 
   QVariantMap makeNode (const QString& id, const QString& title,

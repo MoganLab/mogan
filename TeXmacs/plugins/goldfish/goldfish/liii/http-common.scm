@@ -18,8 +18,8 @@
   (import (liii alist) (liii error) (scheme file))
   (export http-ok? http-require-string http-require-procedure
     http-require-boolean http-optional-string http-optional-procedure
-    http-scalar->string http-normalize-string-alist http-normalize-files
-    http-normalize-post-form-data
+    http-optional-timeout http-scalar->string http-normalize-string-alist
+    http-normalize-files http-normalize-post-form-data
   ) ;export
   (begin
 
@@ -78,6 +78,18 @@
 
     (define (http-optional-procedure who field value)
       (if value (http-require-procedure who field value) #f)
+    ) ;define
+
+    (define (http-optional-timeout who field value)
+      (cond ((not value) #f)
+            ((not (number? value))
+             (type-error (string-append who ": " field " must be a number or #f") value)
+            ) ;
+            ((<= value 0)
+             (value-error (string-append who ": " field " must be positive") value)
+            ) ;
+            (else value)
+      ) ;cond
     ) ;define
 
     (define (http-scalar->string who field value)

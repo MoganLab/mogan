@@ -61,27 +61,122 @@ OutlineBridge::convertEditorItem (const OutlineItem& item, int level,
 void
 OutlineBridge::setOutline (const QVector<PdfOutlineItem>& outline) {
   m_model.clear ();
+  m_currentId.clear ();
   for (int i= 0; i < outline.size (); ++i) {
     m_model.append (convertPdfItem (outline[i], 0, QString::number (i)));
   }
+  m_defaultExpandedMap= computeDefaultExpandedMap (m_model);
   emit outlineModelChanged ();
+  emit currentIdChanged ();
+  emit defaultExpandedMapChanged ();
 }
 
 void
 OutlineBridge::setOutline (const QVector<OutlineItem>& outline) {
   m_model.clear ();
+  m_currentId.clear ();
   for (int i= 0; i < outline.size (); ++i) {
     m_model.append (convertEditorItem (outline[i], 0, QString::number (i)));
   }
+  m_defaultExpandedMap= computeDefaultExpandedMap (m_model);
   emit outlineModelChanged ();
+  emit currentIdChanged ();
+  emit defaultExpandedMapChanged ();
 }
 
 void
 OutlineBridge::clear () {
   m_model.clear ();
   m_currentId.clear ();
+  m_defaultExpandedMap.clear ();
   emit outlineModelChanged ();
   emit currentIdChanged ();
+  emit defaultExpandedMapChanged ();
+}
+
+QVariantMap
+OutlineBridge::computeDefaultExpandedMap (const QVariantList& model,
+                                          int                 threshold) {
+  QVariantMap result;
+  if (model.isEmpty ()) return result;
+
+  // 阶段一：规则 1 单非叶子节点链条自动递归穿透展开
+  QVariantList current= model;
+  while (true) {
+    QVariantList leaves;
+    QVariantList nonLeaves;
+    for (const QVariant& item : current) {
+      QVariantMap  node    = item.toMap ();
+      QVariantList children= node.value ("children").toList ();
+      if (children.isEmpty ()) {
+        leaves.append (item);
+      }
+      else {
+        nonLeaves.append (item);
+      }
+    }
+    if (leaves.isEmpty () && nonLeaves.size () == 1) {
+      QVariantMap sole                     = nonLeaves.first ().toMap ();
+      result[sole.value ("id").toString ()]= true;
+      current                              = sole.value ("children").toList ();
+    }
+    else {
+      break;
+    }
+  }
+
+  // 阶段二：规则 2 逐层评估展开（阈值 threshold）
+  int          visibleCount= result.size () + current.size ();
+  QVariantList currentLayer= current;
+
+  while (true) {
+    QVariantList candidates;
+    for (const QVariant& item : currentLayer) {
+      QVariantMap  node    = item.toMap ();
+      QVariantList children= node.value ("children").toList ();
+      if (!children.isEmpty ()) {
+        candidates.append (item);
+      }
+    }
+    if (candidates.isEmpty ()) break;
+
+    QVariantList newChildren;
+    for (const QVariant& item : candidates) {
+      QVariantMap node= item.toMap ();
+      newChildren.append (node.value ("children").toList ());
+    }
+    int newCount= newChildren.size ();
+    if (visibleCount + newCount <= threshold) {
+      for (const QVariant& item : candidates) {
+        QVariantMap node                     = item.toMap ();
+        result[node.value ("id").toString ()]= true;
+      }
+      visibleCount+= newCount;
+      currentLayer= newChildren;
+    }
+    else {
+      break;
+    }
+  }
+
+  // 为所有未展开的非叶子节点显式标记 false，防止 QML 端状态残留或歧义
+  auto markUnexpanded= [&result] (auto&               self,
+                                  const QVariantList& nodes) -> void {
+    for (const QVariant& item : nodes) {
+      QVariantMap  node    = item.toMap ();
+      QString      id      = node.value ("id").toString ();
+      QVariantList children= node.value ("children").toList ();
+      if (!children.isEmpty ()) {
+        if (!result.contains (id)) {
+          result[id]= false;
+        }
+        self (self, children);
+      }
+    }
+  };
+  markUnexpanded (markUnexpanded, model);
+
+  return result;
 }
 
 void

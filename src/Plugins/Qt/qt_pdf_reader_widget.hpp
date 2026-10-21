@@ -33,8 +33,9 @@ struct PdfLink {
  */
 struct PdfOutlineItem {
   QString                 title;    // 节点标题
-  int                     page;     // 解析后的目标页（0-based），-1 表示未解析
-  QVector<PdfOutlineItem> children; // 子节点（fz_outline::down）
+  int                     page= -1; // 解析后的目标页（0-based），-1 表示未解析
+  bool                    isOpen= false; // 是否默认展开（fz_outline::is_open）
+  QVector<PdfOutlineItem> children;      // 子节点（fz_outline::down）
 };
 
 /**

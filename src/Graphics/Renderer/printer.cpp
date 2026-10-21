@@ -1014,7 +1014,9 @@ printer_rep::href (string label, DI x1, DI y1, DI x2, DI y2) {
 }
 
 void
-printer_rep::toc_entry (string kind, string title, DI x, DI y) {
+printer_rep::toc_entry (string kind, string title, string raw_title, DI x,
+                        DI y) {
+  (void) raw_title;
   decode (x, y);
   string ls= "1";
   if (kind == "toc-strong-1") ls= "1";

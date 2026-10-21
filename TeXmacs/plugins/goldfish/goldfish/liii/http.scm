@@ -19,10 +19,12 @@
   (export http-head http-get http-post http-ok?)
   (begin
 
-    (define* (http-head url)
-      (let ((r (g_http-head (http-require-string "http-head" "url" url))))
-        r
-      ) ;let
+    (define* (http-head url (timeout #f))
+      (let* ((url (http-require-string "http-head" "url" url))
+             (timeout (http-optional-timeout "http-head" "timeout" timeout))
+            ) ;
+        (g_http-head url timeout)
+      ) ;let*
     ) ;define*
 
     (define* (http-get url
@@ -32,6 +34,7 @@
                (output-file #f)
                (stream #f)
                (callback #f)
+               (timeout #f)
              ) ;http-get
       (let* ((url (http-require-string "http-get" "url" url))
              (params (http-normalize-string-alist "http-get" "params" params))
@@ -40,8 +43,9 @@
              (output-file (http-optional-string "http-get" "output-file" output-file))
              (stream (http-require-boolean "http-get" "stream" stream))
              (callback (http-optional-procedure "http-get" "callback" callback))
+             (timeout (http-optional-timeout "http-get" "timeout" timeout))
             ) ;
-        (cond ((not stream) (g_http-get url params headers proxy #f))
+        (cond ((not stream) (g_http-get url params headers proxy #f timeout))
               ((and (not output-file) (not callback))
                (value-error "http-get: stream mode requires output-file or callback")
               ) ;
@@ -61,12 +65,13 @@
                             headers
                             proxy
                             (lambda (chunk) (write-string chunk port) (stream-callback chunk))
+                            timeout
                           ) ;g_http-get
                         ) ;lambda
                         (lambda () (close-port port))
                       ) ;dynamic-wind
                     ) ;let
-                    (g_http-get url params headers proxy stream-callback)
+                    (g_http-get url params headers proxy stream-callback timeout)
                   ) ;if
                 ) ;let
               ) ;else
@@ -83,6 +88,7 @@
                (output-file #f)
                (stream #f)
                (callback #f)
+               (timeout #f)
              ) ;http-post
       (let* ((url (http-require-string "http-post" "url" url))
              (params (http-normalize-string-alist "http-post" "params" params))
@@ -92,6 +98,7 @@
              (output-file (http-optional-string "http-post" "output-file" output-file))
              (stream (http-require-boolean "http-post" "stream" stream))
              (callback (http-optional-procedure "http-post" "callback" callback))
+             (timeout (http-optional-timeout "http-post" "timeout" timeout))
             ) ;
         (let* ((body-or-data (if (null? files)
                                (http-require-string "http-post" "data" data)
@@ -105,7 +112,9 @@
                  ) ;if
                ) ;headers
               ) ;
-          (cond ((not stream) (g_http-post url params body-or-data headers proxy files #f))
+          (cond ((not stream)
+                 (g_http-post url params body-or-data headers proxy files #f timeout)
+                ) ;
                 ((and (not output-file) (not callback))
                  (value-error "http-post: stream mode requires output-file or callback")
                 ) ;
@@ -127,12 +136,15 @@
                               proxy
                               files
                               (lambda (chunk) (write-string chunk port) (stream-callback chunk))
+                              timeout
                             ) ;g_http-post
                           ) ;lambda
                           (lambda () (close-port port))
                         ) ;dynamic-wind
                       ) ;let
-                      (g_http-post url params body-or-data headers proxy files stream-callback)
+                      (g_http-post url params body-or-data headers proxy files
+                        stream-callback timeout
+                      ) ;g_http-post
                     ) ;if
                   ) ;let
                 ) ;else
