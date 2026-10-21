@@ -15,39 +15,42 @@
 (check-set-mode! 'report-failed)
 
 (load "./TeXmacs/plugins/latex/progs/init-latex.scm")
-(import-from (latex latex-format))
 
 (define (import-doc src)
-  (tree->stree
-    (latex->texmacs
-      (parse-latex-document
-        (string-append "\\documentclass{article}"
-                       "\\newtheorem{theorem}{Theorem}\n"
-                       "\\begin{document}" src "\\end{document}")
-      ) ;parse-latex-document
-    ) ;latex->texmacs
+  (tree->stree (latex->texmacs (parse-latex-document (string-append "\\documentclass{article}"
+                                                       "\\newtheorem{theorem}{Theorem}\n"
+                                                       "\\begin{document}" src
+                                                       "\\end{document}"
+                                                     ) ;string-append
+                               ) ;parse-latex-document
+               ) ;latex->texmacs
   ) ;tree->stree
 ) ;define
 
-(define (contains? t x)
-  (cond ((== t x) #t)
-        ((pair? t) (or (contains? (car t) x) (contains? (cdr t) x)))
+(define (stree-contains? x target)
+  (cond ((null? x) #f)
+        ((equal? x target) #t)
+        ((pair? x)
+         (or (stree-contains? (car x) target) (stree-contains? (cdr x) target))
+        ) ;
         (else #f)
   ) ;cond
 ) ;define
 
 (define (test-named-theorem)
-  (with t (import-doc "\\begin{theorem}[Foo]Body.\\end{theorem}")
-    (check (contains? t 'dueto) => #t)
-    (check (contains? t "Foo") => #t)
-    (check (contains? t "[Foo] Body.") => #f)
+  (with t
+    (import-doc "\\begin{theorem}[Foo]Body.\\end{theorem}")
+    (check (stree-contains? t 'dueto) => #t)
+    (check (stree-contains? t "Foo") => #t)
+    (check (stree-contains? t "[Foo]Body.") => #f)
   ) ;with
 ) ;define
 
 (define (test-unnamed-theorem)
-  (with t (import-doc "\\begin{theorem}Body.\\end{theorem}")
-    (check (contains? t 'dueto) => #f)
-    (check (contains? t 'theorem) => #t)
+  (with t
+    (import-doc "\\begin{theorem}Body.\\end{theorem}")
+    (check (stree-contains? t 'dueto) => #f)
+    (check (stree-contains? t 'theorem) => #t)
   ) ;with
 ) ;define
 

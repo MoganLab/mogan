@@ -1148,19 +1148,15 @@ latex_parser::parse_command (string s, int& i, string cmd, int change) {
       command_arity (var)= -as_int (t[2]);
       command_def (var)  = tree_to_str_array (u[4], u[3]);
     }
+    // \declaretheorem 的元数为 1，故 t[N(t)-1] 即 t[1]，与 \newtheorem 一致；
+    // \declaretheorem* 未在 DRD 中注册（arity 0），解析不出元数 2 的元组。
     if (is_tuple (t, "\\declaretheorem*", 2) ||
-        is_tuple (t, "\\declaretheorem", 1)) {
-      string var         = "\\begin-" * string_arg (t[N (t) - 1]);
-      command_type (var) = "enunciation";
-      command_arity (var)= -1; // keep the optional [Title]
-      var                = "\\end-" * string_arg (t[N (t) - 1]);
-      command_type (var) = "enunciation";
-      command_arity (var)= 0;
-    }
-    if (is_tuple (t, "\\newtheorem", 2) || is_tuple (t, "\\newtheorem*", 2)) {
-      string var         = "\\begin-" * string_arg (t[1]);
-      command_type (var) = "enunciation";
-      command_arity (var)= -1; // keep the optional [Title]
+        is_tuple (t, "\\declaretheorem", 1) ||
+        is_tuple (t, "\\newtheorem", 2) || is_tuple (t, "\\newtheorem*", 2)) {
+      string var        = "\\begin-" * string_arg (t[1]);
+      command_type (var)= "enunciation";
+      // 与 DRD 的 latex-environment-0*% 一致：允许可选的 [Name]
+      command_arity (var)= -1;
       var                = "\\end-" * string_arg (t[1]);
       command_type (var) = "enunciation";
       command_arity (var)= 0;
