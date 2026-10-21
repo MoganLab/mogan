@@ -3722,7 +3722,15 @@
 ) ;define
 
 (define (tmtex-render-proof s l)
-  (list (list '!begin "proof*" (tmtex (car l))) (tmtex (cadr l)))
+  ;; An empty title is what the editor leaves behind after making the title
+  ;; of a proof editable; it means the default heading.
+  (if (== (car l) "")
+    (list (list '!begin "proof") (tmtex (cadr l)))
+    (list
+      (list '!begin "proof" (list '!option (tmtex (car l))))
+      (tmtex (cadr l))
+    ) ;list
+  ) ;if
 ) ;define
 
 (define (tmtex-nbsp s l)

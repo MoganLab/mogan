@@ -624,10 +624,11 @@ finalize_layout (tree t) {
   for (i= 0; i < n; i++)
     u[i]= finalize_layout (t[i]);
   if (is_func (u, CONCAT)) {
-    string lang     = "code";
-    bool   spc_flag = false;
-    bool   item_flag= false;
-    tree   r (CONCAT);
+    string      lang     = "code";
+    bool        spc_flag = false;
+    bool        item_flag= false;
+    tree        r (CONCAT);
+    array<bool> titled_proofs;
     for (i= 0; i < n; i++) {
       tree v= u[i];
 
@@ -639,7 +640,30 @@ finalize_layout (tree t) {
         continue;
       }
 
-      if (is_func (v, BEGIN, 2) && is_enunciation (v) && v[0] != "proof*") {
+      // \begin{proof}[Title] replaces the "Proof" heading by Title, which is
+      // what render-proof does; a dueto would only append it to "Proof."
+      if (is_func (v, BEGIN, 2) && v[0] == "proof*") {
+        r << tree (BEGIN, "render-proof", v[1]);
+        titled_proofs << true;
+        continue;
+      }
+
+      if (is_func (v, BEGIN, 1) && v[0] == "proof") titled_proofs << false;
+
+      // \end{proof} carries no trace of the optional argument given at
+      // \begin, so remember which open proofs were titled.
+      if (is_func (v, END, 1) && v[0] == "proof" && N (titled_proofs) > 0) {
+        bool titled= titled_proofs[N (titled_proofs) - 1];
+        titled_proofs->resize (N (titled_proofs) - 1);
+        if (titled) {
+          r << tree (END, "render-proof");
+          continue;
+        }
+      }
+
+      // A titled proof was already rewritten to render-proof above; the rest
+      // get the heading kept and the option appended as a dueto.
+      if (is_func (v, BEGIN, 2) && is_enunciation (v)) {
         string s= as_string (v[0]);
         s       = s (0, N (s) - 1);
         r << tree (BEGIN, s) << compound ("dueto", v[1]);
