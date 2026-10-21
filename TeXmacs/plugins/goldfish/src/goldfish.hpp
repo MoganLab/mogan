@@ -38,6 +38,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include "liii_signal.hpp"
+#include "liii_subprocess.hpp"
+
 #include <tbox/platform/file.h>
 #include <tbox/platform/path.h>
 #include <tbox/tbox.h>
@@ -68,7 +71,7 @@
 #include <isocline.h>
 #endif
 
-#define GOLDFISH_VERSION "18.11.39"
+#define GOLDFISH_VERSION "18.11.40"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
@@ -109,19 +112,22 @@ static vector<string> find_function_libraries_in_load_path (s7_scheme* sc, const
 void glue_http (s7_scheme* sc);
 void glue_http_async (s7_scheme* sc);
 #endif
-void            glue_liii_base64 (s7_scheme* sc);
-void            glue_liii_json (s7_scheme* sc);
-void            glue_liii_go (s7_scheme* sc);
-void            set_goldfish_lib_dir (const std::string& dir);
-void            glue_scheme_base (s7_scheme* sc);
-void            glue_scheme_char (s7_scheme* sc);
-void            glue_liii_hashlib (s7_scheme* sc);
-void            glue_liii_os (s7_scheme* sc);
-void            glue_liii_path (s7_scheme* sc);
-void            glue_liii_sort (s7_scheme* sc);
-void            glue_liii_string (s7_scheme* sc);
-void            glue_liii_string_cursor (s7_scheme* sc);
-void            glue_subprocess_run_values (s7_scheme* sc);
+void glue_liii_base64 (s7_scheme* sc);
+void glue_liii_json (s7_scheme* sc);
+void glue_liii_go (s7_scheme* sc);
+void set_goldfish_lib_dir (const std::string& dir);
+void glue_scheme_base (s7_scheme* sc);
+void glue_scheme_char (s7_scheme* sc);
+void glue_liii_hashlib (s7_scheme* sc);
+void glue_liii_os (s7_scheme* sc);
+void glue_liii_path (s7_scheme* sc);
+void glue_liii_path_stat (s7_scheme* sc);
+void glue_liii_sort (s7_scheme* sc);
+void glue_liii_string (s7_scheme* sc);
+void glue_liii_string_cursor (s7_scheme* sc);
+void glue_liii_tempfile (s7_scheme* sc);
+void glue_liii_date_time (s7_scheme* sc);
+
 extern "C" void glue_syntax_rules (s7_scheme* sc);
 
 inline s7_pointer
@@ -537,8 +543,22 @@ static s7_pointer
 f_sleep (s7_scheme* sc, s7_pointer args) {
   s7_double seconds= s7_real (s7_car (args));
 
-  // 使用 tbox 的 tb_sleep 函数，参数是毫秒
-  tb_msleep ((tb_long_t) (seconds * 1000));
+  tb_long_t total_ms= (tb_long_t) (seconds * 1000);
+  if (signal_catch_active ()) {
+    // 有被捕获的信号时才分片睡眠，以便及时派发
+    tb_long_t elapsed= 0;
+    while (elapsed < total_ms) {
+      tb_long_t chunk= (total_ms - elapsed > 50) ? 50 : (total_ms - elapsed);
+      tb_msleep (chunk);
+      elapsed+= chunk;
+      if (dispatch_pending_signals (sc)) {
+        break;
+      }
+    }
+  }
+  else {
+    tb_msleep (total_ms);
+  }
 
   return s7_nil (sc);
 }
@@ -786,19 +806,23 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_scheme_process_context (sc);
   glue_liii_sys (sc);
   glue_liii_os (sc);
-  glue_subprocess_run_values (sc);
+  glue_subprocess (sc);
+  glue_liii_signal (sc);
   glue_liii_path (sc);
+  glue_liii_path_stat (sc);
   glue_liii_sort (sc);
   glue_liii_list (sc);
   glue_liii_string (sc);
   glue_liii_string_cursor (sc);
   glue_liii_time (sc);
   glue_liii_datetime (sc);
+  glue_liii_date_time (sc);
   glue_liii_uuid (sc);
   glue_liii_hashlib (sc);
   glue_liii_base64 (sc);
   glue_liii_json (sc);
   glue_liii_go (sc);
+  glue_liii_tempfile (sc);
   glue_scheme_base (sc);
   glue_scheme_char (sc);
   glue_r7rs_library (sc);
@@ -826,6 +850,7 @@ display_help () {
   cout << "  fix [options] PATH Format PATH (PATH can be a .scm file or directory)" << endl;
   cout << "                     Options:" << endl;
   cout << "                       --dry-run  Print formatted result to stdout" << endl;
+  cout << "  check [options] [PATH...] Static code metrics check (line count and tree depth limits)" << endl;
   cout << "  source ORG/LIB     Print the exact source of ORG/LIB from current *load-path*" << endl;
   cout << "                     Reads the real library file, not tests/ or generated docs" << endl;
   cout << "                     Example: gf source liii/path" << endl;

@@ -1,8 +1,10 @@
 (define-library (liii json)
-  (import (liii base) (liii list))
+  (import (liii base) (liii list) (liii error))
   (export json-string-escape
     string->json
     json->string
+    read-json
+    write-json
 
     json-ref
     json-set
@@ -44,6 +46,12 @@
 
     ;; string->json 由 C++ 实现（src/liii_json.cpp 中的 g_string->json）
     (define string->json g_string->json)
+
+    ;; read-json 由 C++ 实现（src/liii_json.cpp 中的 g_read_json）
+    (define read-json g_read_json)
+
+    ;; write-json 由 C++ 实现（src/liii_json.cpp 中的 g_write_json）
+    (define write-json g_write_json)
 
     ;; json-ref 由 C++ 实现（src/liii_json.cpp 中的 g_json_ref）
     (define json-ref g_json_ref)

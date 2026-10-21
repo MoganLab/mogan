@@ -58,7 +58,8 @@ target("libgoldfish") do
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_string.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_tree.c",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_liii_vector.c",
-        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_syntax_rules.c"
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_syntax_rules.c",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/s7_stacktrace.c"
     )
     add_headerfiles("$(projectdir)/TeXmacs/plugins/goldfish/src/s7.h")
     if is_plat("windows") then
@@ -83,6 +84,10 @@ target ("goldfish") do
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_os.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_path.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_subprocess.cpp",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_signal.cpp",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_date_time.cpp",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_path_stat.cpp",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_tempfile.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_sort.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_go.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/scheme_base.cpp",

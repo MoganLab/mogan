@@ -149,6 +149,13 @@
     (define (internal-apply-values-form? value)
       (and (pair? value) (procedure-name=? (car value) "#_apply-values"))
     ) ;define
+    (define (internal-list-to-vector-form? value)
+      (and (pair? value)
+        (procedure-name=? (car value) "#_list->vector")
+        (pair? (cdr value))
+        (null? (cddr value))
+      ) ;and
+    ) ;define
     (define (unquote-apply-values-form? value)
       (and (pair? value)
         (eq? (car value) 'unquote)
@@ -190,16 +197,28 @@
             ((internal-quote-builder-form? datum)
              (list 'quote (normalize-quasiquote-item (caddr datum)))
             ) ;
+            ((internal-list-to-vector-form? datum) (normalize-quasiquote-vector datum))
             ((internal-list-values-form? datum) (normalize-quasiquote-list datum))
             ((internal-list-star-form? datum) (normalize-quasiquote-dotted-list datum))
             ((internal-apply-values-form? datum)
              (list 'unquote-splicing (normalize-datum (cadr datum)))
+            ) ;
+            ((or (number? datum)
+               (string? datum)
+               (boolean? datum)
+               (char? datum)
+               (byte-vector? datum)
+             ) ;or
+             datum
             ) ;
             (else (list 'unquote (normalize-datum datum)))
       ) ;cond
     ) ;define
     (define (normalize-quasiquote-list datum)
       (map normalize-quasiquote-item (cdr datum))
+    ) ;define
+    (define (normalize-quasiquote-vector datum)
+      (list->vector (normalize-quasiquote-list (cadr datum)))
     ) ;define
     (define (normalize-quasiquote-dotted-list datum)
       (let* ((args (cdr datum))
@@ -284,6 +303,9 @@
             ) ;
             ((internal-list-values-form? datum)
              (list 'quasiquote (normalize-quasiquote-list datum))
+            ) ;
+            ((internal-list-to-vector-form? datum)
+             (list 'quasiquote (normalize-quasiquote-vector datum))
             ) ;
             ((internal-list-star-form? datum)
              (list 'quasiquote (normalize-quasiquote-dotted-list datum))

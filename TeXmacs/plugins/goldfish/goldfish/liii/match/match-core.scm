@@ -349,7 +349,7 @@
     ;; to MATCH-TWO.
     ((match-one v (p q . r) g+s sk fk i)
      (match-check-ellipsis q
-       (match-extract-vars p (match-gen-ellipsis v p r g+s sk fk i) i ())
+       (match-extract-vars p (match-gen-ellipsis 0 v p r g+s sk fk i) i ())
        (match-two v (p q . r) g+s sk fk i)
      ) ;match-check-ellipsis
     ) ;
@@ -379,7 +379,13 @@
   (syntax-rules (_ ___ ..1 *** quote quasiquote ? $ = and or not set! get!)
     ((match-two v () g+s (sk ...) fk i) (if (null? v) (sk ... i) fk))
     ((match-two v 'p g+s (sk ...) fk i) (if (equal? v 'p) (sk ... i) fk))
-    ((match-two v `p . x) (match-quasiquote v p . x))
+    ((match-two v (quasiquote p) . x) (match-quasiquote v p . x))
+    ((match-two v (#_apply-values p) g+s sk fk i)
+     (match-apply-values v p g+s sk fk i))
+    ((match-two v (#_list-values . p) g+s sk fk i)
+     (match-list-values v p g+s sk fk i))
+    ((match-two v (#_<list*> head tail) g+s sk fk i)
+     (match-list-star v head tail g+s sk fk i))
     ((match-two v (and) g+s (sk ...) fk i) (sk ... i))
     ((match-two v (and p q ...) g+s sk fk i)
      (match-one v p g+s (match-one v (and q ...) g+s sk fk) fk i)
@@ -407,7 +413,10 @@
     ) ;
     ((match-two v (= proc p) . x) (let ((w (proc v))) (match-one w p . x)))
     ((match-two v (p ___ . r) g+s sk fk i)
-     (match-extract-vars p (match-gen-ellipsis v p r g+s sk fk i) i ())
+     (match-extract-vars p (match-gen-ellipsis 0 v p r g+s sk fk i) i ())
+    ) ;
+    ((match-two v (p ..1 . r) g+s sk fk i)
+     (match-extract-vars p (match-gen-ellipsis 1 v p r g+s sk fk i) i ())
     ) ;
     ((match-two v (p) g+s sk fk i)
      (if (and (pair? v) (null? (cdr v)))
@@ -422,9 +431,6 @@
     ) ;
     ((match-two v (p *** . q) g+s sk fk i)
      (match-syntax-error "invalid use of ***" (p *** . q))
-    ) ;
-    ((match-two v (p ..1) g+s sk fk i)
-     (if (pair? v) (match-one v (p ___) g+s sk fk i) fk)
     ) ;
     ((match-two v ($ rec p ...) g+s sk fk i)
      (if (is-a? v rec) (match-record-refs v rec 0 (p ...) g+s sk fk i) fk)
@@ -468,20 +474,93 @@
   ) ;syntax-rules
 ) ;define-syntax
 
+;; S7 list-values and list* patterns for quasiquote
+
+(define-syntax match-apply-values
+  (syntax-rules ()
+    ((_ v p g+s sk fk i)
+     (if (list? v)
+       (match-one v p g+s sk fk i)
+       fk
+     ) ;if
+    ) ;
+  ))
+
+(define-syntax match-list-values
+  (syntax-rules ()
+    ((_ v () g+s (sk ...) fk i)
+     (if (null? v) (sk ... i) fk))
+    ((_ v ((#_apply-values p)) g+s sk fk i)
+     (match-apply-values v p g+s sk fk i))
+    ((_ v ((#_apply-values p) . rest) g+s sk fk i)
+     (let ((rlen (length 'rest)))
+       (if (list? v)
+         (let ((vlen (length v)))
+           (if (>= vlen rlen)
+             (let loop ((cur v) (n (- vlen rlen)) (acc '()))
+               (if (<= n 0)
+                 (match-one (reverse acc) p g+s
+                   (match-list-values cur rest g+s sk fk)
+                   fk
+                   i)
+                 (loop (cdr cur) (- n 1) (cons (car cur) acc))))
+             fk))
+         fk)))
+    ((_ v (p . rest) g+s sk fk i)
+     (if (pair? v)
+       (let ((w (car v)) (x (cdr v)))
+         (match-one w p ((car v) (set-car! v))
+           (match-list-values x rest g+s sk fk)
+           fk
+           i))
+       fk))
+  ))
+
+(define-syntax match-list-star
+  (syntax-rules ()
+    ((_ v (#_list-values p) tail g+s sk fk i)
+     (if (pair? v)
+       (let ((w (car v)) (x (cdr v)))
+         (match-one w p ((car v) (set-car! v))
+           (match-list-star-tail-step v x tail g+s sk fk)
+           fk
+           i))
+       fk))
+    ((_ v (#_list-values p1 p2 . prest) tail g+s sk fk i)
+     (if (pair? v)
+       (let ((w (car v)) (x (cdr v)))
+         (match-one w p1 ((car v) (set-car! v))
+           (match-list-star x (#_list-values p2 . prest) tail g+s sk fk)
+           fk
+           i))
+       fk))
+  ))
+
+(define-syntax match-list-star-tail-step
+  (syntax-rules ()
+    ((_ v x (#_apply-values t) g+s sk fk i)
+     (match-apply-values x t g+s sk fk i))
+    ((_ v x tail g+s sk fk i)
+     (match-one x tail ((cdr v) (set-cdr! v)) sk fk i))
+  ))
+
 ;; QUASIQUOTE patterns
 
 (define-syntax match-quasiquote
   (syntax-rules (unquote unquote-splicing quasiquote)
-    ((_ v ,p g+s sk fk i) (match-one v p g+s sk fk i))
-    ((_ v (,@p . rest) g+s sk fk i)
+    ((_ v (unquote p) g+s sk fk i) (match-one v p g+s sk fk i))
+    ((_ v ((unquote-splicing p)) g+s sk fk i)
+     (match-apply-values v p g+s sk fk i)
+    ) ;
+    ((_ v ((unquote-splicing p) . rest) g+s sk fk i)
      (if (pair? v)
        (match-one v (p . tmp) (match-quasiquote tmp rest g+s sk fk) fk i)
        fk
      ) ;if
     ) ;
-    ((_ v `p g+s sk fk i . depth) (match-quasiquote v p g+s sk fk i #f . depth))
-    ((_ v ,p g+s sk fk i x . depth) (match-quasiquote v p g+s sk fk i . depth))
-    ((_ v ,@p g+s sk fk i x . depth) (match-quasiquote v p g+s sk fk i . depth))
+    ((_ v (quasiquote p) g+s sk fk i . depth) (match-quasiquote v p g+s sk fk i #f . depth))
+    ((_ v (unquote p) g+s sk fk i x . depth) (match-quasiquote v p g+s sk fk i . depth))
+    ((_ v (unquote-splicing p) g+s sk fk i x . depth) (match-quasiquote v p g+s sk fk i . depth))
     ((_ v (p . q) g+s sk fk i . depth)
      (if (pair? v)
        (let ((w (car v)) (x (cdr v)))
@@ -590,11 +669,11 @@
 
 (define-syntax match-gen-ellipsis
   (syntax-rules ()
-    ((_ v p () g+s (sk ...) fk i ((id id-ls) ...))
+    ((_ 0 v p () g+s (sk ...) fk i ((id id-ls) ...))
      (match-check-identifier p
        ;; simplest case equivalent to (p ...), just bind the list
        (let ((w v))
-         (if (list? w) (match-one w p g+s (sk ...) fk i) fk)
+         (if (proper-list? w) (match-one w p g+s (sk ...) fk i) fk)
        ) ;let
        ;; simple case, match all elements of the list
        (let loop
@@ -617,7 +696,14 @@
        ) ;let
      ) ;match-check-identifier
     ) ;
-    ((_ v p r g+s sk fk (i ...) ((id id-ls) ...))
+    ;; same as min-len 0, but requires a non-empty list
+    ((_ 1 v p () g+s sk fk i ids)
+     (if (pair? v)
+       (match-gen-ellipsis 0 v p () g+s sk fk i ids)
+       fk
+     ) ;if
+    ) ;
+    ((_ min-len v p r g+s sk fk (i ...) ((id id-ls) ...))
      (match-verify-no-ellipsis r
        (match-bound-identifier-memv p
          (i ...)
@@ -625,7 +711,12 @@
          ;; match the trailing patterns
          (let loop
            ((ls v) (expect p))
-           (cond ((null? expect) (match-one ls r (#f #f) sk fk (i ...)))
+           (cond ((null? expect)
+                  (if (and (= min-len 1) (null? p))
+                    fk
+                    (match-one ls r (#f #f) sk fk (i ...))
+                  ) ;if
+                 ) ;
                  ((pair? ls)
                   (let ((w (car ls)) (e (car expect)))
                     (if (equal? (car ls) (car expect))
@@ -639,8 +730,8 @@
          ) ;let
          ;; general case, trailing patterns to match, keep track of the
          ;; remaining list length so we don't need any backtracking
-         (let* ((tail-len (length 'r)) (ls v) (len (and (list? ls) (length ls))))
-           (if (or (not len) (< len tail-len))
+         (let* ((tail-len (length 'r)) (ls v) (len (and (proper-list? ls) (length ls))))
+           (if (or (not len) (< len (+ tail-len min-len)))
              fk
              (let loop
                ((ls ls) (n len) (id-ls '()) ...)
@@ -682,7 +773,13 @@
 ;; element for every possible break for the leading "a ...".
 
 (define-syntax match-verify-no-ellipsis
-  (syntax-rules ()
+  (syntax-rules (___ ..1)
+    ((_ (___ . y) sk)
+     (match-syntax-error "multiple ellipsis patterns not allowed at same level")
+    ) ;
+    ((_ (..1 . y) sk)
+     (match-syntax-error "multiple ellipsis patterns not allowed at same level")
+    ) ;
     ((_ (x . y) sk)
      (match-check-ellipsis x
        (match-syntax-error "multiple ellipsis patterns not allowed at same level")
@@ -765,14 +862,15 @@
 ;; matched.
 
 (define-syntax match-vector
-  (syntax-rules (___)
+  (syntax-rules (___ ..1)
+    ((_ v n pats (p ___) sk fk i) (match-gen-vector-ellipsis 0 v n pats p sk fk i))
+    ((_ v n pats (p ..1) sk fk i) (match-gen-vector-ellipsis 1 v n pats p sk fk i))
     ((_ v n pats (p q) . x)
      (match-check-ellipsis q
-      (match-gen-vector-ellipsis v n pats p . x)
+      (match-gen-vector-ellipsis 0 v n pats p . x)
       (match-vector-two v n pats (p q) . x)
      ) ;match-check-ellipsis
     ) ;
-    ((_ v n pats (p ___) sk fk i) (match-gen-vector-ellipsis v n pats p sk fk i))
     ((_ . x) (match-vector-two . x))
   ) ;syntax-rules
 ) ;define-syntax
@@ -815,10 +913,10 @@
 
 (define-syntax match-gen-vector-ellipsis
   (syntax-rules ()
-    ((_ v n ((pat index) ...) p sk fk i)
+    ((_ min-len v n ((pat index) ...) p sk fk i)
      (if (vector? v)
        (let ((len (vector-length v)))
-         (if (>= len n)
+         (if (>= len (+ n min-len))
            (match-vector-step v ((pat index) ...) (match-vector-tail v p n len sk fk) fk i)
            fk
          ) ;if
@@ -896,10 +994,19 @@
     ((match-extract-vars ($ rec . p) . x) (match-extract-vars p . x))
     ((match-extract-vars (= proc p) . x) (match-extract-vars p . x))
     ((match-extract-vars 'x (k ...) i v) (k ... v))
-    ((match-extract-vars `x k i v) (match-extract-quasiquote-vars x k i v (#t)))
+    ((match-extract-vars (quasiquote x) k i v) (match-extract-quasiquote-vars x k i v (#t)))
+    ((match-extract-vars (#_apply-values p) . x) (match-extract-vars p . x))
+    ((match-extract-vars (#_list-values . p) . x) (match-extract-vars p . x))
+    ((match-extract-vars (#_<list*> . p) . x) (match-extract-vars p . x))
     ((match-extract-vars (and . p) . x) (match-extract-vars p . x))
     ((match-extract-vars (or . p) . x) (match-extract-vars p . x))
     ((match-extract-vars (not . p) . x) (match-extract-vars p . x))
+    ((match-extract-vars (p ___ . r) k i v)
+     (match-extract-vars (p . r) k i v)
+    ) ;
+    ((match-extract-vars (p ..1 . r) k i v)
+     (match-extract-vars (p . r) k i v)
+    ) ;
     ;; A non-keyword pair, expand the CAR with a continuation to
     ;; expand the CDR.
     ((match-extract-vars (p q . r) k i v)
@@ -945,14 +1052,14 @@
 
 (define-syntax match-extract-quasiquote-vars
   (syntax-rules (quasiquote unquote unquote-splicing)
-    ((match-extract-quasiquote-vars `x k i v d)
+    ((match-extract-quasiquote-vars (quasiquote x) k i v d)
      (match-extract-quasiquote-vars x k i v (#t . d))
     ) ;
-    ((match-extract-quasiquote-vars ,@x k i v d)
-     (match-extract-quasiquote-vars ,x k i v d)
+    ((match-extract-quasiquote-vars (unquote-splicing x) k i v d)
+     (match-extract-quasiquote-vars (unquote x) k i v d)
     ) ;
-    ((match-extract-quasiquote-vars ,x k i v (#t)) (match-extract-vars x k i v))
-    ((match-extract-quasiquote-vars ,x k i v (#t . d))
+    ((match-extract-quasiquote-vars (unquote x) k i v (#t)) (match-extract-vars x k i v))
+    ((match-extract-quasiquote-vars (unquote x) k i v (#t . d))
      (match-extract-quasiquote-vars x k i v d)
     ) ;
     ((match-extract-quasiquote-vars (x . y) k i v d)
@@ -1079,37 +1186,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Otherwise COND-EXPANDed bits.
 
-;; This *should* work, but doesn't :(
-;;   (define-syntax match-check-ellipsis
-;;     (syntax-rules (...)
-;;       ((_ ... sk fk) sk)
-;;       ((_ x sk fk) fk)))
-
-;; This is a little more complicated, and introduces a new let-syntax,
-;; but should work portably in any R[56]RS Scheme.  Taylor Campbell
-;; originally came up with the idea.
+;; Match `...` as a literal (s7 supports `...` in the literals list);
+;; all other inputs fail.
 (define-syntax match-check-ellipsis
-  (syntax-rules ()
-    ;; these two aren't necessary but provide fast-case failures
+  (syntax-rules (...)
+    ((match-check-ellipsis ... success-k failure-k) success-k)
     ((match-check-ellipsis (a . b) success-k failure-k) failure-k)
     ((match-check-ellipsis #(a ...) success-k failure-k) failure-k)
-    ;; matching an atom
-    ((match-check-ellipsis id success-k failure-k)
-     (let-syntax
-       ((ellipsis?
-          (syntax-rules ()
-            ;; iff `id' is `...' here then this will
-            ;; match a list of any length
-            ((ellipsis? (foo id) sk fk) sk)
-            ((ellipsis? other sk fk) fk)
-          ) ;syntax-rules
-        ) ;ellipsis?
-       ) ;
-       ;; this list of three elements will only match the (foo id) list
-       ;; above if `id' is `...'
-       (ellipsis? (a b c) success-k failure-k)
-     ) ;let-syntax
-    ) ;
+    ((match-check-ellipsis other success-k failure-k) failure-k)
   ) ;syntax-rules
 ) ;define-syntax
 
