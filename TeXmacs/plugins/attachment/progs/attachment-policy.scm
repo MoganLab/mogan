@@ -15,7 +15,7 @@
 ;; 是 6221 的架构迁移：本文件直接由 init-attachment.scm 顶部 load，不
 ;; 依赖用户目录的覆盖
 
-(import (liii path) (liii string))
+(import (liii path) (liii string) (liii json))
 
 (define attachment-max-count 10)
 
@@ -23,7 +23,7 @@
 
 (define attachment-allowed-extensions
   '("pdf" "doc" "docx" "xls" "xlsx" "ppt" "pptx" "md" "txt" "csv" "epub" "stem"
-    "tmu" "html" "json" "log" "c" "cpp" "h" "java" "py" "js" "ts" "go" "rs")
+    "tmu" "tm" "html" "json" "log" "c" "cpp" "h" "java" "py" "js" "ts" "go" "rs")
 ) ;define
 
 ;;; ---------- 预检纯函数 ----------
@@ -67,4 +67,22 @@
           (else #f)
     ) ;cond
   ) ;let
+) ;define
+
+;;; ---------- ingest 请求构造 ----------
+
+;; 请求 JSON 瘦身只带 {taskId, path}；宿主做过格式转换（文档转临时 PDF）
+;; 时 source-path 非空，另带 sourcePath 键：插件据原文件计算 sha256 与
+;; 抽取缓存键（同一文档重复添加命中同一缓存，不随随机临时路径变化），
+;; 实际读取仍指向 path。常规附件不带该键，与旧插件的请求契约保持兼容
+
+(define (attachment-ingest-request-json task-id file-path source-path)
+  (json->string (if (string-null? source-path)
+                  (list (cons "taskId" task-id) (cons "path" file-path))
+                  (list (cons "taskId" task-id)
+                    (cons "path" file-path)
+                    (cons "sourcePath" source-path)
+                  ) ;list
+                ) ;if
+  ) ;json->string
 ) ;define

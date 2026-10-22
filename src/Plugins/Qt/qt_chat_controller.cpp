@@ -11,6 +11,7 @@
 
 #include "qt_chat_controller.hpp"
 #include "AttachMenuBridge.hpp"
+#include "qt_attachment_converter.hpp"
 #include "qt_chat_tab_widget.hpp"
 #include "qt_floating_search_bar.hpp"
 #include "qt_floating_toast.hpp"
@@ -55,6 +56,29 @@ using namespace moebius;
  ******************************************************************************/
 
 static ChatController* g_chat_controller= nullptr;
+
+const qint64 ChatController::kMaxTotalExtractedChars= 1024 * 1024;
+
+qint64
+ChatController::totalReadyExtractedChars (const QList<AttachmentItem>& items) {
+  qint64 total= 0;
+  for (const AttachmentItem& it : items)
+    if (it.ready) total+= it.extractedChars;
+  return total;
+}
+
+/**
+ * @brief 是否为需先转 PDF 的文档类附件。
+ *
+ * 判定依据是「插件无法提取、宿主可编译」，与 attachment-policy.scm 的
+ * 白名单（判定「可否 ingest」）回答的是两个不同问题，各自独立维护。
+ * 判定用小写后缀，容忍 .TMU 之类大写写法。
+ */
+static bool
+is_convertible_attachment (const QString& path) {
+  QString ext= QFileInfo (path).suffix ().toLower ();
+  return ext == "tmu" || ext == "tm" || ext == "stem";
+}
 
 // 翻译/释义专属会话的类型名（与 AI 操作栏动作名一致）
 static bool
@@ -300,36 +324,125 @@ ChatController::attachFiles (const string&      sessionId,
   for (const QString& path : files) {
     // 同路径重复选择静默跳过，不 toast 打扰
     if (existingPaths.contains (path)) continue;
-    AttachmentItem item;
     QFileInfo      fi (path);
+    AttachmentItem item;
     item.path    = path;
     item.filename= fi.fileName ();
     item.size    = fi.size ();
-    // 派发 %attachment ingest：path 只流向附件插件，不进 %chat 协议；
-    // 宿主侧 attachment-ingest 接收 count/bytes 用于本轮已选累计预检，
-    // 请求实际只下传 {taskId, path}；可访问性/扩展名/数量/总大小预检由
-    // 宿主（attachment-policy.scm）判定，违规经 error 事件 toast。失败
-    // （插件不可用）则不入选。taskId 为不透明序号，路由只靠
-    // attachTaskSession_（单一事实源）
-    // path 须经 from_qstring 转 herk 内部形态：connection_write 会先做
-    // tree_herk_to_utf8，裸 UTF-8（from_qstring_utf8）会被逐字节二次映射
-    // 打乱，中文路径到插件侧变乱码而预检误报「文件不存在」
-    item.taskId= QString::number (++attachTaskSeq_);
-    if (!as_bool (
-            call ("attachment-ingest", object (from_qstring_utf8 (item.taskId)),
-                  object (from_qstring (item.path)),
-                  object ((int) items.size ()), object ((int) totalBytes)))) {
-      QtFloatingToast::showToast (
-          view_, qt_translate ("Attachment plugin is not available"), 3000,
-          QtFloatingToast::Warning);
+    item.taskId  = QString::number (++attachTaskSeq_);
+    // 文档类附件先经宿主自身无头能力转 PDF，再以 PDF 走同一条 ingest：
+    // 插件侧只认既有格式，转 PDF 后插件零改动。条目统一由循环末尾
+    // setAttachments 入列（转换函数内部不碰列表，避免被旧快照覆盖）；
+    // 转换期间条目未 ready，发送栅栏由 attachmentProcessingChanged 兜住
+    if (is_convertible_attachment (path))
+      start_attachment_conversion (sessionId, panel, item);
+    else if (!dispatch_attachment_ingest (sessionId, item, items.size (),
+                                          totalBytes, QString ()))
       continue;
-    }
-    attachTaskSession_.insert (item.taskId, to_qstring (sessionId));
     items.append (item);
     existingPaths.insert (item.path);
     totalBytes+= item.size;
   }
   panel->setAttachments (items);
+}
+
+/**
+ * @brief 派发 %attachment ingest 并登记 taskId 路由。
+ *
+ * 文档类附件与常规附件共用此入口，两者的插件侧协议完全一致。item.taskId
+ * 由调用方生成并已随条目入列，本函数不再改动它。
+ *
+ * @return 派发成功（路由已登记）返回 true；插件不可用返回 false。
+ */
+bool
+ChatController::dispatch_attachment_ingest (const string&   sessionId,
+                                            AttachmentItem& item, int count,
+                                            qint64         bytes,
+                                            const QString& sourcePath) {
+  // path 须经 from_qstring 转 herk 内部形态：connection_write 会先做
+  // tree_herk_to_utf8，裸 UTF-8（from_qstring_utf8）会被逐字节二次映射
+  // 打乱，中文路径到插件侧变乱码而预检误报「文件不存在」
+  //
+  // 派发 %attachment ingest：path 只流向附件插件，不进 %chat 协议；
+  // 宿主侧 attachment-ingest 接收 count/bytes 用于本轮已选累计预检，
+  // 请求实际只下传 {taskId, path}（sourcePath 非空时另带该键，插件据
+  // 原文件计算 sha256 与抽取缓存键，读取仍指向 path）；可访问性/扩展名/
+  // 数量/总大小预检由宿主（attachment-policy.scm）判定，违规经 error
+  // 事件 toast
+  array<object> args;
+  args << object (from_qstring_utf8 (item.taskId))
+       << object (from_qstring (item.path)) << object (count)
+       << object ((int) bytes) << object (from_qstring (sourcePath));
+  if (!as_bool (call ("attachment-ingest", args))) {
+    QtFloatingToast::showToast (
+        view_, qt_translate ("Attachment plugin is not available"), 3000,
+        QtFloatingToast::Warning);
+    return false;
+  }
+  // 路由登记统一在派发成功后：常规附件与文档附件（转换成功回调）走同一
+  // 入口，避免出现「已登记但永远不会有事件」的僵尸 taskId
+  attachTaskSession_.insert (item.taskId, to_qstring (sessionId));
+  return true;
+}
+
+/**
+ * @brief 文档类附件的转换编排：转成功后派发 ingest。
+ *
+ * 条目入列由调用方（attachFiles）随本轮 items 统一完成，本函数不碰列表，
+ * 避免与调用方末尾的 setAttachments 相互覆盖。
+ *
+ * @param item 已并入列表的条目：taskId 已生成，path/filename/size 指向原
+ *        文档。此处只读不改，改写发生在转换成功的回调里。
+ *
+ * 失败（超时/退出码非零/产物缺失）时移除条目并 toast，发送栅栏不受影响。
+ */
+void
+ChatController::start_attachment_conversion (const string&          sessionId,
+                                             ChatConversationPanel* panel,
+                                             const AttachmentItem&  item) {
+  QString              sourcePath= item.path;
+  QString              taskId    = item.taskId;
+  AttachmentConverter* converter = new AttachmentConverter (view_);
+  // 转换最长 120 s，期间会话可能被关闭、panel 被 deleteLater：回调捕获
+  // QPointer 而非裸指针（与 attachMenuPopup_ 同惯例），触发时判空
+  QPointer<ChatConversationPanel> panelGuard= panel;
+  connect (
+      converter, &AttachmentConverter::converted, this,
+      [this, sessionId, panelGuard, taskId,
+       sourcePath] (const QString& pdfPath) {
+        if (!panelGuard) return;
+        AttachmentItem updated;
+        // 转换期间用户可能已删掉该 chip：条目不在则静默丢弃产物
+        if (!panelGuard->attachmentRedirectToPdf (taskId, pdfPath, updated))
+          return;
+        // 预检记账与常规路径同口径：count/bytes 均为除当前项外的
+        // 已选累计（scheme 侧会再加上当前项自身的 size）
+        qint64 othersBytes= 0;
+        int    othersCount= 0;
+        for (const AttachmentItem& x : panelGuard->attachments ())
+          if (x.taskId != taskId) {
+            othersBytes+= x.size;
+            othersCount++;
+          }
+        // dispatch 不改动 taskId，沿用条目原值，路由与列表自然一致；
+        // sourcePath 随请求下传，插件以原文件（而非随机临时 PDF 路径）
+        // 计算 sha256 与抽取缓存键：同一文档重复添加命中同一缓存。
+        // 失败时条目仍在处理中态，走既有 attachmentError 删除通道
+        if (!dispatch_attachment_ingest (sessionId, updated, othersCount,
+                                         othersBytes, sourcePath))
+          panelGuard->attachmentError (taskId);
+      });
+  connect (
+      converter, &AttachmentConverter::failed, this,
+      [this, panelGuard, taskId] (const QString& reason) {
+        if (!panelGuard) return;
+        if (panelGuard->attachmentError (taskId))
+          QtFloatingToast::showToast (
+              view_,
+              qt_translate ("Attachment conversion failed: %1").arg (reason),
+              3000, QtFloatingToast::Warning);
+      });
+  converter->start (sourcePath);
 }
 
 void
@@ -417,12 +530,30 @@ ChatController::takeAttachmentPanel (const QString& taskId) {
 }
 
 void
-ChatController::onAttachmentReady (const string& taskId, const string& sha256) {
+ChatController::onAttachmentReady (const string& taskId, const string& sha256,
+                                   qint64 extractedChars) {
   // 发送栅栏由面板的 attachmentProcessingChanged 信号驱动（处理中状态
   // 翻转即重算），此处无需再调 updateSendGate
-  QString qTaskId= to_qstring (taskId);
-  if (ChatConversationPanel* panel= takeAttachmentPanel (qTaskId))
-    panel->attachmentReady (qTaskId, to_qstring (sha256));
+  QString                qTaskId= to_qstring (taskId);
+  ChatConversationPanel* panel  = takeAttachmentPanel (qTaskId);
+  if (!panel) return;
+
+  // 提取后累计上限，先判后提交：处理中条目 extractedChars 为 0 不参与
+  // 累计，本次 ready 的增量即 extractedChars 本身。超限直接移除——此时条目
+  // 仍在处理中态，走既有 attachmentError 删除通道，不产生 ready 态再撤销
+  // （也省去一次无意义的 items-changed 与理论上的 chip 闪现）
+  if (totalReadyExtractedChars (panel->attachments ()) + extractedChars >
+      kMaxTotalExtractedChars) {
+    QString name= panel->attachment_filename (qTaskId);
+    if (panel->attachmentError (qTaskId))
+      QtFloatingToast::showToast (
+          view_,
+          qt_translate ("Attachment %1 exceeds the 1 MiB total limit, removed")
+              .arg (name),
+          3000, QtFloatingToast::Warning);
+    return;
+  }
+  panel->attachmentReady (qTaskId, to_qstring (sha256), extractedChars);
 }
 
 void
@@ -1426,10 +1557,10 @@ qt_chat_notify_input_height () {
 }
 
 void
-qt_chat_attachment_ready (string taskId, string sha256) {
+qt_chat_attachment_ready (string taskId, string sha256, int extractedChars) {
   ChatController* ctrl= get_chat_controller ();
   if (!ctrl) return;
-  ctrl->onAttachmentReady (taskId, sha256);
+  ctrl->onAttachmentReady (taskId, sha256, (qint64) extractedChars);
 }
 
 void

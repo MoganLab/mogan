@@ -35,6 +35,7 @@
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QDockWidget>
+#include <QFileInfo>
 #include <QFontMetrics>
 #include <QGraphicsDropShadowEffect>
 #include <QGraphicsOpacityEffect>
@@ -293,11 +294,13 @@ ChatConversationPanel::hasProcessingAttachments () const {
 
 bool
 ChatConversationPanel::attachmentReady (const QString& taskId,
-                                        const QString& sha256) {
+                                        const QString& sha256,
+                                        qint64         extractedChars) {
   for (AttachmentItem& it : attachments_)
     if (!it.ready && it.taskId == taskId) {
-      it.ready = true;
-      it.sha256= sha256;
+      it.ready         = true;
+      it.sha256        = sha256;
+      it.extractedChars= extractedChars;
       attachment_items_changed ();
       return true;
     }
@@ -313,6 +316,32 @@ ChatConversationPanel::attachmentError (const QString& taskId) {
       return true;
     }
   return false;
+}
+
+bool
+ChatConversationPanel::attachmentRedirectToPdf (const QString&  taskId,
+                                                const QString&  pdfPath,
+                                                AttachmentItem& updated) {
+  for (AttachmentItem& it : attachments_)
+    if (!it.ready && it.taskId == taskId) {
+      QFileInfo pdf (pdfPath);
+      // filename/size/path 三者必须一致地换成 PDF 的：插件侧按 path 读
+      // 文件、按 filename/size 上报
+      it.filename= pdf.fileName ();
+      it.size    = pdf.size ();
+      it.path    = pdfPath;
+      updated    = it;
+      attachment_items_changed ();
+      return true;
+    }
+  return false;
+}
+
+QString
+ChatConversationPanel::attachment_filename (const QString& taskId) const {
+  for (const AttachmentItem& it : attachments_)
+    if (it.taskId == taskId) return it.filename;
+  return QString ();
 }
 
 void

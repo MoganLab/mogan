@@ -38,6 +38,8 @@ struct AttachmentItem {
   QString taskId;       ///< ingest 任务号（ready/error 事件按它找回条目）
   QString sha256;       ///< 附件插件 ready 后回填
   bool    ready= false; ///< 是否已就绪（就绪后才显示 chip、才允许发送）
+  qint64  extractedChars=
+      0; ///< 插件提取文本字符数（ready 时回填，用于累计上限）
 };
 
 /**

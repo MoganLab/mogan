@@ -152,14 +152,25 @@ public:
   /// 全量替换附件列表并重建 chips
   void setAttachments (const QList<AttachmentItem>& items);
   const QList<AttachmentItem>& attachments () const { return attachments_; }
+  /// 按 taskId 取附件展示文件名（未找到返回空串），供 toast 文案指名道姓
+  QString attachment_filename (const QString& taskId) const;
   /// 是否存在处理中（未 ready）的附件
   bool hasProcessingAttachments () const;
-  /// 附件插件 ready 事件：按 taskId 回填 sha256 并弹出 chip
+  /// 附件插件 ready 事件：按 taskId 回填 sha256 与 extractedChars 并弹出 chip
+  /// @param extractedChars 插件提取文本字符数，供 Controller 做累计上限判定
   /// @return 找到对应处理中条目时返回 true
-  bool attachmentReady (const QString& taskId, const QString& sha256);
-  /// 附件插件 error 事件：按 taskId 移除条目
+  bool attachmentReady (const QString& taskId, const QString& sha256,
+                        qint64 extractedChars);
+  /// 附件插件 error 事件：按 taskId 移除处理中条目（转换失败、提取后累计
+  /// 超限同样复用——这些场景下条目均未 ready，语义一致）
   /// @return 找到对应条目时返回 true
   bool attachmentError (const QString& taskId);
+  /// 文档类附件转换成功后，把处理中条目重定向到临时 PDF：filename/size/path
+  /// 换成 PDF 的，taskId 不变（ready/error 事件靠它路由）
+  /// @param updated 输出改写后的条目，供调用方随后派发 ingest
+  /// @return 找到对应处理中条目时返回 true
+  bool attachmentRedirectToPdf (const QString& taskId, const QString& pdfPath,
+                                AttachmentItem& updated);
   /// 会话 Generating 时禁用附件按钮（与思考/搜索按钮同节奏）
   void setAttachEnabled (bool enabled);
   /// 附件字节数格式化（子 KiB 保留原样避免千分位，其余走 C locale）

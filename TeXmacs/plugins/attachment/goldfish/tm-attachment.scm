@@ -35,9 +35,12 @@
 ;; 预检策略归属宿主（TeXmacs/plugins/attachment/progs/attachment-policy.scm
 ;; 由 init-attachment.scm 加载）；本文件不再定义数量/总大小/扩展名常量
 ;; 与 fake-attachment-precheck，禁入不可读路径仅靠宿主拦截。请求瘦身
-;; 为 {taskId, path}；违反宿主预检的请求根本不会到达本插件。
-;; 假 sha256 由 path 字符串确定性散列生成；假提取文本写入抽取缓存，供
-;; llm 插件按 sha256 取用——llm 插件只认 sha256、不接触本地路径
+;; 为 {taskId, path}；宿主做过格式转换（文档转临时 PDF）时另带可选的
+;; sourcePath（原文件路径）。违反宿主预检的请求根本不会到达本插件。
+;; 假 sha256 由路径字符串确定性散列生成：带 sourcePath 时对原路径取
+;; 散列（缓存键随原文档，不随每次转换随机生成的临时 PDF 路径），否则
+;; 对读取路径取散列；假提取文本写入抽取缓存，供 llm 插件按 sha256 取用
+;; ——llm 插件只认 sha256、不接触本地路径
 
 ;;; ---------- 抽取缓存：平台基目录、月度布局、命中刷新、月度清理 ----------
 ;; 磁盘契约（真实插件遵从同一约定，tm-llm.scm 的读取方内联同一套约定）：
@@ -173,11 +176,17 @@
   (sha256 file-path)
 ) ;define
 
+(define (fake-attachment-sha256-key file-path source-path)
+  ;; sha256/抽取缓存键以原文件为准：宿主转换过格式时 source-path 非空，
+  ;; 键随原文档而非临时产物；常规附件 source-path 为空串，退回读取路径
+  (if (string-null? source-path) file-path source-path)
+) ;define
+
 (define (fake-attachment-extracted-text filename)
   (string-append "[fake] extracted text of " filename)
 ) ;define
 
-(define (fake-attachment-ready-event task-id file-path)
+(define (fake-attachment-ready-event task-id file-path source-path)
   ;; 请求已瘦身：filename 与 size 由 file-path 在此计算（ready 事件六键形态
   ;; 不变：filename/size 冗余但保留以稳定协议契约）；参数名避开 path：
   ;; (liii path) 的 path 构造函数在 s7 下被字符串参数遮蔽后 (path x)
@@ -185,7 +194,8 @@
   (let* ((p (path file-path))
          (filename (path->string (path-name p)))
          (size (if (and (path-file? p) (access file-path 'R_OK)) (path-getsize p) 0))
-         (sha256 (fake-attachment-sha256 file-path))
+         (sha256 (fake-attachment-sha256 (fake-attachment-sha256-key file-path source-path))
+         ) ;sha256
          (content (fake-attachment-extracted-text filename))
         ) ;
     (attachment-cache-put! sha256 filename content)
@@ -208,8 +218,8 @@
 (define (fake-attachment-ingest data)
   ;; 先解析请求并取得 task-id，再在 catch #t 保护下执行缓存月度清理与
   ;; ready 缓存写入。预检已上移宿主（attachment-policy.scm），请求只含
-  ;; {taskId, path}。每个能解析出 taskId 的合法请求无论发生何种异常都
-  ;; 必须返回带原 taskId 的 error 事件，不向 REPL 外抛出
+  ;; {taskId, path} 与可选的 sourcePath。每个能解析出 taskId 的合法请求
+  ;; 无论发生何种异常都必须返回带原 taskId 的 error 事件，不向 REPL 外抛出
   (let ((j
           (catch #t
             (lambda ()
@@ -225,8 +235,10 @@
         (catch #t
           (lambda ()
             (attachment-cache-sweep!)
-            (let ((file-path (json-ref-string j "path" "")))
-              (fake-attachment-ready-event task-id file-path)
+            (let ((file-path (json-ref-string j "path" ""))
+                  (source-path (json-ref-string j "sourcePath" ""))
+                 ) ;
+              (fake-attachment-ready-event task-id file-path source-path)
             ) ;let
           ) ;lambda
           (lambda (tag . rest)

@@ -118,12 +118,12 @@
 
 ;;; ---------- 假附件插件：ingest → ready + 抽取缓存 ----------
 
-;; 协议行构造 helper：%attachment ingest 请求（只含 taskId/path，
-;; 预检已上移宿主）与 %chat 消息（后者只差 attachments 实参）
+;; 协议行构造 helper：%attachment ingest 请求（只含 taskId/path，可选
+;; sourcePath，预检已上移宿主）与 %chat 消息（后者只差 attachments 实参）
 
-(define (make-ingest-line task-id path)
+(define (make-ingest-line task-id path . opt)
   (string-append "%attachment "
-    (json->string (list (cons "taskId" task-id) (cons "path" path)))
+    (attachment-ingest-request-json task-id path (if (null? opt) "" (car opt)))
   ) ;string-append
 ) ;define
 
@@ -179,6 +179,65 @@
     (check (json-ref-string j "event" #f) => "error")
     (check (string-contains? (json-ref-string j "reason" "") "invalid") => #t)
   ) ;let
+) ;define
+
+;;; ---------- 6229：sourcePath（宿主格式转换后 sha256 以原文件为准） ----------
+
+(define (test-attachment-ingest-request-json-shape)
+  ;; 宿主请求构造（attachment-policy.scm）：常规附件不带 sourcePath 键，
+  ;; 与旧插件的请求契约保持兼容；转换附件带该键且 path 仍指向读取目标
+  (let ((plain (string->json (attachment-ingest-request-json "t1" "/tmp/a.pdf" "")))
+        (converted (string->json (attachment-ingest-request-json "t2" "/tmp/x/a.pdf" "/home/u/报告.tmu")
+                   ) ;string->json
+        ) ;converted
+       ) ;
+    (check (json-ref-string plain "taskId" #f) => "t1")
+    (check (json-ref-string plain "path" #f) => "/tmp/a.pdf")
+    (check (json-ref-string plain "sourcePath" #f) => #f)
+    (check (json-ref-string converted "sourcePath" #f) => "/home/u/报告.tmu")
+    (check (json-ref-string converted "path" #f) => "/tmp/x/a.pdf")
+  ) ;let
+) ;define
+
+(define (test-fake-attachment-sha256-key)
+  ;; 键选择纯函数：source-path 为空退回读取路径，非空以原文件为准
+  (check (fake-attachment-sha256-key "/a/b.pdf" "") => "/a/b.pdf")
+  (check (fake-attachment-sha256-key "/a/b.pdf" "/a/b.tmu") => "/a/b.tmu")
+) ;define
+
+(define (test-fake-attachment-ingest-source-sha256)
+  ;; 宿主把 .tmu 转成临时 PDF 后派发：sha256 与抽取缓存键须随原文档——
+  ;; 同一文档重复添加（临时 PDF 路径每次随机）命中同一缓存；
+  ;; filename/size 仍取实际读取的临时 PDF
+  (let* ((task-id "test-task-src")
+         (pdf-path "/tmp/chat-protocol-test-src.pdf")
+         (source-path "/tmp/chat-protocol-test-src.tmu")
+         (ignored (path-write-text pdf-path "fake pdf bytes"))
+         (j (string->json (fake-attachment-ingest (make-ingest-line task-id pdf-path source-path))
+            ) ;string->json
+         ) ;j
+         (sha256 (json-ref-string j "sha256" #f))
+        ) ;
+    (check (json-ref-string j "event" #f) => "ready")
+    (check sha256 => (fake-attachment-sha256 source-path))
+    (check (string=? sha256 (fake-attachment-sha256 pdf-path)) => #f)
+    (check (json-ref-string j "filename" #f) => "chat-protocol-test-src.pdf")
+    (path-unlink pdf-path #t)
+  ) ;let*
+) ;define
+
+(define (test-fake-attachment-ingest-empty-source-falls-back)
+  ;; 显式空 sourcePath 与缺键等价：退回对读取路径取散列
+  (let* ((task-id "test-task-src-empty")
+         (pdf-path "/tmp/chat-protocol-test-src-empty.pdf")
+         (ignored (path-write-text pdf-path "fake pdf bytes"))
+         (j (string->json (fake-attachment-ingest (make-ingest-line task-id pdf-path "")))
+         ) ;j
+        ) ;
+    (check (json-ref-string j "event" #f) => "ready")
+    (check (json-ref-string j "sha256" #f) => (fake-attachment-sha256 pdf-path))
+    (path-unlink pdf-path #t)
+  ) ;let*
 ) ;define
 
 ;;; ---------- 宿主侧预检：可访问性 / 扩展名白名单 / 数量 / 总大小 ----------
@@ -499,6 +558,10 @@
   (test-attachment-host-precheck-unreadable)
   (test-attachment-host-precheck-nonascii-path)
   (test-fake-attachment-ingest-exception-fallback)
+  (test-attachment-ingest-request-json-shape)
+  (test-fake-attachment-sha256-key)
+  (test-fake-attachment-ingest-source-sha256)
+  (test-fake-attachment-ingest-empty-source-falls-back)
   (test-attachment-cache-sweep-and-refresh)
   (test-fake-llm-attachment-injection)
   (test-fake-llm-no-attachments)

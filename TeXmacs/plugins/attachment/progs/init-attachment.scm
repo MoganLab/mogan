@@ -97,9 +97,14 @@
     (cond
      ((== event "ready")
       ;; chip 展示用的 filename/size 在选择时已填入条目，事件只需 taskId
-      ;; 定位与 sha256 回填
+      ;; 定位与 sha256 回填；extractedChars 供宿主做提取后累计上限判定
       (when (and (string? task-id) (not (string-null? task-id)))
-        (exec-delayed (lambda () (qt-chat-attachment-ready task-id (json-ref-string j "sha256" "")))
+        (exec-delayed (lambda ()
+                        (qt-chat-attachment-ready task-id
+                          (json-ref-string j "sha256" "")
+                          (json-ref-number j "extractedChars" 0)
+                        ) ;qt-chat-attachment-ready
+                      ) ;lambda
         ) ;exec-delayed
       ) ;when
      ) ;
@@ -189,7 +194,7 @@
 ;; 形参不得命名为 path：会遮蔽 (liii path) 的 path 构造器，s7 中字符串
 ;; 可直接被调用（等价 string-ref），(path path) 会按字符串应用抛错并被
 ;; C++ call 降级为假值，误报「附件插件不可用」
-(tm-define (attachment-ingest task-id file-path count bytes)
+(tm-define (attachment-ingest task-id file-path count bytes source-path)
   (:synopsis "Ingest an attachment file through the attachment plugin")
   (:argument task-id "Ingest task id")
   (:argument file-path
@@ -197,10 +202,15 @@
   ) ;:argument
   (:argument count "Already-selected attachment count this round")
   (:argument bytes "Already-selected total bytes this round")
+  (:argument source-path
+    "Original document path for host-converted attachments, '' otherwise"
+  ) ;:argument
   ;; 宿主侧终态预检：违规经 attachment-dispatch-error 以 exec-delayed
   ;; qt-chat-attachment-error 派发，条目录常入面板，由既有 error 清理链移除
   ;; 并 toast。count/bytes 仍作为宿主预检入参；请求 JSON 瘦身只带
-  ;; {taskId, path}，插件侧不再二次预检
+  ;; {taskId, path}，插件侧不再二次预检。宿主做过格式转换（文档转临时
+  ;; PDF）时另带 sourcePath：插件据原路径计算 sha256 与抽取缓存键，
+  ;; 实际读取仍指向 path（临时 PDF）；常规附件不带该键，契约不变
   (if (not (connection-defined? "attachment"))
     #f
     (let* ((fs-path (cork->utf8 file-path))
@@ -227,8 +237,8 @@
         (let ((input
                 (stree->tree
                   `(document ,(string-append "%attachment "
-                                (json->string (list (cons "taskId" task-id)
-                                                (cons "path" file-path)))))
+                                (attachment-ingest-request-json task-id
+                                  file-path source-path)))
                 ) ;stree->tree
               ) ;input
              ) ;
