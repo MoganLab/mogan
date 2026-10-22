@@ -187,12 +187,17 @@ public:
   void onAttachRequested (const string& sessionId, const QPoint& globalPos);
 
   /**
-   * @brief 附件插件 ready 事件：回填 sha256、弹出 chip、按需解禁发送。
+   * @brief 附件插件 ready 事件：回填 sha256 与 extractedChars、弹出 chip、
+   *        按需解禁发送，累计超限时移除该附件并 toast。
    *
    * chip 展示用的 filename/size 在选择时已填入 AttachmentItem，
-   * 事件只需 taskId 定位与 sha256 回填。
+   * 事件只需 taskId 定位、sha256 与 extractedChars 回填。
+   *
+   * @param extractedChars 插件提取出的文本字符数，参与本轮已就绪附件的
+   *        累计上限判定（见 kAttachmentMaxTotalExtractedChars）。
    */
-  void onAttachmentReady (const string& taskId, const string& sha256);
+  void onAttachmentReady (const string& taskId, const string& sha256,
+                          qint64 extractedChars);
   /**
    * @brief 附件插件 error 事件：移除条目并 toast 原因。
    */
@@ -254,6 +259,26 @@ public:
   static QString sanitizeExportFileName (const QString& rawName);
 
   /**
+   * @brief 本轮已就绪附件的提取文本字符数累计。
+   *
+   * 只累加 ready 条目：处理中的附件 extractedChars 尚未回填（为 0），计入会
+   * 得到偏小值而误放行。已移除的条目不在列表中，自然不参与累计。
+   *
+   * @param items 本轮附件列表
+   * @return 累计字符数
+   */
+  static qint64 totalReadyExtractedChars (const QList<AttachmentItem>& items);
+
+  /**
+   * @brief 提取后累计上限（字符数）。
+   *
+   * 标定依据：1M 上下文模型在留出系统提示与对话历史后，正文可安全容纳的
+   * 量级约 1 MiB；超过则请求必然被服务端以 413 拒绝，故在 ready 回填处
+   * （上传后、发送前）就地拦截。
+   */
+  static const qint64 kMaxTotalExtractedChars;
+
+  /**
    * @brief 把文档选区组成 AI 聊天输入体。
    *
    * 选区整体包成「引用」外观块（插入 → 外观块 → 引用，quote-env）；
@@ -282,10 +307,46 @@ private:
 
   /**
    * @brief 批量附加文件到指定会话：去重、派发 ingest 并入列 chips。
+   *
+   * 文档类附件（.tmu/.tm/.stem）先经宿主无头转换出 PDF，再以 PDF 走同一条
+   * ingest；其余格式直接派发。
+   *
    * @param sessionId 目标会话 ID
    * @param files     文件系统路径列表
    */
   void attachFiles (const string& sessionId, const QStringList& files);
+
+  /**
+   * @brief 派发 %attachment ingest 并登记 taskId 路由。
+   *
+   * 文档类附件与常规附件共用的插件侧入口。item.taskId 由调用方生成且条目
+   * 已入列，本函数不改动它，只在派发成功后登记路由。
+   *
+   * @param sessionId  目标会话 ID（路由用）
+   * @param item       待派发条目（taskId 须已生成）
+   * @param count      本轮已选附件数（宿主预检的数量上限用）
+   * @param bytes      本轮已选附件总字节（宿主预检的总量上限用）
+   * @param sourcePath 宿主转换过格式时的原文件路径（插件据它算 sha256 与
+   *        抽取缓存键，实际读取仍走 item.path）；常规附件传空串
+   * @return 派发成功返回 true；插件不可用（已 toast）返回 false
+   */
+  bool dispatch_attachment_ingest (const string&   sessionId,
+                                   AttachmentItem& item, int count,
+                                   qint64 bytes, const QString& sourcePath);
+
+  /**
+   * @brief 文档类附件的转换编排。
+   *
+   * 条目入列由调用方（attachFiles）随本轮 items 统一完成，本函数不碰列表；
+   * 转换成功后改写该条目指向临时 PDF 并派发 ingest，失败则移除并 toast。
+   *
+   * @param sessionId 目标会话 ID
+   * @param panel     目标面板
+   * @param item      已并入列表的条目（taskId 已生成，path 指向原文档）
+   */
+  void start_attachment_conversion (const string&          sessionId,
+                                    ChatConversationPanel* panel,
+                                    const AttachmentItem&  item);
 
   /**
    * @brief 按 ingest taskId 取出路由会话的面板（事件路由统一入口）。
@@ -467,8 +528,12 @@ void qt_chat_tab_set_state (string sessionId, string stateStr);
 
 /**
  * @brief Scheme→C++ 回调：附件插件 ready 事件（%attachment）。
+ *
+ * @param extractedChars 插件提取出的文本字符数（ready 事件六键契约之一），
+ *        供累计上限判定。
  */
-void qt_chat_attachment_ready (string taskId, string sha256);
+void qt_chat_attachment_ready (string taskId, string sha256,
+                               int extractedChars);
 
 /**
  * @brief Scheme→C++ 回调：附件插件 error 事件（%attachment）。

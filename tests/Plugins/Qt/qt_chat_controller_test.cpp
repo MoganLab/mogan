@@ -407,6 +407,80 @@ private slots:
 
     ctrl.view_= nullptr;
   }
+
+  // === 提取后累计上限（totalReadyExtractedChars + kMaxTotalExtractedChars）===
+
+  // 构造一个已就绪条目：累计只统计 ready，构造时须置 ready=true
+  static AttachmentItem readyItem (const QString& name, qint64 chars) {
+    AttachmentItem it;
+    it.filename      = name;
+    it.taskId        = name;
+    it.ready         = true;
+    it.extractedChars= chars;
+    return it;
+  }
+
+  void test_total_chars_empty_list () {
+    QList<AttachmentItem> items;
+    QCOMPARE (ChatController::totalReadyExtractedChars (items), (qint64) 0);
+    // 空列表恒不超限
+    QVERIFY (ChatController::totalReadyExtractedChars (items) <=
+             ChatController::kMaxTotalExtractedChars);
+  }
+
+  void test_total_chars_single_at_threshold () {
+    QList<AttachmentItem> items;
+    items.append (
+        readyItem ("exact.tmu", ChatController::kMaxTotalExtractedChars));
+    // 恰好等于阈值：通过（判定为「大于」才拒绝）
+    QCOMPARE (ChatController::totalReadyExtractedChars (items),
+              ChatController::kMaxTotalExtractedChars);
+    QVERIFY (ChatController::totalReadyExtractedChars (items) <=
+             ChatController::kMaxTotalExtractedChars);
+  }
+
+  void test_total_chars_single_over_threshold () {
+    QList<AttachmentItem> items;
+    items.append (
+        readyItem ("over.tmu", ChatController::kMaxTotalExtractedChars + 1));
+    // 超一即拒
+    QVERIFY (ChatController::totalReadyExtractedChars (items) >
+             ChatController::kMaxTotalExtractedChars);
+  }
+
+  void test_total_chars_accumulates_multiple () {
+    QList<AttachmentItem> items;
+    const qint64          half= ChatController::kMaxTotalExtractedChars / 2;
+    items.append (readyItem ("a.txt", half));
+    items.append (readyItem ("b.txt", half));
+    // 单条均在阈内，合计正好触阈：仍通过
+    QCOMPARE (ChatController::totalReadyExtractedChars (items),
+              ChatController::kMaxTotalExtractedChars);
+    QVERIFY (ChatController::totalReadyExtractedChars (items) <=
+             ChatController::kMaxTotalExtractedChars);
+
+    // 再加一条即超限
+    items.append (readyItem ("c.txt", 1));
+    QVERIFY (ChatController::totalReadyExtractedChars (items) >
+             ChatController::kMaxTotalExtractedChars);
+  }
+
+  void test_total_chars_ignores_processing () {
+    QList<AttachmentItem> items;
+    items.append (readyItem ("done.txt", 100));
+    // 处理中条目 extractedChars 尚未回填（0），即便字段有值也不该计入，
+    // 否则会在 ready 之前用陈旧值判定
+    AttachmentItem pending;
+    pending.taskId        = "busy.txt";
+    pending.ready         = false;
+    pending.extractedChars= ChatController::kMaxTotalExtractedChars;
+    items.append (pending);
+    QCOMPARE (ChatController::totalReadyExtractedChars (items), (qint64) 100);
+  }
+
+  void test_threshold_value_is_one_mib () {
+    QCOMPARE (ChatController::kMaxTotalExtractedChars, (qint64) 1048576);
+  }
 };
 
 QTEST_MAIN (TestChatController)

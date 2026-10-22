@@ -283,7 +283,8 @@ function main()
                 ret_type = "void",
                 arg_list = {
                     "string",
-                    "string"
+                    "string",
+                    "int"
                 }
             },
             {
