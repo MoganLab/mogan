@@ -30,7 +30,7 @@
     (liii sort)
     (liii string)
     (srfi srfi-13)
-    (srfi srfi-19)
+    (only (srfi srfi-19) current-date date->string)
     (scheme base)
   ) ;import
   (begin
