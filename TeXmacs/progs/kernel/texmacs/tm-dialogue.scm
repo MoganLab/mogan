@@ -12,7 +12,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (kernel texmacs tm-dialogue) (:use (kernel texmacs tm-define)))
-(import (liii json) (liii time) (liii list))
+(import (liii json) (liii list))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Questions with user interaction
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -373,7 +373,7 @@
          (idx (if (vector? files) (vector-length files) 0))
          (item `(("path" . ,path)
                  ("name" . ,name)
-                 ("last_open" . ,(time-second (current-time)))
+                 ("last_open" . ,(current-time))
                  ("open_count" . 1)
                  ("show" . #t))
          ) ;item
@@ -394,7 +394,7 @@
          (count* (if (number? count*) count* 0))
          (new-item `(("path" . ,path*)
                      ("name" . ,name*)
-                     ("last_open" . ,(time-second (current-time)))
+                     ("last_open" . ,(current-time))
                      ("open_count" . ,(+ count* 1))
                      ("show" . #t))
          ) ;new-item
@@ -1013,7 +1013,7 @@
 
 (define (import-legacy-scm-recent-files! legacy-items)
   (let* ((min-open (recent-files-min-last-open interactive-arg-recent-file-json))
-         (base (if (number? min-open) (- min-open 1) (time-second (current-time))))
+         (base (if (number? min-open) (- min-open 1) (current-time)))
         ) ;
     (let loop
       ((items legacy-items) (rank 0) (seen '()))

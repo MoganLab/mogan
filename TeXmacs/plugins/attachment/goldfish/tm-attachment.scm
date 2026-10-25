@@ -24,7 +24,7 @@
   (liii json)
   (liii string)
   (liii hashlib)
-  (liii time)
+  (liii date-time)
   (scheme time)
   (scheme char)
 ) ;import
@@ -84,7 +84,10 @@
 
 (define (attachment-keep-months)
   ;; 月度保留窗口：当月与上月（清理与查找共用）
-  (let* ((d (current-date)) (y (date-year d)) (m (date-month d)))
+  (let* ((ts (current-system-timestamp))
+         (y (timestamp-year ts))
+         (m (timestamp-month ts))
+        ) ;
     (list (attachment-yyyymm y m)
       (if (= m 1) (attachment-yyyymm (- y 1) 12) (attachment-yyyymm y (- m 1)))
     ) ;list
