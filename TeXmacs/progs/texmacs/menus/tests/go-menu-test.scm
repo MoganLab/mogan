@@ -26,4 +26,18 @@
   ) ;let
 ) ;define
 
-(tm-define (regtest-go-menu) (test-go-menu-meta-shape) (check-report))
+;; File 菜单缺失提示 glue 的接线冒烟：qt-show-missing-recent-toast 可调用，
+;; 无活动窗口时安全 no-op，保证 scheme 侧链路（file-list-menu 点击）已接通
+
+(define (test-missing-recent-toast-glue)
+  (check (catch #t (lambda () (qt-show-missing-recent-toast) #t) (lambda args #f))
+    =>
+    #t
+  ) ;check
+) ;define
+
+(tm-define (regtest-go-menu)
+  (test-go-menu-meta-shape)
+  (test-missing-recent-toast-glue)
+  (check-report)
+) ;tm-define

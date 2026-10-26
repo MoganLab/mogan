@@ -125,7 +125,7 @@
   (utf8->herk (url->system u))
 ) ;define
 
-(tm-menu (file-list-menu l win?)
+(tm-menu (file-list-menu l win? recent?)
   (for (name l)
     (let* ((short-name
              `(verbatim ,(short-menu-name name))
@@ -143,13 +143,21 @@
            (collab-join-document (collab-url->doc-id name)
              (or (recent-files-get-name (url->system name)) "")
            ) ;collab-join-document
-           (if win? (load-document name) (load-buffer name))
+           (if
+             (and recent?
+               (not (url-rooted-tmfs? name))
+               (not (url-exists? (url->system name)))
+             ) ;and
+             ;; 最近条目点击后发现本地文件缺失：与 Go 菜单/启动页同款，弹
+             ;; 统一红色 toast 并从最近列表移除，不尝试打开；云 URL 非磁盘
+             ;; 路径，不据此判定缺失
+             (begin
+               (qt-show-missing-recent-toast)
+               (recent-files-remove-by-path (url->system name))
+             ) ;begin
+             (if win? (load-document name) (load-buffer name))
+           ) ;if
          ) ;if
-         ;; 缺失清理仅对本地文件：云 URL 非磁盘路径，url-exists? 必假，不可据此误删。
-         (when
-           (and (not (collab-buffer? name)) (not (url-exists? (url->system name))))
-           (recent-files-remove-by-path (url->system name))
-         ) ;when
        ) ;begin
       ) ;
     ) ;let*
@@ -197,17 +205,18 @@
   ) ;let*
 ) ;tm-define
 
-(tm-define (recent-file-menu) (file-list-menu (recent-file-list 25) #t))
+(tm-define (recent-file-menu) (file-list-menu (recent-file-list 25) #t #t))
 
 (tm-define (recent-unloaded-file-menu)
   (with l
     (list-difference (recent-unloaded-file-list 15) (linked-file-list))
-    (file-list-menu l #f)
+    (file-list-menu l #f #t)
   ) ;with
 ) ;tm-define
 
 (tm-define (linked-file-menu)
-  (file-list-menu (list-remove-duplicates (linked-file-list)) #f)
+  ;; linked 条目非最近列表：保留原打开行为，不做缺失前置检查
+  (file-list-menu (list-remove-duplicates (linked-file-list)) #f #f)
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

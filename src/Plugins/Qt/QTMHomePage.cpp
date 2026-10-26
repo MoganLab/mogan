@@ -37,7 +37,6 @@
 
 #include "QTMTemplateOpener.hpp"
 #include "qt_dpi_utils.hpp"
-#include "qt_floating_toast.hpp"
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp"
 #include "sys_utils.hpp"
@@ -460,14 +459,8 @@ QTMHomePage::loadRecentDocs () {
   }
   recentPaths.removeDuplicates ();
 
-  QStringList existingPaths;
-  for (const QString& path : recentPaths) {
-    // 云文档 path 非磁盘文件，exists 必假；放行由 isCollabPath 判定。
-    if (QFile::exists (path) || isCollabPath (path)) {
-      existingPaths.append (path);
-    }
-  }
-  recentPaths= existingPaths;
+  // 缺失条目不在展示期过滤：与 Go 菜单 / File 菜单一致，点击时才发现并弹
+  // 统一红色 toast 后移除（onRecentDocClicked）
 
   QString filePath= getRecentDocsFilePath ();
   QFile   file (filePath);
@@ -750,9 +743,7 @@ QTMHomePage::onRecentDocClicked (QListWidgetItem* item) {
   }
 
   if (!QFile::exists (path)) {
-    QtFloatingToast::showToast (
-        recentList_, qt_translate ("File not found, removed from recent list"),
-        3000, QtFloatingToast::Error);
+    qt_show_missing_recent_toast (recentList_);
     removeRecentDoc (path);
     return;
   }
