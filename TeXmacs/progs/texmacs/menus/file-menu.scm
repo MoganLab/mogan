@@ -125,17 +125,7 @@
   (utf8->herk (url->system u))
 ) ;define
 
-;; 点击最近条目后的失效清理：本地文件已不存在时，从最近列表移除该条目。
-;; 云文档非磁盘路径，url-exists? 必假，不可据此误删。
-
-(define (recent-entry-remove-if-missing u)
-  (when
-    (and (not (collab-buffer? u)) (not (url-exists? (url->system u))))
-    (recent-files-remove-by-path (url->system u))
-  ) ;when
-) ;define
-
-(tm-menu (file-list-menu l win?)
+(tm-menu (file-list-menu l win? recent?)
   (for (name l)
     (let* ((short-name
              `(verbatim ,(short-menu-name name))
@@ -153,9 +143,21 @@
            (collab-join-document (collab-url->doc-id name)
              (or (recent-files-get-name (url->system name)) "")
            ) ;collab-join-document
-           (if win? (load-document name) (load-buffer name))
+           (if
+             (and recent?
+               (not (url-rooted-tmfs? name))
+               (not (url-exists? (url->system name)))
+             ) ;and
+             ;; 最近条目点击后发现本地文件缺失：与 Go 菜单/启动页同款，弹
+             ;; 统一红色 toast 并从最近列表移除，不尝试打开；云 URL 非磁盘
+             ;; 路径，不据此判定缺失
+             (begin
+               (qt-show-missing-recent-toast)
+               (recent-files-remove-by-path (url->system name))
+             ) ;begin
+             (if win? (load-document name) (load-buffer name))
+           ) ;if
          ) ;if
-         (recent-entry-remove-if-missing name)
        ) ;begin
       ) ;
     ) ;let*
@@ -173,9 +175,6 @@
     ) ;collab-join-document
     (load-document u)
   ) ;if
-  ;; 兜底清理：Go 菜单桥与启动页已在点击处前置检查并移除，此处只覆盖检查
-  ;; 与打开之间文件被删除的竞态；file-list-menu 亦走同一清理。
-  (recent-entry-remove-if-missing u)
 ) ;tm-define
 
 (tm-define (recent-file-list nr)
@@ -206,17 +205,18 @@
   ) ;let*
 ) ;tm-define
 
-(tm-define (recent-file-menu) (file-list-menu (recent-file-list 25) #t))
+(tm-define (recent-file-menu) (file-list-menu (recent-file-list 25) #t #t))
 
 (tm-define (recent-unloaded-file-menu)
   (with l
     (list-difference (recent-unloaded-file-list 15) (linked-file-list))
-    (file-list-menu l #f)
+    (file-list-menu l #f #t)
   ) ;with
 ) ;tm-define
 
 (tm-define (linked-file-menu)
-  (file-list-menu (list-remove-duplicates (linked-file-list)) #f)
+  ;; linked 条目非最近列表：保留原打开行为，不做缺失前置检查
+  (file-list-menu (list-remove-duplicates (linked-file-list)) #f #f)
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

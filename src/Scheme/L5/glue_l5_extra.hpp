@@ -22,6 +22,7 @@
 #ifdef QTTEXMACS
 #include "QTMQmlDialog.hpp"
 #include "Qt/qt_tm_widget.hpp"
+#include "Qt/qt_utilities.hpp"
 #endif
 #include "boxes.hpp"
 #include "editor.hpp"

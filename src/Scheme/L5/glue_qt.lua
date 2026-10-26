@@ -176,6 +176,12 @@ function main()
                 arg_list = {}
             },
             {
+                scm_name = "qt-show-missing-recent-toast",
+                cpp_name = "qt_show_missing_recent_toast",
+                ret_type = "void",
+                arg_list = {}
+            },
+            {
                 scm_name = "cpp-wait-dialog-open",
                 cpp_name = "cpp_wait_dialog_open",
                 ret_type = "void",
