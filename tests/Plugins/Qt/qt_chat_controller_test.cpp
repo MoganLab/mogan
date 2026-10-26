@@ -492,7 +492,10 @@ private slots:
     QCOMPARE (popup->y () + popup->height (), anchorBottom);
 
     quick->rootObject ()->setProperty ("attachedExpanded", false);
-    QTRY_COMPARE (popup->height (), collapsedHeight);
+    // 初始高度来自 adjustSize 的 sizeHint 舍入，收起后来自
+    // qRound(implicitHeight)； implicitHeight 非整数（如 CI
+    // 无头环境的缩放）时两条路径可差 1px
+    QTRY_VERIFY (qAbs (popup->height () - collapsedHeight) <= 1);
     QCOMPARE (popup->y () + popup->height (), anchorBottom);
 
     popup->close ();
