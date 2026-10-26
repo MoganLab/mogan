@@ -40,8 +40,8 @@
 --   1) 拷贝用 ditto：Qt framework 内含符号链接（QtCore -> Versions/Current/QtCore），
 --      xmake os.cp 默认解引用会悄悄打坏 bundle；
 --   2) build 目录里的 Info.plist 是 qt.widgetapp 占位符（org.example.*），真 plist
---      由本脚本从 packages/macos/Info.plist.in 生成——不依赖 stem_packager（它
---      release-only、依赖 create-dmg、还会顺手产 DMG）；
+--      由本脚本从 packages/macos/Info.plist.in 生成（旧的 stem_packager/DMG 链路
+--      已移除，此处为唯一实现）；
 --   3) ad-hoc 重签 staging 副本，保证无签名配置（VPK_SIGN_APP_IDENTITY 为空）时
 --      bundle 也可加载；正式签名交给 vpk（CI 注入环境变量）。
 -- macOS 的 $TEXMACS_PATH 解析是 exedir * "../Resources/share/moganlab"
@@ -63,7 +63,7 @@ config.load ()
 -- liiistem:// 协议声明：只有商业版写进 Info.plist。社区版没有登录能力，声明了反而会
 -- 占住 LaunchServices 的 scheme 归属（两版 CFBundleIdentifier 都是 app.mogan），而
 -- macOS 没有运行期夺回的手段——与 Windows 侧「只有商业版写注册表」同一个理由。
--- 片段与 xmake/targets/stem_packager.lua 的同名变量保持一致
+-- 片段与 tools/release/stage_velopack.lua 的同名变量保持一致（唯一实现）
 local function url_scheme_decl ()
     if config.get ("is_community") ~= false then return "" end
     return table.concat ({
@@ -172,7 +172,7 @@ if os.host () == "macosx" then
         os.exit (1)
     end
 
-    -- 4) 生成真 Info.plist（覆盖 qt.widgetapp 占位符）：与 stem_packager 同一模板，
+    -- 4) 生成真 Info.plist（覆盖 qt.widgetapp 占位符）：沿用 packages/macos/Info.plist.in，
     --    同样的 @(.-)@ 替换语义，占位符残留即失败
     local version = xmacs_version ()
     local plist_in = path.join (os.projectdir (), "packages/macos/Info.plist.in")

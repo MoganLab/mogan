@@ -95,7 +95,6 @@ includes("xmake/requires.lua")
 
 includes("xmake/targets/stem.lua")
 includes("xmake/targets/libmogan.lua")
-includes("xmake/targets/stem_packager.lua")
 includes("xmake/targets/web_shell.lua")
 if has_config("qt_frontend") then
     includes("xmake/targets/qwkcore.lua")
