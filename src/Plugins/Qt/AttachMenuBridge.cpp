@@ -49,7 +49,6 @@ AttachMenuBridge::loadMeta () {
   m_meta["label_open"]    = qt_translate ("Choose file");
   m_meta["label_attached"]= qt_translate ("Attached");
   m_meta["recent"]        = QVariantList ();
-  m_meta["attached"]      = QVariantList ();
 
   // 已加入当前会话附件的文件：从 Recents 过滤，同时列入「已添加」子菜单。
   // 匹配用原文件路径——文档类附件转换后 item.path 已指向临时 PDF
@@ -111,28 +110,17 @@ AttachMenuBridge::loadMeta () {
     }
   }
 
-  m_meta["recent"]= filterRecent (
-      filterExistingRecent (m_meta["recent"].toList ()), attachedPaths);
-}
-
-QVariantList
-AttachMenuBridge::filterExistingRecent (const QVariantList& recent) {
-  QVariantList out;
-  for (const QVariant& v : recent) {
-    QString url= v.toMap ().value ("url").toString ();
-    if (QFileInfo::exists (url)) out.append (v);
-  }
-  return out;
+  m_meta["recent"]= filterRecent (m_meta["recent"].toList (), attachedPaths);
 }
 
 QVariantList
 AttachMenuBridge::filterRecent (const QVariantList&  recent,
                                 const QSet<QString>& attachedPaths) {
-  if (attachedPaths.isEmpty ()) return recent;
   QVariantList out;
   for (const QVariant& v : recent) {
     QString url= v.toMap ().value ("url").toString ();
-    if (!attachedPaths.contains (url)) out.append (v);
+    if (!QFileInfo::exists (url) || attachedPaths.contains (url)) continue;
+    out.append (v);
   }
   return out;
 }

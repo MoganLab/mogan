@@ -45,21 +45,14 @@ public:
   QVariantMap meta () const { return m_meta; }
 
   /**
-   * @brief 从 Recents 列表中过滤已加入会话附件的条目（纯函数）。
+   * @brief 从附件菜单 Recents 中过滤失效及已加入会话附件的条目（纯函数）。
    * @param recent meta 中的 recent 列表（每项含 url/title 键）
    * @param attachedPaths 已添加附件的原文件路径集合
-   * @return 过滤后的列表；attachedPaths 为空时原样返回
+   * @return 仅保留仍存在且未加入会话附件的本地文件，保持原顺序
+   * @note 仅用于附件菜单；标题栏 Go 菜单的失效条目清理由 scheme 侧负责
    */
   static QVariantList filterRecent (const QVariantList&  recent,
                                     const QSet<QString>& attachedPaths);
-
-  /**
-   * @brief 过滤附件菜单 Recents 中磁盘上已不存在的条目。
-   * @param recent meta 中的 recent 列表（每项含 url/title 键）
-   * @return 仅保留当前仍存在的本地文件
-   * @note 仅用于附件菜单；标题栏 Go 菜单的失效条目清理由 scheme 侧负责
-   */
-  static QVariantList filterExistingRecent (const QVariantList& recent);
 
   Q_INVOKABLE void loadBuffer (const QString& url);
   Q_INVOKABLE void openFile ();

@@ -26,7 +26,6 @@ private slots:
   void test_bridge_actions ();
   void test_choose_files_defers_menu_deletion ();
   void test_filter_recent ();
-  void test_filter_existing_recent ();
 };
 
 void
@@ -76,53 +75,40 @@ TestAttachMenuBridge::test_choose_files_defers_menu_deletion () {
 
 void
 TestAttachMenuBridge::test_filter_recent () {
-  auto makeItem= [] (const QString& url) {
-    QVariantMap item;
-    item["url"]  = url;
-    item["title"]= url.section ('/', -1);
-    return QVariant (item);
-  };
-  QVariantList recent;
-  recent << makeItem ("/tmp/a.txt") << makeItem ("/tmp/b.tmu")
-         << makeItem ("/tmp/c.pdf");
-
-  // 命中的条目被过滤，其余保留原顺序
-  QSet<QString> attached;
-  attached.insert ("/tmp/b.tmu");
-  QVariantList out= AttachMenuBridge::filterRecent (recent, attached);
-  QCOMPARE (out.size (), 2);
-  QCOMPARE (out[0].toMap ()["url"].toString (), QString ("/tmp/a.txt"));
-  QCOMPARE (out[1].toMap ()["url"].toString (), QString ("/tmp/c.pdf"));
-
-  // 空附件集合原样返回；空 recent 得空列表
-  QCOMPARE (AttachMenuBridge::filterRecent (recent, QSet<QString> ()).size (),
-            3);
-  QCOMPARE (AttachMenuBridge::filterRecent (QVariantList (), attached).size (),
-            0);
-}
-
-void
-TestAttachMenuBridge::test_filter_existing_recent () {
   QTemporaryDir dir;
   QVERIFY (dir.isValid ());
-  QString existing= dir.filePath (QString::fromUtf8 ("存在 文件.txt"));
-  QFile   file (existing);
-  QVERIFY (file.open (QIODevice::WriteOnly));
-  file.write ("x");
-  file.close ();
-
-  auto makeItem= [] (const QString& url) {
+  QList<QString> paths{dir.filePath ("a.txt"), dir.filePath ("b.tmu"),
+                       dir.filePath (QString::fromUtf8 ("存在 文件.pdf"))};
+  auto           makeItem= [] (const QString& url) {
     QVariantMap item;
     item["url"]  = url;
     item["title"]= url.section ('/', -1);
     return QVariant (item);
   };
   QVariantList recent;
-  recent << makeItem (existing) << makeItem (dir.filePath ("missing.txt"));
+  for (const QString& path : paths) {
+    QFile file (path);
+    QVERIFY (file.open (QIODevice::WriteOnly));
+    file.write ("x");
+    file.close ();
+    recent << makeItem (path);
+  }
+  recent << makeItem (dir.filePath ("missing.txt"));
 
-  QVariantList out= AttachMenuBridge::filterExistingRecent (recent);
-  QCOMPARE (out.size (), 1);
-  QCOMPARE (out[0].toMap ()["url"].toString (), existing);
+  // 已添加及失效条目被过滤，其余保留原顺序
+  QSet<QString> attached;
+  attached.insert (paths[1]);
+  QVariantList out= AttachMenuBridge::filterRecent (recent, attached);
+  QCOMPARE (out.size (), 2);
+  QCOMPARE (out[0].toMap ()["url"].toString (), paths[0]);
+  QCOMPARE (out[1].toMap ()["url"].toString (), paths[2]);
+
+  // 空附件集合仍过滤失效条目；空 recent 得空列表
+  QVariantList withoutAttached=
+      AttachMenuBridge::filterRecent (recent, QSet<QString> ());
+  QCOMPARE (withoutAttached.size (), 3);
+  QCOMPARE (AttachMenuBridge::filterRecent (QVariantList (), attached).size (),
+            0);
 }
 
 #ifdef QTTEXMACS

@@ -1296,6 +1296,13 @@ TestQmlLoad::test_go_menu_loads () {
   QList<QQuickItem*> openItems=
       collect_items_by_name (qw->rootObject (), "goMenuOpenItem");
   QCOMPARE (openItems.size (), 1);
+
+  // Go 菜单 meta 无 attached 键：子按钮隐藏且高度归零，不参与布局
+  QList<QQuickItem*> attachedBtn=
+      collect_items_by_name (qw->rootObject (), "goMenuAttachedItem");
+  QCOMPARE (attachedBtn.size (), 1);
+  QVERIFY (!attachedBtn.first ()->isVisible ());
+  QCOMPARE (attachedBtn.first ()->height (), 0.0);
 }
 
 void
@@ -1333,51 +1340,29 @@ TestQmlLoad::test_attach_menu_loads () {
 
 void
 TestQmlLoad::test_attach_menu_attached_section () {
-  // 「已添加」子区：attach 路径注入 attached 时子按钮可见、展开后浮层长高；
-  // Go 路径（meta 无 attached 键）子按钮隐藏、布局不变
-  {
-    QDialog              host;
-    AttachMenuStubBridge bridge (&host, false, true);
-    auto*                qw= new QQuickWidget (&host);
-    qw->setResizeMode (QQuickWidget::SizeViewToRootObject);
-    qw->rootContext ()->setContextProperty ("dpScale", 1.0);
-    qw->rootContext ()->setContextProperty ("isDark", false);
-    qw->rootContext ()->setContextProperty ("goBridge", &bridge);
-    qw->setSource (QUrl ("qrc:/qml/GoMenu.qml"));
-    QCOMPARE (qw->status (), QQuickWidget::Ready);
+  // 「已添加」子区：attach 路径注入 attached 时子按钮可见、展开后浮层长高
+  QDialog              host;
+  AttachMenuStubBridge bridge (&host, false, true);
+  auto*                qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeViewToRootObject);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("goBridge", &bridge);
+  qw->setSource (QUrl ("qrc:/qml/GoMenu.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
 
-    QList<QQuickItem*> attachedBtn=
-        collect_items_by_name (qw->rootObject (), "goMenuAttachedItem");
-    QCOMPARE (attachedBtn.size (), 1);
-    QVERIFY (attachedBtn.first ()->isVisible ());
-    QCOMPARE (attachedBtn.first ()->property ("text").toString (),
-              QString ("Attached (2)"));
+  QList<QQuickItem*> attachedBtn=
+      collect_items_by_name (qw->rootObject (), "goMenuAttachedItem");
+  QCOMPARE (attachedBtn.size (), 1);
+  QVERIFY (attachedBtn.first ()->isVisible ());
+  QCOMPARE (attachedBtn.first ()->property ("text").toString (),
+            QString ("Attached (2)"));
 
-    QVERIFY (!qw->rootObject ()->property ("attachedExpanded").toBool ());
-    qreal hCollapsed=
-        qw->rootObject ()->property ("implicitHeight").toDouble ();
-    qw->rootObject ()->setProperty ("attachedExpanded", true);
-    qreal hExpanded= qw->rootObject ()->property ("implicitHeight").toDouble ();
-    QVERIFY (hExpanded > hCollapsed);
-  }
-  {
-    QDialog          host;
-    GoMenuStubBridge bridge (&host);
-    auto*            qw= new QQuickWidget (&host);
-    qw->setResizeMode (QQuickWidget::SizeViewToRootObject);
-    qw->rootContext ()->setContextProperty ("dpScale", 1.0);
-    qw->rootContext ()->setContextProperty ("isDark", false);
-    qw->rootContext ()->setContextProperty ("goBridge", &bridge);
-    qw->setSource (QUrl ("qrc:/qml/GoMenu.qml"));
-    QCOMPARE (qw->status (), QQuickWidget::Ready);
-
-    // Go 菜单 meta 无 attached 键：子按钮隐藏且高度归零，不参与布局
-    QList<QQuickItem*> attachedBtn=
-        collect_items_by_name (qw->rootObject (), "goMenuAttachedItem");
-    QCOMPARE (attachedBtn.size (), 1);
-    QVERIFY (!attachedBtn.first ()->isVisible ());
-    QCOMPARE (attachedBtn.first ()->height (), 0.0);
-  }
+  QVERIFY (!qw->rootObject ()->property ("attachedExpanded").toBool ());
+  qreal hCollapsed= qw->rootObject ()->property ("implicitHeight").toDouble ();
+  qw->rootObject ()->setProperty ("attachedExpanded", true);
+  qreal hExpanded= qw->rootObject ()->property ("implicitHeight").toDouble ();
+  QVERIFY (hExpanded > hCollapsed);
 }
 
 static QList<QQuickItem*>
