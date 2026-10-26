@@ -8,9 +8,12 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
+#include "Qt/AttachMenuBridge.hpp"
 #include "Qt/qt_chat_controller.hpp"
 #include "base.hpp"
 #include <QPushButton>
+#include <QQuickItem>
+#include <QQuickWidget>
 #include <QToolButton>
 #include <QtTest/QtTest>
 
@@ -405,6 +408,94 @@ private slots:
     ctrl.onAttachmentError ("t-noperm", "附件文件不可读取： noperm.pdf");
     QVERIFY (!ctrl.attachTaskSession_.contains ("t-noperm"));
 
+    ctrl.view_= nullptr;
+  }
+
+  void test_attach_menu_meta_lists_current_attachments () {
+    ChatController            ctrl;
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    ctrl.view_= &widget;
+
+    string                 sid  = ctrl.sessionManager_.createSession ();
+    ChatConversationPanel* panel= widget.createPanel (sid);
+    QVERIFY (panel != nullptr);
+    ctrl.sessionManager_.getSession (sid)->panel= panel;
+
+    AttachmentItem regular=
+        make_attachment ("/tmp/regular.pdf", "regular.pdf", 10);
+    regular.ready= true;
+    AttachmentItem converted=
+        make_attachment ("/tmp/convert/doc.pdf", "doc.pdf", 20);
+    converted.sourcePath= "/tmp/doc.tmu";
+    converted.ready     = true;
+    panel->setAttachments (QList<AttachmentItem>{regular, converted});
+
+    AttachMenuBridge bridge (nullptr, sid, &ctrl);
+    QVariantList     attached= bridge.meta ()["attached"].toList ();
+    QCOMPARE (attached.size (), 2);
+    QCOMPARE (attached[0].toMap ()["url"].toString (),
+              QString ("/tmp/regular.pdf"));
+    QCOMPARE (attached[0].toMap ()["title"].toString (),
+              QString ("regular.pdf"));
+    QCOMPARE (attached[1].toMap ()["url"].toString (),
+              QString ("/tmp/doc.tmu"));
+
+    ctrl.view_= nullptr;
+  }
+
+  void test_attach_menu_popup_resizes_when_attached_expanded () {
+    ChatController            ctrl;
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    ctrl.view_= &widget;
+
+    string                 sid  = ctrl.sessionManager_.createSession ();
+    ChatConversationPanel* panel= widget.createPanel (sid);
+    QVERIFY (panel != nullptr);
+    ChatSession* session= ctrl.sessionManager_.getSession (sid);
+    session->panel      = panel;
+    session->title      = "chat";
+
+    QList<AttachmentItem> items;
+    for (int i= 0; i < 4; i++) {
+      AttachmentItem item= make_attachment (QString ("/tmp/a%1.pdf").arg (i),
+                                            QString ("a%1.pdf").arg (i), 10);
+      item.ready         = true;
+      items.append (item);
+    }
+    panel->setAttachments (items);
+
+    QRect  avail= widget.screen ()->availableGeometry ();
+    QPoint anchor (avail.center ().x (), avail.bottom () - 50);
+    ctrl.onAttachRequested (sid, anchor);
+    QVERIFY (ctrl.attachMenuPopup_);
+    QWidget* popup= ctrl.attachMenuPopup_;
+    auto*    quick= popup->findChild<QQuickWidget*> ();
+    QVERIFY (quick && quick->rootObject ());
+    QCOMPARE (quick->status (), QQuickWidget::Ready);
+
+    int collapsedHeight= popup->height ();
+    int quickHeight    = quick->height ();
+    int rootHeight= quick->rootObject ()->property ("implicitHeight").toInt ();
+    int anchorBottom= popup->y () + collapsedHeight;
+    auto* bridge    = popup->findChild<AttachMenuBridge*> ();
+    QVERIFY (bridge);
+    QSignalSpy resizeSpy (bridge, &AttachMenuBridge::resizeRequested);
+    quick->rootObject ()->setProperty ("attachedExpanded", true);
+    QTRY_VERIFY (resizeSpy.count () > 0);
+    QTRY_VERIFY (quick->rootObject ()->property ("implicitHeight").toInt () >
+                 rootHeight);
+    QTRY_VERIFY (quick->height () > quickHeight);
+    QTRY_VERIFY (popup->height () > collapsedHeight);
+    // 向上弹出的菜单展开时底边不动，新增高度向上增长而不是被裁掉
+    QCOMPARE (popup->y () + popup->height (), anchorBottom);
+
+    quick->rootObject ()->setProperty ("attachedExpanded", false);
+    QTRY_COMPARE (popup->height (), collapsedHeight);
+    QCOMPARE (popup->y () + popup->height (), anchorBottom);
+
+    popup->close ();
     ctrl.view_= nullptr;
   }
 

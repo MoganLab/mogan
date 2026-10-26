@@ -500,23 +500,43 @@ ChatController::onAttachRequested (const string& sessionId,
 
   QScreen* screen= QGuiApplication::screenAt (globalPos);
   if (!screen && view_) screen= view_->screen ();
-  if (screen) {
-    QRect avail= screen->availableGeometry ();
-    if (menuPos.x () < avail.left () + 4) {
-      menuPos.setX (avail.left () + 4);
+  auto clampMenuPos= [popup, screen, globalPos] (QPoint pos) {
+    if (screen) {
+      QRect avail= screen->availableGeometry ();
+      if (pos.x () < avail.left () + 4) {
+        pos.setX (avail.left () + 4);
+      }
+      if (pos.x () + popup->width () > avail.right () - 4) {
+        pos.setX (avail.right () - popup->width () - 4);
+      }
+      if (pos.y () < avail.top () + 4) {
+        pos.setY (globalPos.y () + 36);
+      }
+      if (pos.y () + popup->height () > avail.bottom () - 4) {
+        pos.setY (avail.bottom () - popup->height () - 4);
+      }
     }
-    if (menuPos.x () + popup->width () > avail.right () - 4) {
-      menuPos.setX (avail.right () - popup->width () - 4);
-    }
-    if (menuPos.y () < avail.top () + 4) {
-      menuPos.setY (globalPos.y () + 36);
-    }
-    if (menuPos.y () + popup->height () > avail.bottom () - 4) {
-      menuPos.setY (avail.bottom () - popup->height () - 4);
-    }
-  }
-  popup->move (menuPos);
+    return pos;
+  };
+  popup->move (clampMenuPos (menuPos));
   popup->show ();
+
+  // 展开「已添加」只改变 QML 根项高度；顶层 popup 不会随 sizeHint 自动
+  // 重排，须同步尺寸，否则新增条目被裁在初次打开的高度之外
+  auto syncPopupSize= [popup, globalPos, isEmptyChatSession,
+                       clampMenuPos] (qreal width, qreal height) {
+    QTimer::singleShot (0, popup, [=] () {
+      // 尺寸由 QML 随通知一并传入，避免读取尚未完成布局的 QQuickWidget
+      popup->resize (qRound (width), qRound (height));
+      QPoint pos= popup->pos ();
+      // 向上弹出的菜单保持底边锚定附件按钮，避免展开后下移
+      if (!isEmptyChatSession) {
+        pos.setY (globalPos.y () - popup->height () - 4);
+      }
+      popup->move (clampMenuPos (pos));
+    });
+  };
+  connect (bridge, &AttachMenuBridge::resizeRequested, popup, syncPopupSize);
 }
 
 ChatConversationPanel*

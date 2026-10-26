@@ -291,7 +291,8 @@ class AttachMenuStubBridge : public QObject {
   Q_OBJECT
   Q_PROPERTY (QVariantMap meta READ meta CONSTANT)
 public:
-  explicit AttachMenuStubBridge (QObject* p= nullptr, bool emptyRecent= false)
+  explicit AttachMenuStubBridge (QObject* p= nullptr, bool emptyRecent= false,
+                                 bool withAttached= false)
       : QObject (p) {
     m_meta["label_recent"]= QString ("Recent");
     m_meta["label_open"]  = QString ("Choose file");
@@ -309,6 +310,20 @@ public:
       recs.append (r2);
     }
     m_meta["recent"]= recs;
+
+    if (withAttached) {
+      m_meta["label_attached"]= QString ("Attached");
+      QVariantList attached;
+      QVariantMap  a1;
+      a1["url"]  = QString ("/tmp/recent.tm");
+      a1["title"]= QString ("recent.tm");
+      attached.append (a1);
+      QVariantMap a2;
+      a2["url"]  = QString ("/tmp/notes.txt");
+      a2["title"]= QString ("notes.txt");
+      attached.append (a2);
+      m_meta["attached"]= attached;
+    }
   }
   QVariantMap meta () const { return m_meta; }
   // 与 GoMenu.qml 同形：loadBuffer / openFile / closeMenu。
@@ -354,6 +369,7 @@ private slots:
   void test_bibliography_loads ();
   void test_go_menu_loads ();
   void test_attach_menu_loads ();
+  void test_attach_menu_attached_section ();
   void test_go_menu_hover ();
   void test_go_menu_type_tags ();
   void test_outline_sidebar_loads ();
@@ -1280,6 +1296,13 @@ TestQmlLoad::test_go_menu_loads () {
   QList<QQuickItem*> openItems=
       collect_items_by_name (qw->rootObject (), "goMenuOpenItem");
   QCOMPARE (openItems.size (), 1);
+
+  // Go 菜单 meta 无 attached 键：子按钮隐藏且高度归零，不参与布局
+  QList<QQuickItem*> attachedBtn=
+      collect_items_by_name (qw->rootObject (), "goMenuAttachedItem");
+  QCOMPARE (attachedBtn.size (), 1);
+  QVERIFY (!attachedBtn.first ()->isVisible ());
+  QCOMPARE (attachedBtn.first ()->height (), 0.0);
 }
 
 void
@@ -1313,6 +1336,33 @@ TestQmlLoad::test_attach_menu_loads () {
     QCOMPARE (menuItems.size (), 2);
   }
   // recent 为空时不再断言（attach 路径不显示空态占位，与 Go 共用 QML 即可）
+}
+
+void
+TestQmlLoad::test_attach_menu_attached_section () {
+  // 「已添加」子区：attach 路径注入 attached 时子按钮可见、展开后浮层长高
+  QDialog              host;
+  AttachMenuStubBridge bridge (&host, false, true);
+  auto*                qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeViewToRootObject);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("goBridge", &bridge);
+  qw->setSource (QUrl ("qrc:/qml/GoMenu.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+
+  QList<QQuickItem*> attachedBtn=
+      collect_items_by_name (qw->rootObject (), "goMenuAttachedItem");
+  QCOMPARE (attachedBtn.size (), 1);
+  QVERIFY (attachedBtn.first ()->isVisible ());
+  QCOMPARE (attachedBtn.first ()->property ("text").toString (),
+            QString ("Attached (2)"));
+
+  QVERIFY (!qw->rootObject ()->property ("attachedExpanded").toBool ());
+  qreal hCollapsed= qw->rootObject ()->property ("implicitHeight").toDouble ();
+  qw->rootObject ()->setProperty ("attachedExpanded", true);
+  qreal hExpanded= qw->rootObject ()->property ("implicitHeight").toDouble ();
+  QVERIFY (hExpanded > hCollapsed);
 }
 
 static QList<QQuickItem*>

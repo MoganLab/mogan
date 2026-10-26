@@ -407,6 +407,7 @@
 ("at the top" "在顶部")
 ("attach master" "关联主文件")
 ("attach" "连接")
+("attached" "已添加")
 ("august" "八月")
 ("Author: %1" "作者: %1")
 ("author" "作者")

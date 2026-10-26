@@ -11,6 +11,8 @@
 #include "base.hpp"
 
 #include <QDialog>
+#include <QFile>
+#include <QTemporaryDir>
 #include <QtTest/QtTest>
 
 class TestAttachMenuBridge : public QObject {
@@ -23,6 +25,7 @@ private slots:
   void test_bridge_meta_defaults ();
   void test_bridge_actions ();
   void test_choose_files_defers_menu_deletion ();
+  void test_filter_recent ();
 };
 
 void
@@ -33,7 +36,9 @@ TestAttachMenuBridge::test_bridge_meta_defaults () {
 
   QVERIFY (meta.contains ("label_recent"));
   QVERIFY (meta.contains ("label_open"));
+  QVERIFY (meta.contains ("label_attached"));
   QVERIFY (meta.contains ("recent"));
+  QVERIFY (meta.contains ("attached"));
 }
 
 void
@@ -66,6 +71,44 @@ TestAttachMenuBridge::test_choose_files_defers_menu_deletion () {
   QVERIFY (!guard.isNull ());
   QCoreApplication::sendPostedEvents (nullptr, QEvent::DeferredDelete);
   QVERIFY (guard.isNull ());
+}
+
+void
+TestAttachMenuBridge::test_filter_recent () {
+  QTemporaryDir dir;
+  QVERIFY (dir.isValid ());
+  QList<QString> paths{dir.filePath ("a.txt"), dir.filePath ("b.tmu"),
+                       dir.filePath (QString::fromUtf8 ("存在 文件.pdf"))};
+  auto           makeItem= [] (const QString& url) {
+    QVariantMap item;
+    item["url"]  = url;
+    item["title"]= url.section ('/', -1);
+    return QVariant (item);
+  };
+  QVariantList recent;
+  for (const QString& path : paths) {
+    QFile file (path);
+    QVERIFY (file.open (QIODevice::WriteOnly));
+    file.write ("x");
+    file.close ();
+    recent << makeItem (path);
+  }
+  recent << makeItem (dir.filePath ("missing.txt"));
+
+  // 已添加及失效条目被过滤，其余保留原顺序
+  QSet<QString> attached;
+  attached.insert (paths[1]);
+  QVariantList out= AttachMenuBridge::filterRecent (recent, attached);
+  QCOMPARE (out.size (), 2);
+  QCOMPARE (out[0].toMap ()["url"].toString (), paths[0]);
+  QCOMPARE (out[1].toMap ()["url"].toString (), paths[2]);
+
+  // 空附件集合仍过滤失效条目；空 recent 得空列表
+  QVariantList withoutAttached=
+      AttachMenuBridge::filterRecent (recent, QSet<QString> ());
+  QCOMPARE (withoutAttached.size (), 3);
+  QCOMPARE (AttachMenuBridge::filterRecent (QVariantList (), attached).size (),
+            0);
 }
 
 #ifdef QTTEXMACS
