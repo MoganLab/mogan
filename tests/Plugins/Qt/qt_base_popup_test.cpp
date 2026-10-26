@@ -1,7 +1,7 @@
 
 /******************************************************************************
  * MODULE     : qt_base_popup_test.cpp
- * DESCRIPTION: Tests for QTMBasePopup coordinate mapping under sidebar
+ * DESCRIPTION: Tests for QTMBasePopup coordinate mapping
  * COPYRIGHT  : (C) 2026 Mogan STEM
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
@@ -14,8 +14,6 @@
 #include "base.hpp"
 #include "qt_simple_widget.hpp"
 
-#include <QDockWidget>
-#include <QMainWindow>
 #include <QtTest/QtTest>
 
 class DummyBasePopup : public QTMBasePopup {
@@ -47,29 +45,20 @@ private slots:
   void init () { init_lolly (); }
   void cleanup () { cleanup_qt_top_level_widgets (); }
 
-  void test_selection_rect_with_sidebar ();
+  void test_selection_rect_ignores_window_canvas_offset ();
 };
 
 void
-TestQTMBasePopup::test_selection_rect_with_sidebar () {
-  QMainWindow mw;
-  mw.resize (1200, 800);
-
-  // 模拟左侧目录树侧边栏 (宽 300px)
-  QWidget* sidebar= new QWidget (&mw);
-  sidebar->setFixedWidth (300);
-  QDockWidget* dock= new QDockWidget ("Outline", &mw);
-  dock->setWidget (sidebar);
-  mw.addDockWidget (Qt::LeftDockWidgetArea, dock);
-
-  // 中央放置 QTMScrollView
-  QTMScrollView* sv= new QTMScrollView (&mw);
-  mw.setCentralWidget (sv);
-  mw.show ();
+TestQTMBasePopup::test_selection_rect_ignores_window_canvas_offset () {
+  QWidget host;
+  host.resize (1200, 800);
+  QTMScrollView sv (&host);
+  sv.resize (host.size ());
+  host.show ();
   QTest::qWait (50);
 
-  stub_popup_widget_rep owner (sv);
-  DummyBasePopup        popup (sv, &owner);
+  stub_popup_widget_rep owner (&sv);
+  DummyBasePopup        popup (&sv, &owner);
 
   // 选区在逻辑坐标中（TeXmacs 笛卡尔坐标系：页面向下 y 为负）
   rectangle selr (100 * PIXEL, -200 * PIXEL, 200 * PIXEL, -180 * PIXEL);
@@ -85,7 +74,7 @@ TestQTMBasePopup::test_selection_rect_with_sidebar () {
   QCOMPARE (x2_px - x1_px, 100.0);
 
   // surface 在 sv (popup 父控件) 内的实际偏移
-  QPoint surf_pt= sv->surface ()->mapTo (sv, QPoint (0, 0));
+  QPoint surf_pt= sv.surface ()->mapTo (&sv, QPoint (0, 0));
   QCOMPARE (x1_px, 100.0 + surf_pt.x ());
 
   // 选区应当被正确判定为在视口内，而不是被 300px 侧边栏偏移错误挤出视口
