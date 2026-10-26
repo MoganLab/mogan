@@ -2,9 +2,10 @@ name: CD for Mogan STEM on Windows
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - '*'
+  # 临时禁用（cms/cdtest 分支：仅测 macOS pkg 打包，测试后恢复 tag 触发）
+  # push:
+  #   tags:
+  #     - '*'
 
 permissions:
   contents: write

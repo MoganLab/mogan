@@ -7,9 +7,10 @@ on:
         description: 'Set version manually (e.g. 1.2.3)'
         required: false
         default: ''
-  push:
-    tags:
-      - '*'
+  # 临时禁用（cms/cdtest 分支：仅测 macOS pkg 打包，测试后恢复 tag 触发）
+  # push:
+  #   tags:
+  #     - '*'
 
 jobs:
   fedora-build:
