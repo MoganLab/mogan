@@ -96,6 +96,10 @@ QString qt_translate (const string& s);
 string qt_scheme_quote (const QString& text);
 string qt_scheme_quote_utf8 (const QString& text);
 
+/// 最近条目点击到缺失文件时的统一红色提示（启动页 / Go 菜单 / File 菜单
+/// glue 三处共用）；anchor 为空时回退当前活动窗口，默认实参供 glue 零参调用。
+void qt_show_missing_recent_toast (QWidget* anchor= nullptr);
+
 #ifdef OS_MACOS
 QString fromNSUrl (const QUrl& url);
 #endif

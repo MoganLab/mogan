@@ -16,6 +16,7 @@
 
 #include <QCoreApplication>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QVariantList>
 
 namespace {
@@ -119,6 +120,19 @@ GoMenuBridge::openFile () {
 void
 GoMenuBridge::loadBuffer (const QString& url) {
   closeMenu ();
+  // 空守卫必要：缺失分支只看 tmfs 前缀与磁盘存在性，空串会误弹缺失 toast
+  if (url.isEmpty ()) return;
+  // 与启动页 onRecentDocClicked 同款：本地文件缺失时不走 load 路径（其
+  // footer 提示在启动页上不可见），改弹红色 toast 并从最近列表移除。
+  // 云文档（tmfs://）非磁盘路径，不据此判定缺失。
+  if (!url.startsWith (QStringLiteral ("tmfs://")) &&
+      !QFileInfo::exists (url)) {
+    qt_show_missing_recent_toast (m_host ? m_host->parentWidget () : nullptr);
+    if (is_server_started ())
+      exec_delayed (scheme_cmd ("(recent-files-remove-by-path " *
+                                qt_scheme_quote_utf8 (url) * ")"));
+    return;
+  }
   if (!is_server_started ()) return;
   exec_delayed (
       scheme_cmd ("(go-menu-load-buffer " * qt_scheme_quote_utf8 (url) * ")"));

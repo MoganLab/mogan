@@ -11,6 +11,7 @@
 
 #include "qt_utilities.hpp"
 #include "QTMStyle.hpp"
+#include "qt_floating_toast.hpp"
 #include "url.hpp"
 #include <time.h>
 
@@ -892,6 +893,15 @@ qt_scheme_quote (const QString& text) {
 string
 qt_scheme_quote_utf8 (const QString& text) {
   return moebius::data::scm_quote (from_qstring_utf8 (text));
+}
+
+void
+qt_show_missing_recent_toast (QWidget* anchor) {
+  // scheme 侧（File 菜单 glue）无锚点可传，回退当前活动窗口
+  if (!anchor) anchor= QApplication::activeWindow ();
+  QtFloatingToast::showToast (
+      anchor, qt_translate ("File not found, removed from recent list"), 3000,
+      QtFloatingToast::Error);
 }
 
 string
