@@ -481,6 +481,7 @@
  ("," "Insert small horizontal space" (make-space "0.2spc"))
  (":" "Insert medium horizontal space" (make-space "0.4spc"))
  (";" "Insert thick horizontal space" (make-space "0.6spc"))
+ ("colon" "Insert colon punctuation" (make 'colon))
  (" " "Insert horizontal interword space" (make-space "1spc"))
  ("!" "Insert negative horizontal space" (make-space "-0.2spc"))
  ("|" "Insert norm" (insert "<||>"))
