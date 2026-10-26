@@ -33,6 +33,8 @@ class ChatConversationPanel;
  */
 struct AttachmentItem {
   QString path;         ///< 本地绝对路径（仅用于 ingest，不下发）
+  QString sourcePath;   ///< 原文件绝对路径（文档类附件转换后 path 指向临时
+                        ///< PDF，此处保留原路径供 Recents 过滤；常规附件为空）
   QString filename;     ///< 展示文件名
   qint64  size= 0;      ///< 字节数
   QString taskId;       ///< ingest 任务号（ready/error 事件按它找回条目）

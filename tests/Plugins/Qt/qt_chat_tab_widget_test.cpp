@@ -211,6 +211,7 @@ private slots:
     QVERIFY (!it.ready);
     QVERIFY (it.sha256.isEmpty ());
     QVERIFY (it.taskId.isEmpty ());
+    QVERIFY (it.sourcePath.isEmpty ());
     QCOMPARE (it.size, (qint64) 0);
   }
 
@@ -241,6 +242,26 @@ private slots:
     QVERIFY (!panel.attachmentError ("task-1"));
     QVERIFY (!panel.attachmentError ("unknown-task"));
     QCOMPARE (spy.count (), 1);
+  }
+
+  // === attachmentRedirectToPdf：转换后留存原文件路径 ===
+  void test_attachment_redirect_to_pdf_keeps_source_path () {
+    ChatConversationPanel panel ("test-session", url_none (), url_none (),
+                                 nullptr);
+    AttachmentItem        it;
+    it.path    = "/tmp/doc.tmu";
+    it.filename= "doc.tmu";
+    it.taskId  = "task-1";
+    it.ready   = false;
+    panel.setAttachments (QList<AttachmentItem>{it});
+
+    AttachmentItem updated;
+    QVERIFY (panel.attachmentRedirectToPdf ("task-1", "/tmp/convert/doc.pdf",
+                                            updated));
+    // path 指向临时 PDF，sourcePath 留存原文件路径（Recents 过滤的匹配键）
+    QCOMPARE (updated.path, QString ("/tmp/convert/doc.pdf"));
+    QCOMPARE (updated.sourcePath, QString ("/tmp/doc.tmu"));
+    QCOMPARE (panel.attachments ()[0].sourcePath, QString ("/tmp/doc.tmu"));
   }
 
   // === setSidebarCollapsed / isSidebarCollapsed ===

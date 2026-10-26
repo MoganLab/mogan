@@ -17,6 +17,7 @@
 
 #include <QCoreApplication>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QTimer>
 #include <QVariantList>
 
@@ -44,9 +45,34 @@ void
 AttachMenuBridge::loadMeta () {
   m_meta.clear ();
   // 默认兜底值
-  m_meta["label_recent"]= qt_translate ("Recent");
-  m_meta["label_open"]  = qt_translate ("Choose file");
-  m_meta["recent"]      = QVariantList ();
+  m_meta["label_recent"]  = qt_translate ("Recent");
+  m_meta["label_open"]    = qt_translate ("Choose file");
+  m_meta["label_attached"]= qt_translate ("Attached");
+  m_meta["recent"]        = QVariantList ();
+  m_meta["attached"]      = QVariantList ();
+
+  // 已加入当前会话附件的文件：从 Recents 过滤，同时列入「已添加」子菜单。
+  // 匹配用原文件路径——文档类附件转换后 item.path 已指向临时 PDF
+  QSet<QString> attachedPaths;
+  QVariantList  attached;
+  if (m_controller) {
+    ChatSession* session=
+        m_controller->sessionManager_.getSession (m_sessionId);
+    if (session && session->panel) {
+      ChatConversationPanel* panel=
+          static_cast<ChatConversationPanel*> (session->panel);
+      const QList<AttachmentItem>& items= panel->attachments ();
+      for (const AttachmentItem& item : items) {
+        QString src= item.sourcePath.isEmpty () ? item.path : item.sourcePath;
+        if (!src.isEmpty ()) attachedPaths.insert (src);
+        QVariantMap entry;
+        entry["url"]  = src;
+        entry["title"]= item.filename;
+        attached.append (entry);
+      }
+    }
+  }
+  m_meta["attached"]= attached;
 
   if (!is_server_started ()) return;
 
@@ -84,6 +110,31 @@ AttachMenuBridge::loadMeta () {
       m_meta["recent"]= recs;
     }
   }
+
+  m_meta["recent"]= filterRecent (
+      filterExistingRecent (m_meta["recent"].toList ()), attachedPaths);
+}
+
+QVariantList
+AttachMenuBridge::filterExistingRecent (const QVariantList& recent) {
+  QVariantList out;
+  for (const QVariant& v : recent) {
+    QString url= v.toMap ().value ("url").toString ();
+    if (QFileInfo::exists (url)) out.append (v);
+  }
+  return out;
+}
+
+QVariantList
+AttachMenuBridge::filterRecent (const QVariantList&  recent,
+                                const QSet<QString>& attachedPaths) {
+  if (attachedPaths.isEmpty ()) return recent;
+  QVariantList out;
+  for (const QVariant& v : recent) {
+    QString url= v.toMap ().value ("url").toString ();
+    if (!attachedPaths.contains (url)) out.append (v);
+  }
+  return out;
 }
 
 void

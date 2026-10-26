@@ -326,11 +326,13 @@ ChatConversationPanel::attachmentRedirectToPdf (const QString&  taskId,
     if (!it.ready && it.taskId == taskId) {
       QFileInfo pdf (pdfPath);
       // filename/size/path 三者必须一致地换成 PDF 的：插件侧按 path 读
-      // 文件、按 filename/size 上报
-      it.filename= pdf.fileName ();
-      it.size    = pdf.size ();
-      it.path    = pdfPath;
-      updated    = it;
+      // 文件、按 filename/size 上报；原文件路径留存 sourcePath，供附件
+      // 菜单按原路径过滤 Recents
+      it.filename  = pdf.fileName ();
+      it.size      = pdf.size ();
+      it.sourcePath= it.path;
+      it.path      = pdfPath;
+      updated      = it;
       attachment_items_changed ();
       return true;
     }

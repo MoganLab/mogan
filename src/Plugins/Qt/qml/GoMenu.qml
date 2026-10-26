@@ -14,12 +14,20 @@ Item {
     readonly property string labelRecent: meta.label_recent || qsTr("Recent")
     readonly property string labelOpen: (meta.label_open || qsTr("Open file")).replace(/<[^>]*>/g, "") + "…"
     readonly property var recent: meta.recent || []
+    // 仅附件菜单注入 attached / label_attached；标题栏 Go 菜单无此键，
+    // 「已添加」子区整段隐藏
+    readonly property string labelAttached: meta.label_attached || qsTr("Attached")
+    readonly property var attached: meta.attached || []
+    property bool attachedExpanded: false
 
     readonly property real itemH: 32 * Theme.scaleFactor
     readonly property real hdrH: 26 * Theme.scaleFactor
     readonly property real sepH: 1 * Theme.scaleFactor
     readonly property real spacingH: 2 * Theme.scaleFactor
-    readonly property real footerH: sepH + itemH + 8 * Theme.scaleFactor
+    // 「已添加」子区高度：子按钮 + 展开时的列表项
+    readonly property real attachedListH: attachedExpanded ? attached.length * (itemH + spacingH) : 0
+    readonly property real attachedAreaH: attached.length > 0 ? itemH + attachedListH : 0
+    readonly property real footerH: sepH + itemH + attachedAreaH + 8 * Theme.scaleFactor
 
     // 仅包含最近文档列表项高（若为空则占位48px）
     readonly property real recentCount: recent.length > 0 ? recent.length : 1
@@ -36,6 +44,14 @@ Item {
     height: implicitHeight
     implicitWidth: menuWidth + shadowPad * 2
     implicitHeight: listHeight + hdrH + sepH + footerH + 16 * Theme.scaleFactor + shadowPad * 2 + 2 * Theme.scaleFactor
+
+    // 附件菜单展开/收起「已添加」时，让外层 Qt Popup 同步高度。
+    // GoMenuBridge 与测试桩没有 requestResize，直接跳过
+    onImplicitHeightChanged: {
+        if (typeof goBridge !== "undefined" && goBridge && goBridge.requestResize) {
+            goBridge.requestResize(implicitWidth, implicitHeight);
+        }
+    }
 
     // 渐进柔和立体阴影（多层微透明矩形弥散）
     Rectangle {
@@ -191,11 +207,51 @@ Item {
                 opacity: 0.4
             }
 
+            // 「已添加」子按钮（仅附件菜单可见）：点击展开/收起子菜单
+            MenuItem {
+                id: attachedItem
+                objectName: "goMenuAttachedItem"
+                isAction: true
+                expandable: true
+                expanded: root.attachedExpanded
+                visible: root.attached.length > 0
+                height: visible ? root.itemH : 0
+                anchors.top: footerSep.bottom
+                anchors.topMargin: visible ? 4 * Theme.scaleFactor : 0
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: 6 * Theme.scaleFactor
+                anchors.rightMargin: 6 * Theme.scaleFactor
+                text: root.labelAttached + " (" + root.attached.length + ")"
+                onTriggered: root.attachedExpanded = !root.attachedExpanded
+            }
+
+            // 「已添加」子菜单：列出当前会话已添加的文件，仅展示不可点
+            Column {
+                id: attachedColumn
+                visible: root.attachedExpanded && root.attached.length > 0
+                height: visible ? implicitHeight : 0
+                anchors.top: attachedItem.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: 6 * Theme.scaleFactor
+                anchors.rightMargin: 6 * Theme.scaleFactor
+                spacing: root.spacingH
+
+                Repeater {
+                    model: root.attached
+                    delegate: MenuItem {
+                        width: attachedColumn.width
+                        text: modelData.title || ""
+                    }
+                }
+            }
+
             MenuItem {
                 id: openItem
                 objectName: "goMenuOpenItem"
                 isAction: true
-                anchors.top: footerSep.bottom
+                anchors.top: attachedColumn.bottom
                 anchors.topMargin: 4 * Theme.scaleFactor
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -294,6 +350,9 @@ Item {
         objectName: "goMenuItem"
         property string text: ""
         property bool isAction: false
+        // 可展开子按钮（「已添加」）：右侧显示展开方向指示
+        property bool expandable: false
+        property bool expanded: false
         readonly property bool isHovered: mouseArea.containsMouse
         readonly property string fileExt: {
             var name = itemRoot.text;
@@ -357,12 +416,25 @@ Item {
             }
         }
 
+        // 展开方向指示（仅可展开子按钮）
+        Text {
+            id: chevron
+            anchors.right: parent.right
+            anchors.rightMargin: 8 * Theme.scaleFactor
+            anchors.verticalCenter: parent.verticalCenter
+            visible: itemRoot.expandable
+            text: itemRoot.expanded ? "▾" : "▸"
+            font.pixelSize: 10 * Theme.scaleFactor
+            color: itemRoot.isHovered ? (Theme.dark ? "#d4d4d8" : "#475569")
+                                      : (Theme.dark ? "#a1a1aa" : "#64748b")
+        }
+
         Text {
             id: labelText
             anchors.left: docIcon.right
             anchors.leftMargin: 8 * Theme.scaleFactor
-            anchors.right: typeTag.visible ? typeTag.left : parent.right
-            anchors.rightMargin: typeTag.visible ? 6 * Theme.scaleFactor : 8 * Theme.scaleFactor
+            anchors.right: typeTag.visible ? typeTag.left : (chevron.visible ? chevron.left : parent.right)
+            anchors.rightMargin: typeTag.visible || chevron.visible ? 6 * Theme.scaleFactor : 8 * Theme.scaleFactor
             anchors.verticalCenter: parent.verticalCenter
             text: itemRoot.text
             font.pixelSize: 12 * Theme.scaleFactor
