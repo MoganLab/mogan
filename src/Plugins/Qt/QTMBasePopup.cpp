@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "QTMBasePopup.hpp"
+#include "QTMScrollView.hpp"
 #include "qt_utilities.hpp"
 
 #include <QToolButton>
@@ -84,17 +85,28 @@ QTMBasePopup::selectionRectPixels (double& x1_px, double& x2_px, double& top_px,
   double    sel_top_logic   = (selr->y1 > selr->y2) ? selr->y1 : selr->y2;
   double    sel_bottom_logic= (selr->y1 > selr->y2) ? selr->y2 : selr->y1;
 
-  x1_px=
-      ((selr->x1 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
-  x2_px=
-      ((selr->x2 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
-  top_px   = -(sel_top_logic - cached_scroll_y) * cached_magf * inv_unit;
-  bottom_px= -(sel_bottom_logic - cached_scroll_y) * cached_magf * inv_unit;
+  // 用 Qt 控件树实时映射取 surface 相对悬浮框父控件的偏移：映射发生在
+  // scrollarea 内部层级之间，天然隔绝目录树侧边栏等外部布局（其全局偏移
+  // 经 get_canvas_x 混入 cached_canvas_x）对局部坐标的干扰，且自动涵盖
+  // 视口大于表面时的居中留白
+  double         surf_offset_x= 0.0;
+  double         surf_offset_y= 0.0;
+  QTMScrollView* sv           = owner ? owner->scrollarea () : nullptr;
+  QWidget*       surf         = sv ? sv->surface () : nullptr;
+  QWidget*       parent       = parentWidget ();
+  if (!parent) parent= sv;
+  if (surf && parent) {
+    QPoint pt    = surf->mapTo (parent, QPoint (0, 0));
+    surf_offset_x= pt.x ();
+    surf_offset_y= pt.y ();
+  }
 
-  // 修正：视口 > 表面：存在空白顶部
-  double blank_top= blank_top_offset ();
-  top_px+= blank_top;
-  bottom_px+= blank_top;
+  x1_px = (selr->x1 - cached_scroll_x) * cached_magf * inv_unit + surf_offset_x;
+  x2_px = (selr->x2 - cached_scroll_x) * cached_magf * inv_unit + surf_offset_x;
+  top_px= -(sel_top_logic - cached_scroll_y) * cached_magf * inv_unit +
+          surf_offset_y;
+  bottom_px= -(sel_bottom_logic - cached_scroll_y) * cached_magf * inv_unit +
+             surf_offset_y;
 }
 
 void
@@ -150,17 +162,6 @@ QTMBasePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
   else {
     if (y < 0) y= below_y;
   }
-}
-
-double
-QTMBasePopup::blank_top_offset () const {
-  if (owner && owner->scrollarea () && owner->scrollarea ()->viewport () &&
-      owner->scrollarea ()->surface ()) {
-    int vp_h  = owner->scrollarea ()->viewport ()->height ();
-    int surf_h= owner->scrollarea ()->surface ()->height ();
-    if (vp_h > surf_h) return (vp_h - surf_h) * 0.5;
-  }
-  return 0.0;
 }
 
 bool
