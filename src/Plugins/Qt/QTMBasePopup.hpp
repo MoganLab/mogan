@@ -60,7 +60,7 @@ protected:
   // 计算显示位置（虚函数，子类可重写不同位置算法）
   virtual void getCachedPosition (qt_renderer_rep* ren, int& x, int& y);
 
-  // 选区矩形（画布像素，含滚动/画布偏移与顶部留白补偿）的逻辑→像素换算，
+  // 选区矩形（父控件像素，含滚动偏移与 surface 实时偏移）的逻辑→像素换算，
   // 各子类定位/邻近判定共用
   void selectionRectPixels (double& x1_px, double& x2_px, double& top_px,
                             double& bottom_px) const;
@@ -74,9 +74,6 @@ protected:
 
   // 检查选区是否在视口内
   virtual bool selectionInView () const;
-
-  // 视口高于画布表面时顶部的居中留白（popup 坐标需补偿）
-  double blank_top_offset () const;
 
   // 初始化共同的UI元素（阴影效果等）
   void initCommonUI ();
