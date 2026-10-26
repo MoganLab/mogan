@@ -810,7 +810,7 @@ latex_symbol_to_tree (string s) {
       if (s == "protect") return "";
       if (s == "bgroup") return "";
       if (s == "egroup") return "";
-      if (s == "colon") return ":";
+      if (s == "colon") return compound ("colon");
       if (s == "coloneqq") return "<assign>";
       if (s == "dotsc") return "<ldots>";
       if (s == "dotsb") return "<cdots>";

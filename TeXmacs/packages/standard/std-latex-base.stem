@@ -88,6 +88,8 @@
           ) ;rsup
         ) ;macro
       ) ;assign
+      (assign "colon" (macro ":"))
+      (drd-props "colon" "syntax" (macro ":"))
     ) ;document
   ) ;body
   (initial (collection (associate "preamble" "true") (associate "sfactor" "7")))
