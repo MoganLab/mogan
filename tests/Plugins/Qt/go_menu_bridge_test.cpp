@@ -8,9 +8,11 @@
  ******************************************************************************/
 
 #include "Qt/GoMenuBridge.hpp"
+#include "Qt/qt_floating_toast.hpp"
 #include "base.hpp"
 
 #include <QDialog>
+#include <QDir>
 #include <QtTest/QtTest>
 
 class TestGoMenuBridge : public QObject {
@@ -22,6 +24,7 @@ private slots:
 
   void test_bridge_meta_defaults ();
   void test_bridge_actions ();
+  void test_load_buffer_missing_shows_toast ();
   void test_open_file_defers_menu_deletion ();
 };
 
@@ -48,6 +51,20 @@ TestGoMenuBridge::test_bridge_actions () {
   qputenv ("MOGAN_TEST_OPEN_FILE", "cancel");
   bridge.openFile ();
   qunsetenv ("MOGAN_TEST_OPEN_FILE");
+}
+
+void
+TestGoMenuBridge::test_load_buffer_missing_shows_toast () {
+  // toast 锚点取 m_host->parentWidget()，host 须挂父窗口才能弹出
+  QWidget      anchorParent;
+  QDialog      host (&anchorParent);
+  GoMenuBridge bridge (&host);
+  QString      missing= QDir::tempPath () + "/mogan_6231_missing_for_toast.tm";
+
+  bridge.loadBuffer (missing);
+
+  // 缺失本地文件：不走打开路径，弹与启动页一致的红色 toast
+  QVERIFY (anchorParent.findChild<QtFloatingToast*> () != nullptr);
 }
 
 void

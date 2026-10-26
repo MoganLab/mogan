@@ -125,6 +125,16 @@
   (utf8->herk (url->system u))
 ) ;define
 
+;; 点击最近条目后的失效清理：本地文件已不存在时，从最近列表移除该条目。
+;; 云文档非磁盘路径，url-exists? 必假，不可据此误删。
+
+(define (recent-entry-remove-if-missing u)
+  (when
+    (and (not (collab-buffer? u)) (not (url-exists? (url->system u))))
+    (recent-files-remove-by-path (url->system u))
+  ) ;when
+) ;define
+
 (tm-menu (file-list-menu l win?)
   (for (name l)
     (let* ((short-name
@@ -145,11 +155,7 @@
            ) ;collab-join-document
            (if win? (load-document name) (load-buffer name))
          ) ;if
-         ;; 缺失清理仅对本地文件：云 URL 非磁盘路径，url-exists? 必假，不可据此误删。
-         (when
-           (and (not (collab-buffer? name)) (not (url-exists? (url->system name))))
-           (recent-files-remove-by-path (url->system name))
-         ) ;when
+         (recent-entry-remove-if-missing name)
        ) ;begin
       ) ;
     ) ;let*
@@ -167,6 +173,9 @@
     ) ;collab-join-document
     (load-document u)
   ) ;if
+  ;; 兜底清理：Go 菜单桥与启动页已在点击处前置检查并移除，此处只覆盖检查
+  ;; 与打开之间文件被删除的竞态；file-list-menu 亦走同一清理。
+  (recent-entry-remove-if-missing u)
 ) ;tm-define
 
 (tm-define (recent-file-list nr)
