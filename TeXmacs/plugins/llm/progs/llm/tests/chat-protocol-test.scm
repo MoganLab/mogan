@@ -2,8 +2,8 @@
 ;;
 ;; MODULE      : chat-protocol-test.scm
 ;; DESCRIPTION : 纯逻辑单元测试：%chat 协议 v2（attachments 字段）、假附件
-;;               插件 ingest/ready、假 llm 插件 sha256 注入回显、线格式
-;;               编码（herk 内部形态 → 插件侧 UTF-8）
+;;               插件 ingest/ready 与缓存 supplier 落盘确认、假 llm 插件
+;;               sha256 注入回显、线格式编码（herk 内部形态 → 插件侧 UTF-8）
 ;; COPYRIGHT   : (C) 2026 Mogan STEM
 ;;
 ;; USAGE
@@ -150,27 +150,101 @@
   ) ;let
 ) ;define
 
+(define (test-month-cache-dir month sha256)
+  ;; 指定月份的缓存目录（attachment-extract-cache-dir 只覆盖当月）
+  (path-join (path->string (attachment-extract-root)) month sha256)
+) ;define
+
+(define (test-clear-extract-cache! sha256)
+  ;; 测试自净：清掉该 sha 当月与上月的缓存（机器上残留的旧版缓存会让
+  ;; 新缓存断言误走命中刷新分支），测试结束时也调用以免影响其他用例
+  (for-each
+    (lambda (m)
+      (let ((d (test-month-cache-dir m sha256)))
+        (when (path-dir? d)
+          (attachment-remove-tree d)
+        ) ;when
+      ) ;let
+    ) ;lambda
+    (attachment-keep-months)
+  ) ;for-each
+) ;define
+
+(define (test-write-result-json! dir text)
+  ;; 测试夹具：在给定缓存目录写 result.json（目录不存在则建）
+  (path-mkdir dir #t #t)
+  (path-write-text (path->string (path-join dir "result.json")) text)
+) ;define
+
+(define (test-result-json-text id entry)
+  ;; 测试夹具：按磁盘契约包出完整缓存文本（头部固定 ts="1"）
+  (json->string (vector (list (cons "id" id) (cons "ts" "1")) entry))
+) ;define
+
+(define (test-ingest-with-put! task-id path put)
+  ;; 测试夹具：换上给定写入实现跑一次完整 ingest 并解析结果 JSON
+  ;; （dynamic-wind 保证断言中断也恢复全局函数）
+  (let ((orig attachment-cache-put!))
+    (dynamic-wind (lambda () (set! attachment-cache-put! put))
+      (lambda ()
+        (string->json (fake-attachment-ingest (make-ingest-line task-id path)))
+      ) ;lambda
+      (lambda () (set! attachment-cache-put! orig))
+    ) ;dynamic-wind
+  ) ;let
+) ;define
+
+(define (check-cache-write-error j task-id)
+  ;; 6234 缓存落盘确认失败的统一事件形态：error + 原 taskId + 缓存失败
+  ;; reason，且不得 ready（error 事件无 sha256 键）
+  (check (json-ref-string j "event" #f) => "error")
+  (check (json-ref-string j "taskId" #f) => task-id)
+  (check (string-contains? (json-ref-string j "reason" "") "附件缓存写入失败")
+    =>
+    #t
+  ) ;check
+  (check (json-ref-string j "sha256" #f) => #f)
+) ;define
+
 (define (test-fake-attachment-ingest-ready)
+  ;; 6234：新缓存在 [1] 标注 supplier=fake，直接读当月 result.json 验证
+  ;; （不只经假 llm content reader——它只读 content 且逐月查找）
   (let* ((task-id "test-task-1")
          (path "/tmp/chat-protocol-test-fake.pdf")
          (content "fake pdf bytes")
+         (sha256 (fake-attachment-sha256 path))
+         (ignored-clean (test-clear-extract-cache! sha256))
          (ignored (path-write-text path content))
          (line (make-ingest-line task-id path))
          (j (string->json (fake-attachment-ingest line)))
-         (sha256 (json-ref-string j "sha256" #f))
         ) ;
     (check (json-ref-string j "event" #f) => "ready")
     (check (json-ref-string j "taskId" #f) => task-id)
-    (check sha256 => (fake-attachment-sha256 path))
+    (check (json-ref-string j "sha256" #f) => sha256)
     (check (json-ref-string j "filename" #f) => "chat-protocol-test-fake.pdf")
     (check (json-ref-integer j "size" -1) => (string-length content))
     (check (> (json-ref-integer j "extractedChars" 0) 0) => #t)
-    ;; 抽取缓存已按约定落盘（假 llm 按 sha256 能读到假提取文本）
+    ;; 当月 result.json：顶层二元 vector、[0].id 正确、[1] 含 supplier
+    ;; 与假提取文本
+    (let* ((f (path-join (attachment-extract-cache-dir sha256) "result.json"))
+           (cache (string->json (path-read-text (path->string f))))
+          ) ;
+      (check (vector? cache) => #t)
+      (check (vector-length cache) => 2)
+      (check (json-ref-string (vector-ref cache 0) "id" #f) => sha256)
+      (check (json-ref-string (vector-ref cache 1) "supplier" #f) => "fake")
+      (check (json-ref-string (vector-ref cache 1) "content" #f)
+        =>
+        "[fake] extracted text of chat-protocol-test-fake.pdf"
+      ) ;check
+    ) ;let*
+    ;; 回归：假 llm 仍能按 sha256 读到假提取文本
     (let ((cache (fake-llm-attachment-content sha256)))
       (check (string? cache) => #t)
       (check (string-contains? cache "[fake] extracted text of") => #t)
     ) ;let
     (path-unlink path #t)
+    (test-clear-extract-cache! sha256)
   ) ;let*
 ) ;define
 
@@ -344,53 +418,221 @@
 ) ;define
 
 ;; 异常兜底测试：通过故障注入让缓存清理或 ready 缓存写入抛错，
-;; 仍返回带原 taskId 的 error 事件而不是向外抛出异常
+;; 仍返回带原 taskId 的 error 事件而不是向外抛出异常。dynamic-wind
+;; 保证断言中断时也恢复全局函数并清理样本
 
 (define (test-fake-attachment-ingest-exception-fallback)
   (let* ((ok-path "/tmp/chat-protocol-test-fallback.pdf")
          (ignored (path-write-text ok-path "x"))
-         ;; 1. 注入缓存清理异常
          (orig-sweep attachment-cache-sweep!)
-         (ignored-sweep (set! attachment-cache-sweep!
-                          (lambda () (error 'io-error "disk failure during sweep"))
-                        ) ;set!
-         ) ;ignored-sweep
-         (sweep-j (string->json (fake-attachment-ingest (make-ingest-line "t-sweep-err" ok-path)))
-         ) ;sweep-j
-         (ignored-restore-sweep (set! attachment-cache-sweep! orig-sweep))
-         ;; 2. 注入 ready 缓存写入异常
          (orig-put attachment-cache-put!)
-         (ignored-put (set! attachment-cache-put!
-                        (lambda (sha name content) (error 'disk-full "cannot put cache"))
-                      ) ;set!
-         ) ;ignored-put
-         (put-j (string->json (fake-attachment-ingest (make-ingest-line "t-put-err" ok-path)))
-         ) ;put-j
-         (ignored-restore-put (set! attachment-cache-put! orig-put))
         ) ;
-    (check (json-ref-string sweep-j "event" #f) => "error")
-    (check (json-ref-string sweep-j "taskId" #f) => "t-sweep-err")
-    (check (string-contains? (json-ref-string sweep-j "reason" "") "附件处理异常")
-      =>
-      #t
-    ) ;check
-    (check (string-contains? (json-ref-string sweep-j "reason" "")
-             "disk failure during sweep"
-           ) ;string-contains?
-      =>
-      #t
-    ) ;check
-    (check (json-ref-string put-j "event" #f) => "error")
-    (check (json-ref-string put-j "taskId" #f) => "t-put-err")
-    (check (string-contains? (json-ref-string put-j "reason" "") "附件处理异常")
-      =>
-      #t
-    ) ;check
-    (check (string-contains? (json-ref-string put-j "reason" "") "cannot put cache")
-      =>
-      #t
-    ) ;check
-    (path-unlink ok-path #t)
+    (dynamic-wind (lambda () #t)
+      (lambda ()
+        ;; 1. 注入缓存清理异常（check 失败不抛出，步骤仍按序执行）
+        (set! attachment-cache-sweep!
+          (lambda () (error 'io-error "disk failure during sweep"))
+        ) ;set!
+        (let ((sweep-j (string->json (fake-attachment-ingest (make-ingest-line "t-sweep-err" ok-path)))
+              ) ;sweep-j
+             ) ;
+          (check (json-ref-string sweep-j "event" #f) => "error")
+          (check (json-ref-string sweep-j "taskId" #f) => "t-sweep-err")
+          (check (string-contains? (json-ref-string sweep-j "reason" "") "附件处理异常")
+            =>
+            #t
+          ) ;check
+          (check (string-contains? (json-ref-string sweep-j "reason" "")
+                   "disk failure during sweep"
+                 ) ;string-contains?
+            =>
+            #t
+          ) ;check
+        ) ;let
+        (set! attachment-cache-sweep! orig-sweep)
+        ;; 2. 注入 ready 缓存写入异常
+        (set! attachment-cache-put!
+          (lambda (sha name content) (error 'disk-full "cannot put cache"))
+        ) ;set!
+        (let ((put-j (string->json (fake-attachment-ingest (make-ingest-line "t-put-err" ok-path)))
+              ) ;put-j
+             ) ;
+          (check (json-ref-string put-j "event" #f) => "error")
+          (check (json-ref-string put-j "taskId" #f) => "t-put-err")
+          (check (string-contains? (json-ref-string put-j "reason" "") "附件处理异常")
+            =>
+            #t
+          ) ;check
+          (check (string-contains? (json-ref-string put-j "reason" "") "cannot put cache")
+            =>
+            #t
+          ) ;check
+        ) ;let
+      ) ;lambda
+      (lambda ()
+        ;; 断言中途失败也恢复全局函数、清理样本
+        (set! attachment-cache-sweep! orig-sweep)
+        (set! attachment-cache-put! orig-put)
+        (path-unlink ok-path #t)
+      ) ;lambda
+    ) ;dynamic-wind
+  ) ;let*
+) ;define
+
+;;; ---------- 6234：当月落盘确认助手 attachment-cache-payload-stored? ----------
+
+(define (test-attachment-cache-payload-stored)
+  ;; 直接构造当月/上月缓存文件逐场景验证：只有当月文件存在且 id 与完整
+  ;; [1] 一致才返回 #t；文件不存在、非法 JSON、非二元 vector、id/payload
+  ;; 不符、只有上月文件都不得确认成功
+  (let* ((sha "6234000000000000000000000000000000000000000000000000000000006234")
+         (entry (list (cons "content" "c-6234")
+                  (cons "filename" "a.pdf")
+                  (cons "supplier" "fake")
+                ) ;list
+         ) ;entry
+         (cur (attachment-extract-cache-dir sha))
+         (prev (test-month-cache-dir (cadr (attachment-keep-months)) sha))
+        ) ;
+    (dynamic-wind (lambda () #t)
+      (lambda ()
+        ;; 文件不存在
+        (check (attachment-cache-payload-stored? sha entry) => #f)
+        ;; 当月 id 与完整 payload 一致
+        (test-write-result-json! cur (test-result-json-text sha entry))
+        (check (attachment-cache-payload-stored? sha entry) => #t)
+        ;; 非法 JSON
+        (test-write-result-json! cur "not json {")
+        (check (attachment-cache-payload-stored? sha entry) => #f)
+        ;; 非二元 vector（顶层一元，仅头部）
+        (test-write-result-json! cur
+          (json->string (vector (list (cons "id" sha) (cons "ts" "1"))))
+        ) ;test-write-result-json!
+        (check (attachment-cache-payload-stored? sha entry) => #f)
+        ;; id 不符
+        (test-write-result-json! cur (test-result-json-text "deadbeef" entry))
+        (check (attachment-cache-payload-stored? sha entry) => #f)
+        ;; content 不符
+        (test-write-result-json! cur
+          (test-result-json-text sha
+            (list (cons "content" "wrong")
+              (cons "filename" "a.pdf")
+              (cons "supplier" "fake")
+            ) ;list
+          ) ;test-result-json-text
+        ) ;test-write-result-json!
+        (check (attachment-cache-payload-stored? sha entry) => #f)
+        ;; supplier 缺失
+        (test-write-result-json! cur
+          (test-result-json-text sha
+            (list (cons "content" "c-6234") (cons "filename" "a.pdf"))
+          ) ;test-result-json-text
+        ) ;test-write-result-json!
+        (check (attachment-cache-payload-stored? sha entry) => #f)
+        ;; supplier 取值不同
+        (test-write-result-json! cur
+          (test-result-json-text sha
+            (list (cons "content" "c-6234")
+              (cons "filename" "a.pdf")
+              (cons "supplier" "local")
+            ) ;list
+          ) ;test-result-json-text
+        ) ;test-write-result-json!
+        (check (attachment-cache-payload-stored? sha entry) => #f)
+        ;; 只有上月文件、当月无文件：不得因上月文件存在而确认成功
+        (attachment-remove-tree cur)
+        (test-write-result-json! prev (test-result-json-text sha entry))
+        (check (attachment-cache-payload-stored? sha entry) => #f)
+      ) ;lambda
+      (lambda ()
+        ;; 清理当月与上月测试缓存，避免影响其他用例
+        (when (path-dir? cur)
+          (attachment-remove-tree cur)
+        ) ;when
+        (when (path-dir? prev)
+          (attachment-remove-tree prev)
+        ) ;when
+      ) ;lambda
+    ) ;dynamic-wind
+  ) ;let*
+) ;define
+
+;;; ---------- 6234：写入 no-op / 内容不一致的端到端故障用例 ----------
+
+;; 最关键的新故障用例：attachment-cache-put! 正常返回但完全不写文件——
+;; 证明实现不是只检查 put 的返回值，而是独立回读当月 result.json
+
+(define (test-fake-attachment-ingest-put-noop)
+  (let* ((path "/tmp/chat-protocol-test-noop.pdf")
+         (ignored0 (path-write-text path "x"))
+         (sha256 (fake-attachment-sha256 path))
+         ;; 全新 sha：先清掉可能残留的旧缓存，确保当月没有可误用的文件
+         (ignored-clean (test-clear-extract-cache! sha256))
+         (j (test-ingest-with-put! "t-noop-put" path (lambda (sha name content) #t)))
+        ) ;
+    (check-cache-write-error j "t-noop-put")
+    (path-unlink path #t)
+    (test-clear-extract-cache! sha256)
+  ) ;let*
+) ;define
+
+;; 文件存在却内容不对（非法 JSON / 错误 id / 与 expected-payload 不同的
+;; content）：端到端必须 error、不得 ready——防止实现只做存在性检查
+
+(define (test-fake-attachment-ingest-inconsistent-cache)
+  (let* ((path "/tmp/chat-protocol-test-badcache.pdf")
+         (ignored0 (path-write-text path "x"))
+         (sha256 (fake-attachment-sha256 path))
+         (ignored-clean (test-clear-extract-cache! sha256))
+         (dir (attachment-extract-cache-dir sha256))
+         (filename "chat-protocol-test-badcache.pdf")
+         (entry-good (list (cons "content" (fake-attachment-extracted-text filename))
+                       (cons "filename" filename)
+                       (cons "supplier" "fake")
+                     ) ;list
+         ) ;entry-good
+         ;; 1. 创建目录但写入非法 JSON（put 仍返回正确的 expected-payload）
+         (j1 (test-ingest-with-put! "t-bad-cache"
+               path
+               (lambda (sha name content)
+                 (test-write-result-json! dir "not json {")
+                 entry-good
+               ) ;lambda
+             ) ;test-ingest-with-put!
+         ) ;j1
+         ;; 2. 写入错误 id
+         (j2
+           (test-ingest-with-put! "t-bad-cache"
+             path
+             (lambda (sha name content)
+               (test-write-result-json! dir (test-result-json-text "deadbeef" entry-good))
+               entry-good
+             ) ;lambda
+           ) ;test-ingest-with-put!
+         ) ;j2
+         ;; 3. 写入与 expected-payload 不同的 content（supplier 正确也不行）
+         (j3
+           (test-ingest-with-put! "t-bad-cache"
+             path
+             (lambda (sha name content)
+               (test-write-result-json! dir
+                 (test-result-json-text sha
+                   (list (cons "content" "tampered")
+                     (cons "filename" filename)
+                     (cons "supplier" "fake")
+                   ) ;list
+                 ) ;test-result-json-text
+               ) ;test-write-result-json!
+               entry-good
+             ) ;lambda
+           ) ;test-ingest-with-put!
+         ) ;j3
+        ) ;
+    (for-each (lambda (j) (check-cache-write-error j "t-bad-cache"))
+      (list j1 j2 j3)
+    ) ;for-each
+    (path-unlink path #t)
+    (test-clear-extract-cache! sha256)
   ) ;let*
 ) ;define
 
@@ -438,6 +680,51 @@
   ) ;let*
 ) ;define
 
+;;; ---------- 6234：命中刷新也必须当月回读一致后才 ready ----------
+
+(define (test-attachment-hit-refresh-confirmation)
+  ;; 上月有效缓存：命中刷新为 no-op（写当月失败）时，即使上月文件还在
+  ;; 也必须 error；正常命中刷新则当月文件 [1] 保留 content/supplier、
+  ;; ts 刷新，回读一致后才 ready
+  (let* ((path "/tmp/chat-protocol-test-refresh.pdf")
+         (ignored0 (path-write-text path "x"))
+         (sha256 (fake-attachment-sha256 path))
+         (ignored-clean (test-clear-extract-cache! sha256))
+         (prev (test-month-cache-dir (cadr (attachment-keep-months)) sha256))
+         (cur (attachment-extract-cache-dir sha256))
+         (custom "[fake] cached last month")
+         (entry (list (cons "content" custom)
+                  (cons "filename" "r.pdf")
+                  (cons "supplier" "fake")
+                ) ;list
+         ) ;entry
+         ;; 预置上月有效缓存，当月无文件
+         (ignored1 (test-write-result-json! prev (test-result-json-text sha256 entry)))
+         (j-noop (test-ingest-with-put! "t-refresh-noop" path (lambda (sha name content) #t))
+         ) ;j-noop
+         ;; no-op 后仍只有上月文件：查找阶段能命中上月缓存
+         (found-prev (attachment-extract-cache-find sha256))
+         (j-ok (string->json (fake-attachment-ingest (make-ingest-line "t-refresh-ok" path)))
+         ) ;j-ok
+         (cur-j
+           (string->json (path-read-text (path->string (path-join cur "result.json"))))
+         ) ;cur-j
+        ) ;
+    (check found-prev => (test-result-json-text sha256 entry))
+    ;; no-op 刷新：上月文件在也不得 ready
+    (check-cache-write-error j-noop "t-refresh-noop")
+    ;; 正常刷新：ready，当月文件 [0].id 正确、[1] 保留 content/supplier、
+    ;; ts 已刷新（不再是预置的 "1"）
+    (check (json-ref-string j-ok "event" #f) => "ready")
+    (check (json-ref-string (vector-ref cur-j 0) "id" #f) => sha256)
+    (check (json-ref-string (vector-ref cur-j 1) "content" #f) => custom)
+    (check (json-ref-string (vector-ref cur-j 1) "supplier" #f) => "fake")
+    (check (string=? (json-ref-string (vector-ref cur-j 0) "ts" "") "1") => #f)
+    (test-clear-extract-cache! sha256)
+    (path-unlink path #t)
+  ) ;let*
+) ;define
+
 ;;; ---------- 假 llm 插件：按 sha256 读缓存注入回显 ----------
 
 ;; tm-llm 的 fake-llm-attachment-content 即「按 sha256 查缓存」（上面的
@@ -468,14 +755,25 @@
       =>
       #t
     ) ;check
+    ;; 6234：新 supplier 字段不影响 content 注入，且不出现在回显正文
+    (check (string-contains? reply "supplier") => #f)
   ) ;let*
 ) ;define
 
-;; 无附件（空数组）：无注入行，行为与 v1 一致
+;; 无附件（空数组）：无注入行，行为与 v1 一致；未知 sha（缓存读取失败）
+;; 同样无注入行，既有行为不变
 
 (define (test-fake-llm-no-attachments)
-  (let ((reply (fake-llm-chat-reply (make-chat-line (vector)))))
+  (let ((reply (fake-llm-chat-reply (make-chat-line (vector))))
+        (unknown-reply
+          (fake-llm-chat-reply
+            (make-chat-line (vector (list (cons "sha256" "6234-unknown-sha") (cons "filename" "u.pdf")))
+            ) ;make-chat-line
+          ) ;fake-llm-chat-reply
+        ) ;unknown-reply
+       ) ;
     (check (string-contains? reply "[fake] attachment") => #f)
+    (check (string-contains? unknown-reply "[fake] attachment") => #f)
   ) ;let
 ) ;define
 
@@ -560,11 +858,15 @@
   (test-attachment-host-precheck-unreadable)
   (test-attachment-host-precheck-nonascii-path)
   (test-fake-attachment-ingest-exception-fallback)
+  (test-attachment-cache-payload-stored)
+  (test-fake-attachment-ingest-put-noop)
+  (test-fake-attachment-ingest-inconsistent-cache)
   (test-attachment-ingest-request-json-shape)
   (test-fake-attachment-sha256-key)
   (test-fake-attachment-ingest-source-sha256)
   (test-fake-attachment-ingest-empty-source-falls-back)
   (test-attachment-cache-sweep-and-refresh)
+  (test-attachment-hit-refresh-confirmation)
   (test-fake-llm-attachment-injection)
   (test-fake-llm-no-attachments)
   (test-chat-wire-encoding)
