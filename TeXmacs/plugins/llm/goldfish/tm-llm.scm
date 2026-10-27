@@ -91,7 +91,9 @@
 ;; 假 llm 插件按 sha256 从附件抽取缓存取假文本，全程不接触本地路径。
 ;; 缓存约定与 tm-attachment.scm 写入方一致（内置 goldfish 树不可添加
 ;; 共享库，两插件各自内联同一约定）：<平台缓存基目录>/Liiistem/attachment/
-;; extract/<yyyymm>/<sha256>/result.json，二元数组 [{id, ts}, {content, …}]
+;; extract/<yyyymm>/<sha256>/result.json，二元数组 [{id, ts},
+;; {content, filename, supplier, …}]，[1].supplier 标注数据来源插件；
+;; 假 llm 只读取 content，不读取、不回显 supplier（读取方消费不变）
 
 (define (fake-llm-cache-base)
   ;; 平台惯例缓存基目录，与 tm-attachment.scm 的 attachment-cache-base
@@ -115,7 +117,8 @@
 ) ;define
 
 (define (fake-llm-read-extract-cache file)
-  ;; result.json 为二元数组 [{id, ts}, {content, …}]，取 content
+  ;; result.json 为二元数组 [{id, ts}, {content, filename, supplier, …}]，
+  ;; 只取 content（supplier 等其余字段不消费）
   (if (not (path-file? file))
     #f
     (let ((j

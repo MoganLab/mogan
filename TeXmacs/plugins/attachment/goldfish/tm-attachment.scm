@@ -40,12 +40,16 @@
 ;; 假 sha256 由路径字符串确定性散列生成：带 sourcePath 时对原路径取
 ;; 散列（缓存键随原文档，不随每次转换随机生成的临时 PDF 路径），否则
 ;; 对读取路径取散列；假提取文本写入抽取缓存，供 llm 插件按 sha256 取用
-;; ——llm 插件只认 sha256、不接触本地路径
+;; ——llm 插件只认 sha256、不接触本地路径。缓存载荷 [1] 标注
+;; supplier=fake（标明数据来自假插件），ready 以回读当月缓存确认为前提，
+;; 确认失败返回带原 taskId 的 error 事件
 
 ;;; ---------- 抽取缓存：平台基目录、月度布局、命中刷新、月度清理 ----------
 ;; 磁盘契约（真实插件遵从同一约定，tm-llm.scm 的读取方内联同一套约定）：
 ;; <缓存基目录>/Liiistem/attachment/extract/<yyyymm>/<sha256>/result.json，
-;; 二元数组 [{"id": sha256, "ts"}, {"content": …}]，保留当月与上月
+;; 二元数组 [{"id": sha256, "ts"}, {"content": …, "filename": …,
+;; "supplier": …}]（[1].supplier 标注数据来源插件；命中刷新沿用原缓存的
+;; supplier），保留当月与上月
 
 (define (attachment-cache-base)
   ;; 平台惯例缓存基目录（对齐 mogan C++ get_tm_cache_path 的分布）：
@@ -140,17 +144,21 @@
   ) ;let
 ) ;define
 
-(define (attachment-fresh-payload sha256 filename ts content)
-  (json->string (vector (list (cons "id" sha256) (cons "ts" ts))
-                  (list (cons "content" content) (cons "filename" filename))
-                ) ;vector
-  ) ;json->string
+(define (attachment-fresh-entry filename content)
+  ;; 新缓存 [1]（expected-payload 的唯一构造点）：假提取文本 + 文件名 +
+  ;; supplier=fake（真实链路的 supplier 由 liii 真实插件写入）
+  (list (cons "content" content)
+    (cons "filename" filename)
+    (cons "supplier" "fake")
+  ) ;list
 ) ;define
 
 (define (attachment-cache-put! sha256 filename content)
-  ;; 命中刷新：命中时保留缓存原文、仅刷新 ts 重写至当月目录（命中文件
-  ;; 可能在上月目录），热附件不被月度清理误删；未命中写入新缓存
-  ;; （content 仅此时使用）
+  ;; 命中刷新：命中时保留缓存原文 [1]（含其 supplier，不用假提取文本
+  ;; 重造 content）、仅刷新 ts 重写至当月目录（命中文件可在上月目录），
+  ;; 热附件不被月度清理误删；未命中写入新缓存（content 仅此时使用）。
+  ;; 返回本次应保存的 [1] 供调用方独立回读比对——它只是预期值，
+  ;; 不能代替落盘确认
   (let* ((dir (attachment-extract-cache-dir sha256))
          (cached (attachment-extract-cache-find sha256))
          (ts
@@ -159,17 +167,48 @@
          (j
            (and cached (catch #t (lambda () (string->json cached)) (lambda args #f)))
          ) ;j
-         (payload
-           (if (and j (vector? j) (= (vector-length j) 2))
-             ;; 缓存原文 [1] 原样保留，仅重写头部 ts
-             (json->string (vector (json-set (vector-ref j 0) "ts" ts) (vector-ref j 1)))
-             (attachment-fresh-payload sha256 filename ts content)
-           ) ;if
-         ) ;payload
+         (hit (and j (vector? j) (= (vector-length j) 2)))
+         (expected-payload (if hit (vector-ref j 1) (attachment-fresh-entry filename content))
+         ) ;expected-payload
         ) ;
     (path-mkdir dir #t #t)
-    (path-write-text (path->string (path-join dir "result.json")) payload)
+    (path-write-text (path->string (path-join dir "result.json"))
+      (json->string
+        (vector (if hit
+                  ;; 命中时沿用缓存原文头部，仅重写 ts
+                  (json-set (vector-ref j 0) "ts" ts)
+                  (list (cons "id" sha256) (cons "ts" ts))
+                ) ;if
+          expected-payload
+        ) ;vector
+      ) ;json->string
+    ) ;path-write-text
+    expected-payload
   ) ;let*
+) ;define
+
+(define (attachment-cache-payload-stored? sha256 expected-payload)
+  ;; 当月落盘确认：只回读当月目标 result.json 并校验 id 与完整 [1]，
+  ;; 任何读取/解析异常一律视为未落盘。不得用逐月查找代替——命中刷新
+  ;; 写当月失败而上月旧文件还在时会误判成功。只读：不写、不删、不重试
+  (catch #t
+    (lambda ()
+      (let ((f (path-join (attachment-extract-cache-dir sha256) "result.json")))
+        (and (path-file? f)
+          (let ((j (string->json (path-read-text (path->string f)))))
+            (and (vector? j)
+              (= (vector-length j) 2)
+              (string=? (json-ref-string (vector-ref j 0) "id" "") sha256)
+              ;; 比较解析后的 JSON 结构（非格式化文本），字段顺序与
+              ;; 空白差异不误判
+              (equal? (vector-ref j 1) expected-payload)
+            ) ;and
+          ) ;let
+        ) ;and
+      ) ;let
+    ) ;lambda
+    (lambda args #f)
+  ) ;catch
 ) ;define
 
 (define (fake-attachment-sha256 file-path)
@@ -188,25 +227,32 @@
 
 (define (fake-attachment-ready-event task-id file-path source-path)
   ;; 请求已瘦身：filename 与 size 由 file-path 在此计算（ready 事件六键形态
-  ;; 不变：filename/size 冗余但保留以稳定协议契约）；参数名避开 path：
-  ;; (liii path) 的 path 构造函数在 s7 下被字符串参数遮蔽后 (path x)
-  ;; 会被当作 string-ref 调用
+  ;; 不变：filename/size 冗余但保留以稳定协议契约）；缓存回读确认失败时
+  ;; 不返回 ready，改返回带原 taskId 的 error（函数名保留历史叫法）；
+  ;; 参数名避开 path：(liii path) 的 path 构造函数在 s7 下被字符串参数
+  ;; 遮蔽后 (path x) 会被当作 string-ref 调用
   (let* ((p (path file-path))
          (filename (path->string (path-name p)))
          (size (if (and (path-file? p) (access file-path 'R_OK)) (path-getsize p) 0))
          (sha256 (fake-attachment-sha256 (fake-attachment-sha256-key file-path source-path))
          ) ;sha256
          (content (fake-attachment-extracted-text filename))
+         ;; put 成功返回不等于落盘成功：expected-payload 只是预期值，
+         ;; 必须独立回读当月 result.json 确认（不能用缓存目录存在性或
+         ;; 逐月 content reader 代替）
+         (expected-payload (attachment-cache-put! sha256 filename content))
         ) ;
-    (attachment-cache-put! sha256 filename content)
-    (json->string (list (cons "event" "ready")
-                    (cons "taskId" task-id)
-                    (cons "sha256" sha256)
-                    (cons "filename" filename)
-                    (cons "size" size)
-                    (cons "extractedChars" (string-length content))
-                  ) ;list
-    ) ;json->string
+    (if (attachment-cache-payload-stored? sha256 expected-payload)
+      (json->string (list (cons "event" "ready")
+                      (cons "taskId" task-id)
+                      (cons "sha256" sha256)
+                      (cons "filename" filename)
+                      (cons "size" size)
+                      (cons "extractedChars" (string-length content))
+                    ) ;list
+      ) ;json->string
+      (fake-attachment-error-event task-id "附件缓存写入失败，请重试")
+    ) ;if
   ) ;let*
 ) ;define
 
