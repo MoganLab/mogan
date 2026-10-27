@@ -78,14 +78,18 @@ jobs:
           security create-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN"
           security set-keychain-settings -lut 21600 "$KEYCHAIN"
           security unlock-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN"
-          # pkg 由 productsign 签，keychain 授权要同时含 codesign 与 productsign
+          # app 由 codesign 签，pkg 由 vpk 的 productbuild --sign 签（vpk 1.2.0 的
+          # CreateInstallerPkg 只调 pkgbuild/productbuild，从不调 productsign），
+          # 且 vpk 不给 productbuild 传 --keychain、靠下面的 default-keychain 定位。
+          # 三个工具都必须在 ACL 里：缺任一个都会让它等待 SecurityAgent 授权，
+          # 在 headless runner 上表现为无日志永久挂死（v2026.3.8-test3 超时即此）。
           security import "$CERT" -P "$APPLE_CERTIFICATE_PASSWORD" -k "$KEYCHAIN" \
-            -T /usr/bin/codesign -T /usr/bin/productsign ||
+            -T /usr/bin/codesign -T /usr/bin/productsign -T /usr/bin/productbuild ||
             security import "$CERT" -P "$APPLE_CERTIFICATE_PASSWORD" -k "$KEYCHAIN"
           curl -fsSL -o /tmp/apple_devid_ca.cer https://www.apple.com/certificateauthority/DeveloperIDCA.cer
           curl -fsSL -o /tmp/apple_devid_ca_g2.cer https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
           security add-certificates -k "$KEYCHAIN" /tmp/apple_devid_ca.cer /tmp/apple_devid_ca_g2.cer
-          security set-key-partition-list -S apple-tool:,apple:,codesign:,productsign: -s -k "$KEYCHAIN_PASS" "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple:,codesign:,productsign:,productbuild: -s -k "$KEYCHAIN_PASS" "$KEYCHAIN"
           LOGIN_KC="$HOME/Library/Keychains/login.keychain-db"
           if [ -f "$LOGIN_KC" ]; then
             security list-keychains -d user -s "$KEYCHAIN" "$LOGIN_KC" /Library/Keychains/System.keychain
