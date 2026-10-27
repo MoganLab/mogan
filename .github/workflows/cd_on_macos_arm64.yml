@@ -63,7 +63,7 @@ jobs:
       # VPK_SIGN_APP_IDENTITY 即跳过 ad-hoc、交给 vpk 深签。
       - name: Setup Apple signing
         env:
-          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
@@ -78,12 +78,18 @@ jobs:
           security create-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN"
           security set-keychain-settings -lut 21600 "$KEYCHAIN"
           security unlock-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN"
-          security import "$CERT" -P "$APPLE_CERTIFICATE_PASSWORD" -k "$KEYCHAIN" -T /usr/bin/codesign ||
+          # app 由 codesign 签，pkg 由 vpk 的 productbuild --sign 签（vpk 1.2.0 的
+          # CreateInstallerPkg 只调 pkgbuild/productbuild，从不调 productsign），
+          # 且 vpk 不给 productbuild 传 --keychain、靠下面的 default-keychain 定位。
+          # 三个工具都必须在 ACL 里：缺任一个都会让它等待 SecurityAgent 授权，
+          # 在 headless runner 上表现为无日志永久挂死，直到 job 超时被取消。
+          security import "$CERT" -P "$APPLE_CERTIFICATE_PASSWORD" -k "$KEYCHAIN" \
+            -T /usr/bin/codesign -T /usr/bin/productsign -T /usr/bin/productbuild ||
             security import "$CERT" -P "$APPLE_CERTIFICATE_PASSWORD" -k "$KEYCHAIN"
           curl -fsSL -o /tmp/apple_devid_ca.cer https://www.apple.com/certificateauthority/DeveloperIDCA.cer
           curl -fsSL -o /tmp/apple_devid_ca_g2.cer https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
           security add-certificates -k "$KEYCHAIN" /tmp/apple_devid_ca.cer /tmp/apple_devid_ca_g2.cer
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASS" "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple:,codesign:,productsign:,productbuild: -s -k "$KEYCHAIN_PASS" "$KEYCHAIN"
           LOGIN_KC="$HOME/Library/Keychains/login.keychain-db"
           if [ -f "$LOGIN_KC" ]; then
             security list-keychains -d user -s "$KEYCHAIN" "$LOGIN_KC" /Library/Keychains/System.keychain
@@ -100,10 +106,13 @@ jobs:
           xcrun notarytool store-credentials mogan-notary \
             --key "$API_KEY" --key-id "$APPLE_API_KEY_ID" \
             --issuer "$APPLE_API_ISSUER_ID" --keychain "$KEYCHAIN"
-          # 身份名动态解析（P12 里证书的完整主题名因续期而变，不硬编码）
-          APP_IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN" |
+          # 身份名动态解析（P12 里证书的完整主题名因续期而变，不硬编码）。
+          # 注意不能用 -p codesigning：该策略只收录 Code Signing 用途的证书，
+          # Developer ID Installer 的 EKU 是 1.2.840.113635.100.4.13，会被滤掉，
+          # 导致 pkg 被误判为“无 Installer 身份”而跳过签名/公证。用默认(basic)策略。
+          APP_IDENTITY="$(security find-identity -v "$KEYCHAIN" |
             sed -n 's/.*"\(Developer ID Application:[^"]*\)".*/\1/p' | head -1)"
-          INSTALL_IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN" |
+          INSTALL_IDENTITY="$(security find-identity -v "$KEYCHAIN" |
             sed -n 's/.*"\(Developer ID Installer:[^"]*\)".*/\1/p' | head -1)"
           if [ -n "$APP_IDENTITY" ]; then
             echo "VPK_SIGN_APP_IDENTITY=$APP_IDENTITY" >> "$GITHUB_ENV"
