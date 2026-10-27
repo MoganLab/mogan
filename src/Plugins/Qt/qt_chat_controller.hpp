@@ -187,9 +187,11 @@ public:
   void onAttachRequested (const string& sessionId, const QPoint& globalPos);
 
   /**
-   * @brief 附件插件 ready 事件：回填 sha256 与 extractedChars、弹出 chip、
-   *        按需解禁发送，累计超限时移除该附件并 toast。
+   * @brief 附件插件 ready 事件：清理转换 PDF、回填 sha256 与
+   *        extractedChars、弹出 chip，累计超限时移除该附件并 toast。
    *
+   * 假插件在写入假缓存后直接 ready；真插件完成实际抽取与缓存后 ready。
+   * 两种实现均在 ready 后不再需要转换 PDF。常规附件原文件不删除。
    * chip 展示用的 filename/size 在选择时已填入 AttachmentItem，
    * 事件只需 taskId 定位、sha256 与 extractedChars 回填。
    *
@@ -199,7 +201,7 @@ public:
   void onAttachmentReady (const string& taskId, const string& sha256,
                           qint64 extractedChars);
   /**
-   * @brief 附件插件 error 事件：移除条目并 toast 原因。
+   * @brief 附件插件 error 事件：清理转换 PDF、移除条目并 toast 原因。
    */
   void onAttachmentError (const string& taskId, const string& reason);
 
@@ -301,9 +303,10 @@ private:
   bool               firstOpen_= true; ///< 是否首次打开（首次时切换到新会话）
   string previousSessionId_; ///< 切入翻译/释义专属会话前的上一个活跃会话 ID
   QHash<QString, QString>
-      attachTaskSession_;             ///< ingest taskId → sessionId（事件路由）
-  int attachTaskSeq_= 0;              ///< ingest 任务号自增序号（不透明）
-  QPointer<QWidget> attachMenuPopup_; ///< 附件菜单悬浮窗
+      attachTaskSession_; ///< ingest taskId → sessionId（事件路由）
+  QHash<QString, QString> attachConvertedPdf_; ///< taskId → 待终态清理的 PDF
+  int               attachTaskSeq_= 0; ///< ingest 任务号自增序号（不透明）
+  QPointer<QWidget> attachMenuPopup_;  ///< 附件菜单悬浮窗
 
   /**
    * @brief 批量附加文件到指定会话：去重、派发 ingest 并入列 chips。

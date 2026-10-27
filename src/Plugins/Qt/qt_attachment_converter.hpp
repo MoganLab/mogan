@@ -26,8 +26,8 @@ class QProcess;
  * init_texmacs.cpp 对 -c 自动开启 headless（research.cpp），转换分支末尾
  * 自动追加 (quit-TeXmacs)，故无需另传 -q，以进程退出判定完成。
  *
- * 临时产物放在附件插件缓存目录同级的 convert/ 下（与既有 extract/ 同级），
- * 落在系统缓存约定内，随缓存清理策略回收；不在应用退出时统一删除。
+ * 临时产物放在附件插件缓存目录同级的 convert/<uuid>/ 下，仅供 ingest
+ * 使用；宿主在附件插件 ready 或 error 终态删除，不长期保留。
  */
 class AttachmentConverter : public QObject {
   Q_OBJECT

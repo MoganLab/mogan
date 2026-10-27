@@ -445,17 +445,20 @@
 
 (define (test-fake-llm-attachment-injection)
   (let* ((path "/tmp/chat-protocol-test-llm.pdf")
-         ;; 被 ingest 的文件须真实存在（可访问性预检拒绝不存在路径），
-         ;; 用后清理，避免 /tmp 残留掩盖后续同类遗漏
+         ;; 被 ingest 的文件须真实存在（可访问性预检拒绝不存在路径）
          (ignored0 (path-write-text path "x"))
          (sha256 (fake-attachment-sha256 path))
          (ignored (fake-attachment-ingest (make-ingest-line "t-llm" path)))
+         ;; 6233：假插件已写假缓存并 ready，宿主随即删除转换 PDF；
+         ;; 假 LLM 只能依靠 extract/result.json 完成后续注入
+         (ignored-delete (path-unlink path #t))
          (chat-line
            (make-chat-line (vector (list (cons "sha256" sha256) (cons "filename" "f.pdf")))
            ) ;make-chat-line
          ) ;chat-line
          (reply (fake-llm-chat-reply chat-line))
         ) ;
+    (check (path-file? path) => #f)
     (check (string? reply) => #t)
     (check (string-contains? reply "[fake-llm] 我收到了你的消息：hi")
       =>
@@ -465,7 +468,6 @@
       =>
       #t
     ) ;check
-    (path-unlink path #t)
   ) ;let*
 ) ;define
 

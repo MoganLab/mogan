@@ -11,9 +11,12 @@
 #include "Qt/AttachMenuBridge.hpp"
 #include "Qt/qt_chat_controller.hpp"
 #include "base.hpp"
+#include <QDir>
+#include <QFile>
 #include <QPushButton>
 #include <QQuickItem>
 #include <QQuickWidget>
+#include <QTemporaryDir>
 #include <QToolButton>
 #include <QtTest/QtTest>
 
@@ -408,6 +411,100 @@ private slots:
     ctrl.onAttachmentError ("t-noperm", "附件文件不可读取： noperm.pdf");
     QVERIFY (!ctrl.attachTaskSession_.contains ("t-noperm"));
 
+    ctrl.view_= nullptr;
+  }
+
+  void test_converted_pdf_cleanup_on_ready () {
+    QTemporaryDir temp;
+    QVERIFY (temp.isValid ());
+    const QString convertedDir= temp.filePath ("uuid-ready");
+    const QString regularDir  = temp.filePath ("regular");
+    QVERIFY (QDir ().mkpath (convertedDir));
+    QVERIFY (QDir ().mkpath (regularDir));
+    const QString convertedPdf= QDir (convertedDir).filePath ("document.pdf");
+    const QString regularPdf  = QDir (regularDir).filePath ("regular.pdf");
+    QFile         convertedFile (convertedPdf);
+    QFile         regularFile (regularPdf);
+    QVERIFY (convertedFile.open (QIODevice::WriteOnly));
+    QVERIFY (convertedFile.write ("converted") > 0);
+    convertedFile.close ();
+    QVERIFY (regularFile.open (QIODevice::WriteOnly));
+    QVERIFY (regularFile.write ("regular") > 0);
+    regularFile.close ();
+
+    ChatController            ctrl;
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    ctrl.view_                  = &widget;
+    string                 sid  = ctrl.sessionManager_.createSession ();
+    ChatConversationPanel* panel= widget.createPanel (sid);
+    QVERIFY (panel != nullptr);
+    ctrl.sessionManager_.getSession (sid)->panel= panel;
+
+    AttachmentItem converted= make_attachment (convertedPdf, "document.pdf", 9);
+    converted.taskId        = "t-converted-ready";
+    converted.sourcePath    = "/tmp/document.tmu";
+    converted.ready         = false;
+    AttachmentItem regular  = make_attachment (regularPdf, "regular.pdf", 7);
+    regular.taskId          = "t-regular-ready";
+    regular.ready           = false;
+    panel->setAttachments (QList<AttachmentItem>{converted, regular});
+    ctrl.attachTaskSession_.insert (converted.taskId, to_qstring (sid));
+    ctrl.attachTaskSession_.insert (regular.taskId, to_qstring (sid));
+    ctrl.attachConvertedPdf_.insert (converted.taskId, converted.path);
+
+    ctrl.onAttachmentReady ("t-converted-ready", "converted-sha", 9);
+
+    QVERIFY (!QFile::exists (convertedPdf));
+    QVERIFY (!QDir (convertedDir).exists ());
+    QVERIFY (QFile::exists (regularPdf));
+    QVERIFY (!ctrl.attachConvertedPdf_.contains (converted.taskId));
+    QCOMPARE (panel->attachments ().size (), 2);
+    QVERIFY (panel->attachments ()[0].ready);
+    QCOMPARE (panel->attachments ()[0].sha256, QString ("converted-sha"));
+
+    ctrl.onAttachmentReady ("t-regular-ready", "regular-sha", 7);
+
+    QVERIFY (QFile::exists (regularPdf));
+    QVERIFY (QDir (regularDir).exists ());
+    QVERIFY (panel->attachments ()[1].ready);
+    ctrl.view_= nullptr;
+  }
+
+  void test_converted_pdf_cleanup_on_error () {
+    QTemporaryDir temp;
+    QVERIFY (temp.isValid ());
+    const QString dir= temp.filePath ("uuid-error");
+    QVERIFY (QDir ().mkpath (dir));
+    const QString pdf= QDir (dir).filePath ("document.pdf");
+    QFile         file (pdf);
+    QVERIFY (file.open (QIODevice::WriteOnly));
+    QVERIFY (file.write ("converted") > 0);
+    file.close ();
+
+    ChatController            ctrl;
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    ctrl.view_                  = &widget;
+    string                 sid  = ctrl.sessionManager_.createSession ();
+    ChatConversationPanel* panel= widget.createPanel (sid);
+    QVERIFY (panel != nullptr);
+    ctrl.sessionManager_.getSession (sid)->panel= panel;
+
+    AttachmentItem converted= make_attachment (pdf, "document.pdf", 9);
+    converted.taskId        = "t-converted-error";
+    converted.sourcePath    = "/tmp/document.tmu";
+    converted.ready         = false;
+    panel->setAttachments (QList<AttachmentItem>{converted});
+    ctrl.attachTaskSession_.insert (converted.taskId, to_qstring (sid));
+    ctrl.attachConvertedPdf_.insert (converted.taskId, converted.path);
+
+    ctrl.onAttachmentError ("t-converted-error", "ingest failed");
+
+    QVERIFY (!QFile::exists (pdf));
+    QVERIFY (!QDir (dir).exists ());
+    QVERIFY (panel->attachments ().isEmpty ());
+    QVERIFY (!ctrl.attachConvertedPdf_.contains (converted.taskId));
     ctrl.view_= nullptr;
   }
 
