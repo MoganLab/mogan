@@ -31,6 +31,7 @@
 #include <QApplication>
 #include <QDir>
 #include <QDockWidget>
+#include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QLabel>
@@ -78,6 +79,14 @@ static bool
 is_convertible_attachment (const QString& path) {
   QString ext= QFileInfo (path).suffix ().toLower ();
   return ext == "tmu" || ext == "tm" || ext == "stem";
+}
+
+static void
+remove_converted_pdf (const QString& pdfPath) {
+  if (pdfPath.isEmpty ()) return;
+  QFile::remove (pdfPath);
+  // 只回收为空的 UUID 父目录，避免把普通附件所在目录递归删掉
+  QDir ().rmdir (QFileInfo (pdfPath).absolutePath ());
 }
 
 // 翻译/释义专属会话的类型名（与 AI 操作栏动作名一致）
@@ -380,8 +389,11 @@ ChatController::dispatch_attachment_ingest (const string&   sessionId,
     return false;
   }
   // 路由登记统一在派发成功后：常规附件与文档附件（转换成功回调）走同一
-  // 入口，避免出现「已登记但永远不会有事件」的僵尸 taskId
+  // 入口，避免出现「已登记但永远不会有事件」的僵尸 taskId。转换 PDF 同时
+  // 按 taskId 登记，ready/error 到达前仍须留给插件读取，终态才清理
   attachTaskSession_.insert (item.taskId, to_qstring (sessionId));
+  if (!sourcePath.isEmpty ())
+    attachConvertedPdf_.insert (item.taskId, item.path);
   return true;
 }
 
@@ -410,11 +422,18 @@ ChatController::start_attachment_conversion (const string&          sessionId,
       converter, &AttachmentConverter::converted, this,
       [this, sessionId, panelGuard, taskId,
        sourcePath] (const QString& pdfPath) {
-        if (!panelGuard) return;
+        // 尚未进入 ingest 就已无人接收产物，立即清理；进入 ingest 后则由
+        // ready/error 统一清理，真插件异步抽取期间不能提前删除
+        if (!panelGuard) {
+          remove_converted_pdf (pdfPath);
+          return;
+        }
         AttachmentItem updated;
         // 转换期间用户可能已删掉该 chip：条目不在则静默丢弃产物
-        if (!panelGuard->attachmentRedirectToPdf (taskId, pdfPath, updated))
+        if (!panelGuard->attachmentRedirectToPdf (taskId, pdfPath, updated)) {
+          remove_converted_pdf (pdfPath);
           return;
+        }
         // 预检记账与常规路径同口径：count/bytes 均为除当前项外的
         // 已选累计（scheme 侧会再加上当前项自身的 size）
         qint64 othersBytes= 0;
@@ -429,8 +448,10 @@ ChatController::start_attachment_conversion (const string&          sessionId,
         // 计算 sha256 与抽取缓存键：同一文档重复添加命中同一缓存。
         // 失败时条目仍在处理中态，走既有 attachmentError 删除通道
         if (!dispatch_attachment_ingest (sessionId, updated, othersCount,
-                                         othersBytes, sourcePath))
+                                         othersBytes, sourcePath)) {
+          remove_converted_pdf (pdfPath);
           panelGuard->attachmentError (taskId);
+        }
       });
   connect (
       converter, &AttachmentConverter::failed, this,
@@ -554,8 +575,11 @@ ChatController::onAttachmentReady (const string& taskId, const string& sha256,
                                    qint64 extractedChars) {
   // 发送栅栏由面板的 attachmentProcessingChanged 信号驱动（处理中状态
   // 翻转即重算），此处无需再调 updateSendGate
-  QString                qTaskId= to_qstring (taskId);
-  ChatConversationPanel* panel  = takeAttachmentPanel (qTaskId);
+  QString qTaskId= to_qstring (taskId);
+  // ready 表示假插件已写好假缓存，或真插件已完成实际抽取与缓存；
+  // PDF 之后不再使用。先取映射再判面板，会话关闭时也能清理
+  remove_converted_pdf (attachConvertedPdf_.take (qTaskId));
+  ChatConversationPanel* panel= takeAttachmentPanel (qTaskId);
   if (!panel) return;
 
   // 提取后累计上限，先判后提交：处理中条目 extractedChars 为 0 不参与
@@ -579,6 +603,8 @@ ChatController::onAttachmentReady (const string& taskId, const string& sha256,
 void
 ChatController::onAttachmentError (const string& taskId, const string& reason) {
   QString qTaskId= to_qstring (taskId);
+  // error 同样是 ingest 终态，不再保留转换 PDF
+  remove_converted_pdf (attachConvertedPdf_.take (qTaskId));
   if (ChatConversationPanel* panel= takeAttachmentPanel (qTaskId)) {
     if (panel->attachmentError (qTaskId))
       // reason 经 utf8: 通道回传，input 解析已转 herk 内部形态（中文为
