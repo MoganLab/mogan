@@ -22,6 +22,12 @@
 
 fz_context* mupdf_context ();
 
+/**
+ * @brief 新建 RGB pixmap 并填充当前主题的初始底色
+ * @note 深色主题填 tm_background，其余情况填白色
+ */
+fz_pixmap* mupdf_new_background_pixmap (int w, int h);
+
 /******************************************************************************
  * Graphic renderer
  ******************************************************************************/

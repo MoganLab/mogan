@@ -1,1 +1,78 @@
-(document (TeXmacs "2.1.4") (style (tuple "generic" "chinese" "table-captions-above" "number-europe" "preview-ref")) (body (document (concat (with "font-series" "bold" "任务编号") "：6201") (concat (with "font-series" "bold" "任务内容") "：") "1.修复AI侧边栏中，在dark模式下，AI回复内容时会不断白屏闪烁的问题。" "    参考修复方向：渲染器的初始底色的设置问题" (concat (with "font-series" "bold" "注意事项") "：") "1、构建采用非社区版（is_community=n)" (concat "2、提交的pr的标题、正文，参考09开头编号的pr，比如：" (hlink "[1601] 修复释义引文1（上下文）的半截 herk 与段落内容丢失，上下文预算拉齐 by PinkMagicFly <centerdot> Pull Request #4627 <centerdot> MoganLab/mogan" "https://github.com/MoganLab/mogan/pull/4627")) "3、devel里惯例要写的任务文档，追加在本文件中。" "" "验收标准：" "      检验文字：无" "  ")) (initial (collection (associate "page-medium" "paper") (associate "page-screen-margin" "false") (associate "save-aux" "false") (associate "stem-doc-id" "D98B97F0-1D3E-4060-8A5D-EC3C5C6800D0"))))
+(document (TeXmacs "2.1.4")
+  (style (tuple "generic" "chinese" "table-captions-above" "number-europe" "preview-ref")
+  ) ;style
+  (body
+    (document (concat (with "font-series" "bold" "任务编号") "：6201")
+      (concat (with "font-series" "bold" "任务内容") "：")
+      "1.修复AI侧边栏中，在dark模式下，AI回复内容时会不断白屏闪烁的问题。"
+      "    参考修复方向：渲染器的初始底色的设置问题"
+      (concat (with "font-series" "bold" "注意事项") "：")
+      "1、构建采用非社区版（is_community=n)"
+      (concat "2、提交的pr的标题、正文，参考09开头编号的pr，比如："
+        (hlink "[1601] 修复释义引文1（上下文）的半截 herk 与段落内容丢失，上下文预算拉齐 by PinkMagicFly <centerdot> Pull Request #4627 <centerdot> MoganLab/mogan"
+          "https://github.com/MoganLab/mogan/pull/4627"
+        ) ;hlink
+      ) ;concat
+      "3、devel里惯例要写的任务文档，追加在本文件中。"
+      ""
+      "验收标准："
+      "      检验文字：无"
+      (section* "1 相关文档")
+      (itemize (document (concat (item)
+                           (hlink "1205.md" "1205.md")
+                           " - 修复新建/打开文档时编辑区灰边闪白"
+                         ) ;concat
+                 (concat (item)
+                   (hlink "1272.md" "1272.md")
+                   " - 深色模式下新建 AI 对话自动带上 dark 样式包"
+                 ) ;concat
+               ) ;document
+      ) ;itemize
+      (section* "2 任务相关的代码文件")
+      (itemize (document (concat (item)
+                           "src/Plugins/MuPDF/mupdf_picture.cpp - native_picture 深色模式底色支持"
+                         ) ;concat
+                 (concat (item)
+                   "src/Plugins/MuPDF/mupdf_renderer.cpp - mupdf_renderer 深色模式初始背景色设置"
+                 ) ;concat
+                 (concat (item)
+                   "src/Plugins/Qt/qt_picture.cpp - Qt 原生 picture 深色底色支持"
+                 ) ;concat
+                 (concat (item)
+                   "src/Plugins/Qt/qt_renderer.cpp - qt_renderer 深色初始底色支持"
+                 ) ;concat
+                 (concat (item) "tests/Plugins/Qt/renderer_initial_bg_test.cpp - 单元测试")
+               ) ;document
+      ) ;itemize
+      (section* "3 如何测试")
+      (subsection* "3.1 单元测试")
+      "运行渲染器与图片初始底色单元测试："
+      "xmake b renderer_initial_bg_test && xmake r renderer_initial_bg_test"
+      "运行所有聊天相关单元测试："
+      "xmake b qt_chat_tab_widget_test && xmake r qt_chat_tab_widget_test"
+      (section* "4 What")
+      "修复在深色模式（dark / liii-night）下，AI 侧边栏在回复流式内容时，编辑区画面不断出现白屏闪烁的问题。"
+      (section* "5 Why")
+      "1. native_picture() 在创建原生 Fitz pixmap 时，硬编码使用 fz_clear_pixmap_with_value(..., 255) 以纯白色填充底色；当 AI 回复流式追加内容触发滚动或尺寸调整时，repaint_invalid_regions() 会调用 native_picture 重建 backing_store，未覆盖到的新暴露区域或中断未绘制区域呈现纯白色，导致刷新到屏幕时闪白。"
+      "2. mupdf_renderer_rep 构造函数、begin() 以及 new_shadow() 中，初始背景色 bg 默认为 -1（对应 RGB 全 255 白色），bg_brush 默认为白色画刷；在执行 clear() 且尚未显式 set_background 时，会以纯白色填充。"
+      "3. qt_picture.cpp 与 qt_renderer.cpp 中未初始化的像素与画刷默认亦为白色，缺少深色模式下的底色同步。"
+      (section* "6 How")
+      "1. mupdf_picture.cpp：native_picture() 检测 qt_is_dark_theme()，若为深色模式，使用 tm_background 填充初始 pixmap 底色；浅色模式保持白色底色不变。"
+      "2. mupdf_renderer.cpp：在 mupdf_renderer_rep 构造函数、begin() 和 new_shadow() 中检测 qt_is_dark_theme()，深色模式下将 bg 和 bg_brush 初始化为 tm_background，避免使用 -1（白色）作为初始填充色。"
+      "3. qt_picture.cpp 与 qt_renderer.cpp：同步适配深色模式初始底色。"
+      "4. tests/Plugins/Qt/renderer_initial_bg_test.cpp：增加针对浅色模式与深色模式下 native_picture、mupdf_renderer 和 shadow 渲染器初始底色的单元测试。"
+      (section* "7 Simplify 记录（2026-09-22）")
+      "1. 提取 mupdf_new_background_pixmap 共享 helper（mupdf_renderer.hpp/cpp），收口 native_picture 与 new_shadow 中逐字重复的 pixmap 底色填充逻辑。"
+      "2. mupdf_renderer_rep 构造函数与 begin() 改用 set_background 规范接口设置初始底色，替换手工 bg/bg_brush 双字段赋值。"
+      "3. 删除 qt_picture.cpp 与 qt_renderer.cpp 中恒真的 #ifdef QTTEXMACS 死分支（Qt 插件源文件仅在 qt_frontend 下编译）。"
+      "4. 单元测试改用 theme_guard RAII 恢复主题状态，修复 tm_background 不恢复与断言失败中途不恢复的问题。"
+      "5. libmogan 的 mupdf 包改为 public：renderer_initial_bg_test 直接包含 MuPDF 头文件，需向依赖目标传递 mupdf 头文件路径，修复测试目标编译失败（远端 CI 实际存在该问题，被 flaky 的 macosbuild 掩盖）。"
+    ) ;document
+  ) ;body
+  (initial (collection (associate "page-medium" "paper")
+             (associate "page-screen-margin" "false")
+             (associate "save-aux" "false")
+             (associate "stem-doc-id" "D98B97F0-1D3E-4060-8A5D-EC3C5C6800D0")
+           ) ;collection
+  ) ;initial
+) ;document

@@ -369,7 +369,7 @@ target("libmogan") do
                 "$(projectdir)/src/Plugins/MuPDF/Qt/*.cpp"
             })
         end
-        add_packages("mupdf")
+        add_packages("mupdf", {public = true})
     end
 
     add_mxflags("-fno-objc-arc")
