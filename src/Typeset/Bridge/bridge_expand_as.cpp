@@ -120,7 +120,7 @@ bridge_expand_as_rep::notify_macro (int tp, string var, int l, path p, tree u) {
 void
 bridge_expand_as_rep::notify_change () {
   status= CORRUPTED;
-  body->notify_change ();
+  if (!is_nil (body)) body->notify_change ();
 }
 
 /******************************************************************************
