@@ -857,14 +857,16 @@
 ) ;define
 
 (tm-define (list-structured-insert-context?)
-  (and-with item
-    (current-list-item-marker)
-    (or (in? (tree-label item) '(item item*))
-      (in? (list-family (get-current-list-label item))
-        '(enumerate itemize description)
-      ) ;in?
-    ) ;or
-  ) ;and-with
+  (and (not (table-markup-context? (focus-tree)))
+    (and-with item
+      (current-list-item-marker)
+      (or (in? (tree-label item) '(item item*))
+        (in? (list-family (get-current-list-label item))
+          '(enumerate itemize description)
+        ) ;in?
+      ) ;or
+    ) ;and-with
+  ) ;and
 ) ;tm-define
 
 (define (find-previous-item-index item-list start)

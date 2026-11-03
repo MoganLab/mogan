@@ -829,13 +829,13 @@
   ) ;assuming
   (assuming (structured-vertical? t)
    ("Insert above" (structured-insert-up))
-   (assuming (not (list-structured-insert-context?))
+   (assuming (structured-horizontal? t)
     ("Insert left" (structured-insert-left))
     ("Insert right" (structured-insert-right))
    ) ;assuming
    ("Insert below" (structured-insert-down))
    ("Remove upwards" (structured-remove-up))
-   (assuming (not (list-structured-insert-context?))
+   (assuming (structured-horizontal? t)
     ("Remove leftwards" (structured-remove-left))
     ("Remove rightwards" (structured-remove-right))
    ) ;assuming
@@ -1054,7 +1054,7 @@
    ((balloon (icon "tm_insert_up.xpm") "Structured insert above")
     (structured-insert-up)
    ) ;
-   (assuming (not (list-structured-insert-context?))
+   (assuming (structured-horizontal? t)
     ((balloon (icon "tm_insert_left.xpm") "Structured insert at the left")
      (structured-insert-left)
     ) ;
@@ -1068,7 +1068,7 @@
    ((balloon (icon "tm_delete_up.xpm") "Structured remove upwards")
     (structured-remove-up)
    ) ;
-   (assuming (not (list-structured-insert-context?))
+   (assuming (structured-horizontal? t)
     ((balloon (icon "tm_delete_left.xpm") "Structured remove leftwards")
      (structured-remove-left)
     ) ;

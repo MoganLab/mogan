@@ -11,7 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (generic test generic-test)
-  (:use (generic generic-menu) (table table-menu))
+  (:use (generic generic-menu) (table table-menu) (generic generic-edit))
 ) ;texmacs-module
 
 (import (liii check))
@@ -32,8 +32,34 @@
   (check (focus-tag-name 'big-table) => "big table")
 ) ;define
 
+(define (test-structured-horizontal)
+  (let* ((tbl
+           (tm->tree
+             '(three-line-table (tformat (table (row (cell "a")))))
+           ) ;tm->tree
+         ) ;tbl
+         (plain-tbl
+           (tm->tree '(table (row (cell "a"))))
+         ) ;plain-tbl
+         (list-item
+           (tm->tree '(itemize (document (item) "hello")))
+         ) ;list-item
+        ) ;
+    (check (table-markup-context? tbl) => #t)
+    (check (table-markup-context? plain-tbl) => #t)
+    (check (structured-horizontal? tbl) => #t)
+    (check (structured-vertical? tbl) => #t)
+    (check (table-markup-context? list-item) => #f)
+    (check (structured-horizontal? list-item) => #f)
+  ) ;let*
+) ;define
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Test entry point
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (regtest-generic) (test-focus-tag-name) (check-report))
+(tm-define (regtest-generic)
+  (test-focus-tag-name)
+  (test-structured-horizontal)
+  (check-report)
+) ;tm-define
