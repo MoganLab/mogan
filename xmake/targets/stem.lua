@@ -222,6 +222,10 @@ target("stem") do
     end
 
     after_build(function (target)
+        if is_plat("windows") then
+            local bin_dir = path.join(target:installdir(), "bin")
+            os.cp(target:targetfile(), bin_dir)
+        end
         if is_plat("wasm") then
             local web_dist = path.join(os.projectdir(), "web", "dist")
             local legacy_shell = path.join(os.projectdir(), "tools", "wasm", "stem.html")

@@ -188,10 +188,8 @@ string
 ps_load (url image, bool conv) {
   if (DEBUG_CONVERT) debug_convert << "ps_load " << image << LF;
 
-  url name= sys_concretize (image);
+  url name= concretize_url (image);
   if (is_none (name)) name= "$TEXMACS_PATH/misc/pixmaps/unknown.png";
-
-  if (is_ramdisc (name)) name= get_from_ramdisc (name);
 
   string s= "", suf= suffix (image);
   if (suf == "ps" || suf == "eps") {
