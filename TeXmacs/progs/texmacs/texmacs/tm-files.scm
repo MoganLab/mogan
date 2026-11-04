@@ -32,7 +32,7 @@
         ) ;only
 ) ;import
 (import (only (srfi srfi-1) find))
-(import (only (srfi srfi-1) remove take))
+(import (only (srfi srfi-1) remove take list-index))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Remember last save/open directory
@@ -366,6 +366,36 @@
       ) ;let*
     ) ;when
   ) ;let*
+) ;tm-define
+
+;; 环形下标：从 idx 偏移 delta，在 [0, len) 内回绕；len <= 0 时返回 #f。
+;; 抽成纯函数便于 headless 单测（见 tm-files-test.scm）。
+
+(tm-define (cyclic-view-index idx delta len)
+  (and (> len 0) (modulo (+ idx delta) len))
+) ;tm-define
+
+(tm-define (switch-to-view-offset delta)
+  (:synopsis "Switch to the tab @delta positions away from the current one, wrapping around")
+  (let* ((lst (tabpage-list #t))
+         (len (length lst))
+         (idx (list-index (lambda (v) (== v (current-view))) lst))
+        ) ;
+    ;; 当前 view 不在本窗口 tab 列表（如独立弹出的辅助 view）或只有一个 tab 时不动。
+    (when (and idx (> len 1))
+      (switch-to-view-index (cyclic-view-index idx delta len))
+    ) ;when
+  ) ;let*
+) ;tm-define
+
+(tm-define (switch-to-next-view)
+  (:synopsis "Switch to the next tab, wrapping around to the first one")
+  (switch-to-view-offset 1)
+) ;tm-define
+
+(tm-define (switch-to-previous-view)
+  (:synopsis "Switch to the previous tab, wrapping around to the last one")
+  (switch-to-view-offset -1)
 ) ;tm-define
 
 (tm-define (ensure-default-view)
