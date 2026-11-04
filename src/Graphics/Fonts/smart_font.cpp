@@ -1151,6 +1151,16 @@ use_italic_greek (array<string> a) {
   return count <= 1;
 }
 
+// 单个 Unicode 字符的码点；多字符串、空串或 TeXmacs 专用标记（<sqrt> 等）返回 -1
+static int
+unicode_code_of (string c) {
+  string uc= strict_cork_to_utf8 (c);
+  if (N (uc) == 0) return -1;
+  int pos = 0;
+  int code= decode_from_utf8 (uc, pos);
+  return (pos == N (uc)) ? code : -1;
+}
+
 int
 smart_font_rep::resolve (string c) {
   if (DEBUG_VERBOSE) {
@@ -1163,6 +1173,11 @@ smart_font_rep::resolve (string c) {
 
   // Special handling for emoji characters - bypass font-family restrictions
   string range= get_unicode_range (c);
+  // U+20E3 COMBINING ENCLOSING KEYCAP 与 0-9、#、* 组成键帽序列（如 U+0030 U+20E3）。
+  // lolly 把 U+2000-U+23FF 整体归为 mathsymbols，键帽因此走数学字体链；默认
+  // 数学字体没有该字形，最终渲染为 <#20E3> 占位符（#4539）。它实际是 emoji
+  // 修饰符，应与 emoji 共用回退链。
+  bool emoji_chain= (range == "emoji") || (unicode_code_of (c) == 0x20E3);
   // 如果设置了字体，就优先使用当前设置的字体
   if (fn[SUBFONT_MAIN]->supports (c)) {
     bool prefer_italic_greek= false;
@@ -1178,7 +1193,7 @@ smart_font_rep::resolve (string c) {
     }
   }
 
-  if (range == "emoji") {
+  if (emoji_chain) {
     for (int i= 0; i < N (a); i++) {
       array<string> parts= trimmed_tokenize (a[i], "=");
       if (N (parts) >= 2 && parts[0] == "emoji") {
@@ -1216,6 +1231,15 @@ smart_font_rep::resolve (string c) {
         closest_font ("DejaVu Sans", "rm", "medium", "right", sz, dpi, 1);
     if (!is_nil (dejavu_fn) && dejavu_fn->supports (c)) {
       tree key= tuple ("emoji-font", "DejaVu Sans");
+      int  nr = sm->add_font (key, REWRITE_NONE);
+      maybe_initialize_font (nr);
+      return sm->add_char (key, c);
+    }
+    // 最后兜底自带的 Asana Math：其 cmap 含 U+20E3 等组合用符号
+    font asana_fn=
+        closest_font ("Asana Math", "rm", "medium", "right", sz, dpi, 1);
+    if (!is_nil (asana_fn) && asana_fn->supports (c)) {
+      tree key= tuple ("emoji-font", "Asana Math");
       int  nr = sm->add_font (key, REWRITE_NONE);
       maybe_initialize_font (nr);
       return sm->add_char (key, c);
