@@ -136,6 +136,13 @@ initialize_default_env () {
   env (ALT_KEYWORD_COLOR) = "#309090";    // alternative color for keywords
   env (ALT_CONSTANT_COLOR)= "#800080";    // alternative color for constants
 
+  env ("json-key-color")      = "#8020c0"; // JSON property key
+  env ("json-string-color")   = "#2e7d32"; // JSON string value
+  env ("json-number-color")   = "#0066cc"; // JSON number
+  env ("json-constant-color") = "#c63d2f"; // JSON boolean/null
+  env ("json-operator-color") = "#555555"; // JSON colon, comma
+  env ("json-openclose-color")= "#555555"; // JSON brackets
+
   env (PAR_MODE)           = "justify"; // outline method
   env (PAR_FLEXIBILITY)    = "1000";    // threshold for switching to ragged
   env (PAR_HYPHEN)         = "professional"; // quality of hyphenation

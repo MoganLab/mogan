@@ -106,6 +106,18 @@
 
   <assign|dark-scene-alt-constant-color|#f0c0e0>
 
+  <assign|dark-scene-json-key-color|#c678dd>
+
+  <assign|dark-scene-json-string-color|#98c379>
+
+  <assign|dark-scene-json-number-color|#61afef>
+
+  <assign|dark-scene-json-constant-color|#e06c75>
+
+  <assign|dark-scene-json-operator-color|#abb2bf>
+
+  <assign|dark-scene-json-openclose-color|#e5c07b>
+
   <\active*>
     <\src-comment>
       Colors for sessions
