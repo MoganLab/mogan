@@ -92,7 +92,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            tmp/build/.build_cache
+            ${{ runner.workspace }}/mogan/build/.build_cache
           key: ${{ runner.os }}-build-qt683-${{ hashFiles('**/packages.lua') }}
 
       - name: Detect changes
@@ -134,7 +134,7 @@ jobs:
               - '3rdparty/**'
 
       - name: config
-        run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --loro=yes --yes
+        run: xmake config -vD --policies=build.ccache -o ${{ runner.workspace }}/mogan/build -m releasedbg --loro=yes --yes
       - name: build lolly
         if: steps.filter.outputs.lolly == 'true'
         run: xmake build --yes -vD liblolly
