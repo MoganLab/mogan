@@ -220,10 +220,8 @@ as_native_picture (picture pict) {
 
 picture
 native_picture (int w, int h, int ox, int oy) {
-  fz_pixmap* pix= fz_new_pixmap (
-      mupdf_context (), fz_device_rgb (mupdf_context ()), w, h, NULL, 1);
-  fz_clear_pixmap_with_value (mupdf_context (), pix, 255); // white background
-  picture p= mupdf_picture (pix, ox, oy);
+  fz_pixmap* pix= mupdf_new_background_pixmap (w, h);
+  picture    p  = mupdf_picture (pix, ox, oy);
   fz_drop_pixmap (mupdf_context (), pix);
   return p;
 }
