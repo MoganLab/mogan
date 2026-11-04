@@ -90,12 +90,16 @@
   '(equation equation* eqnarray eqnarray* align align* math)
 ) ;define
 
-;; 表格标签取外层包裹（table-edit 的 table-tag/wide-table-tag 组），内层裸
-;; table 仅兜底：整棵子树入登记表，tformat 的 cwith 属性串不外泄（1607）。
+;; 表格标签取最外层包裹（text-drd 的 small-table/big-table 浮动环境，以及
+;; table-edit 的 table-tag/wide-table-tag 组），内层裸 table 仅兜底：
+;; 整棵子树入登记表（6200：避免 small-table/big-table 被拆解致标题与表格
+;; 在同一行拼接、不换行且超出引用块范围；1607：tformat 的 cwith 属性串不外泄）。
 ;; 硬编码不派生 table-tag-list：本模块须可脱离 table-edit 单测加载
 
 (define ai-table-labels
-  '(tabular tabular* block block* wide-tabular wide-block table table*)
+  '(small-table small-table* big-table big-table* render-small-table
+     render-big-table tabular tabular* block block* wide-tabular wide-block
+     table table*)
 ) ;define
 
 (define ai-image-labels '(image postscript graphics draw-over draw-under))
@@ -162,9 +166,17 @@
 (define (ai-flatten-text st)
   (cond ((string? st) st)
         ((not (pair? st)) "")
+        ;; 锚点 label 无可见文本，不外泄进上下文
+        ((eq? (car st) 'label) "")
         ;; with：inline 数学整体登记留哨兵；其余只取末尾 body（前面是 key/val 属性对）
         ((eq? (car st) 'with) (or (ai-marker st) (ai-flatten-text (last st))))
         ((eq? (car st) 'document) (string-join (map ai-flatten-text (cdr st)) "\n"))
+        ;; 表格按块级排版：哨兵前后补换行，重组时独占段落。否则光标落在表格
+        ;; 内切分时，哨兵直接接在文本行中间，重组出 (concat 文本 表格)，表格
+        ;; 随文本内联排版并横向溢出引用块（6200）。公式与图片保持行内
+        ((memq (car st) ai-table-labels)
+         (string-append "\n" (ai-subtree-sentinel st) "\n")
+        ) ;
         (else
           (or (ai-marker st) (string-concatenate (map ai-flatten-text (cdr st))))
         ) ;else
