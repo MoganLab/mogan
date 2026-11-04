@@ -28,7 +28,7 @@
 ) ;define-group
 
 (define-group graphical-closed-curve-tag cline cspline cbezier csmooth carc oval
-  circle ellipse sector sector-counterclockwise
+  circle ellipse sector sector-counterclockwise rectangle
 ) ;define-group
 
 (define-group graphical-curve-tag
