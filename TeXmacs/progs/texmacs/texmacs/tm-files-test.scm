@@ -143,6 +143,22 @@
 ) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tests for export-buffer-format (2223): -c 转换时目标格式识别
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (test-export-buffer-format-forces-plugins)
+  ;; .tex 由 latex 插件的 lazy-format 登记。headless 测试进程与 -c 一样，
+  ;; 执行到这里时插件可能尚未初始化；export-buffer-format 须自行强制初始化
+  ;; 后识别出 latex，而不是退化成 verbatim（2223 的症状：.tex 输出为纯文本）。
+  (check (export-buffer-format (string->url "/tmp/2223_out.tex")) => "latex")
+  ;; 真正未知的后缀仍退化为 verbatim
+  (check (export-buffer-format (string->url "/tmp/2223_out.no-such-format"))
+    =>
+    "verbatim"
+  ) ;check
+) ;define
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Test entry point
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -154,5 +170,6 @@
   (test-scratch-buffer-title-stem)
   (test-scratch-buffer-title-old-and-new-stamp)
   (test-scratch-buffer-title-legacy-one-underscore-this-week)
+  (test-export-buffer-format-forces-plugins)
   (check-report)
 ) ;tm-define
