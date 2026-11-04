@@ -21,7 +21,7 @@
 
   The syntax of the <value|code-Name> language is defined in:
 
-  <slink|$TEXMACS_PATH/plugins/<value|code-name>/progs/code/<value|code-name>-lang.scm>
+  <slink|$TEXMACS_PATH/plugins/<value|code-name>/progs/<value|code-name>/<value|code-name>-lang.scm>
 
   \;
 
@@ -179,7 +179,7 @@
 
   The editing of the <value|code-Name> code is defined in:
 
-  <slink|$TEXMACS_PATH/plugins/<value|code-name>/progs/code/<value|code-name>-edit.scm>
+  <slink|$TEXMACS_PATH/plugins/<value|code-name>/progs/<value|code-name>/<value|code-name>-edit.scm>
 
   <tmdoc-copyright|2026|Mogan Developers>
 
