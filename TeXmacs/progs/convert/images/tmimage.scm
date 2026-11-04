@@ -62,6 +62,10 @@
   (remove-node! node)
 ) ;define
 
+(define (native-graphics-export-suffix? suffix)
+  (in? suffix '("png" "jpg" "jpeg" "tif" "tiff" "pdf" "ps" "eps"))
+) ;define
+
 (define (selection-trim-ending)
   (if (selection-active-any?)
     (with st
@@ -286,7 +290,10 @@
       ;; Check the converter from PDF to suffix format
       (with suffix
         (url-suffix myurl)
-        (when (not (file-converter-exists? "x.pdf" (string-append "y." suffix)))
+        (when
+          (and (not (native-graphics-export-suffix? suffix))
+            (not (file-converter-exists? "x.pdf" (string-append "y." suffix)))
+          ) ;and
           (show-message (string-append "Sorry, pdf to "
                           suffix
                           " converter is missing. Generating pdf instead"
@@ -297,7 +304,7 @@
                  (surl (url->string myurl))
                  (sl (string-length surl))
                 ) ;
-            (set! myurl (string->url (string-append (substring surl (- sl sufl) sl) "pdf")))
+            (set! myurl (string->url (string-append (substring surl 0 (- sl sufl)) "pdf")))
           ) ;let*
         ) ;when
       ) ;with

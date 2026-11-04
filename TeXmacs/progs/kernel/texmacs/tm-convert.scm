@@ -640,7 +640,9 @@
 (define (format-image-suffixes)
   (with l
     (converters-to-special "postscript-file" "-file" #f)
-    (apply append (map format-get-suffixes-sub l))
+    (append '("png" "jpg" "jpeg" "tif" "tiff")
+      (apply append (map format-get-suffixes-sub l))
+    ) ;append
   ) ;with
 ) ;define
 

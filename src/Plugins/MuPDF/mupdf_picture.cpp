@@ -720,18 +720,37 @@ load_picture (url u, int w, int h, tree eff, int pixel) {
 
 void
 save_picture (url dest, picture p) {
-  if (suffix (dest) != "png") {
-    cout << "TeXmacs] warning: cannot save " << concretize (dest)
-         << ", format not supported\n";
-    return;
-  }
   picture            q   = as_mupdf_picture (p);
   mupdf_picture_rep* pict= (mupdf_picture_rep*) q->get_handle ();
   if (exists (dest)) remove (dest);
-  c_string   path= concretize (dest);
-  fz_output* out = fz_new_output_with_path (mupdf_context (), path, 0);
-  fz_write_pixmap_as_png (mupdf_context (), out, pict->pix);
-  fz_close_output (mupdf_context (), out);
-  fz_drop_output (mupdf_context (), out);
+
+  string suf= suffix (dest);
+#ifdef QTTEXMACS
+  QImage qim= get_QImage_from_pixmap (pict->pix);
+  if (suf == "jpg" || suf == "jpeg") {
+    if (qim.hasAlphaChannel ()) {
+      qim= qim.convertToFormat (QImage::Format_RGB888);
+    }
+  }
+  if (qim.save (utf8_to_qstring (concretize (dest)))) {
+    return;
+  }
+#endif
+
+  c_string    path= concretize (dest);
+  fz_context* ctx = mupdf_context ();
+  fz_output*  out = fz_new_output_with_path (ctx, path, 0);
+  if (suf == "png") {
+    fz_write_pixmap_as_png (ctx, out, pict->pix);
+  }
+  else if (suf == "jpg" || suf == "jpeg") {
+    fz_write_pixmap_as_jpeg (ctx, out, pict->pix, 95, 0);
+  }
+  else {
+    cout << "TeXmacs] warning: cannot save " << concretize (dest)
+         << ", format not supported\n";
+  }
+  fz_close_output (ctx, out);
+  fz_drop_output (ctx, out);
 }
 #endif
