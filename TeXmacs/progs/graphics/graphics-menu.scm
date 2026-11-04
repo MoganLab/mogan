@@ -135,6 +135,8 @@
   (-> "Origin" (link graphics-frame-origin-menu))
   (-> "Move" (link graphics-move-menu))
   (-> "Zoom" (link graphics-zoom-menu))
+  ---
+  ("Export as PNG" (graphics-export-png))
 ) ;menu-bind
 
 (menu-bind graphics-visual-grid-menu
@@ -766,6 +768,7 @@
     (link graphics-mode-menu)
   ) ;->
   (if (inside-graphical-over-under?) ("Exit graphics" (graphics-exit-right)))
+  ("Export as PNG" (graphics-export-png))
   (assuming (nnot (tree-innermost overlays-context?))
     (link graphics-focus-overlays-menu)
   ) ;assuming
@@ -860,6 +863,7 @@
       (link graphics-overlays-menu)
     ) ;=>
   ) ;assuming
+  ((balloon (icon "tm_focus_save.xpm") "Export as PNG") (graphics-export-png))
   ((balloon (icon "tm_exit_image.xpm") "Exit graphics mode")
    (graphics-exit-right)
   ) ;
