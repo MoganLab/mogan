@@ -68,22 +68,33 @@
 ) ;define
 
 (define (conda-launchers)
-  (map
-    (lambda (path)
-      (list
-        :launch (string-append "conda_" (conda-env-name path))
-        (conda-launcher path)
-      ) ;list
-    ) ;lambda
-    (conda-env-python-list)
-  ) ;map
+  (apply append
+    (map
+      (lambda (path)
+        (let* ((env-name (conda-env-name path))
+               (cmd (conda-launcher path))
+               (launch-name (if (string-starts? env-name "conda_")
+                              env-name
+                              (string-append "conda_" env-name)
+                            ) ;if
+               ) ;launch-name
+              ) ;
+          (if (string=? env-name launch-name)
+            (list (list :launch launch-name cmd))
+            (list (list :launch launch-name cmd) (list :launch env-name cmd))
+          ) ;if
+        ) ;let*
+      ) ;lambda
+      (conda-env-python-list)
+    ) ;map
+  ) ;apply
 ) ;define
 
 (define (all-python-launchers)
   (let* ((launchers (conda-launchers))
          (default-launcher
-           (cond ((has-binary-python3?) (python-launcher))
-                 ((has-binary-conda?) (caddr (car launchers)))
+           (cond ((and (has-binary-conda?) (nnull? launchers)) (caddr (car launchers)))
+                 ((has-binary-python3?) (python-launcher))
                  (else "")
            ) ;cond
          ) ;default-launcher

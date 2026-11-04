@@ -249,6 +249,7 @@ connection_start (string name, string session, bool again) {
     }
   }
 
+  if (is_nil (con)) return "Error: could not start connection " * name;
   return con->start (again);
 }
 
