@@ -358,12 +358,15 @@ pager_rep::make_pages () {
   array<DI> y (nr_pages);
 
   // nx >= 1
+  // 行/列偏移必须基于上一行（列）的盒子尺寸累加：首行无上衬边、末行无下衬边
+  // （issue 1260）使各行高度不再一致，误用本行（列）尺寸会让页间隙错位露出
+  // 画布底色（issue 6239：页间出现 10px 白色横条）。
   array<DI> xx (nx);
   xx[0]= 0;
   for (int i= 1; i < nx; i++) {
     xx[i]= xx[i - 1];
     for (int j= 0; j < ny; j++) {
-      int p= j * nx + i - d;
+      int p= j * nx + (i - 1) - d;
       if (p >= 0 && p < nr_pages) xx[i]= max (xx[i - 1] + pg[p]->w (), xx[i]);
     }
   }
@@ -375,7 +378,7 @@ pager_rep::make_pages () {
     for (int j= 1; j < ny; j++) {
       yy[j]= yy[j - 1];
       for (int i= 0; i < nx; i++) {
-        int p= j * nx + i - d;
+        int p= (j - 1) * nx + i - d;
         if (p >= 0 && p < nr_pages)
           yy[j]= min (yy[j - 1] - pg[p]->h () - vgap, yy[j]);
       }
