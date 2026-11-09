@@ -46,6 +46,8 @@ public:
   array<box>       frozen_border_boxes;
   int              dynamic_buffer_pages;
   DI               page_text_height;
+  int last_page_count;   ///< 上一轮排版完成时的总页数（用于不变式校验）
+  int max_typeset_child; ///< 曾经排版达到的最大子节点下标
 
 private:
   std::shared_ptr<rectangle> changed_ptr= std::make_shared<rectangle> ();

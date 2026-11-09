@@ -26,7 +26,8 @@ typesetter_rep::typesetter_rep (edit_env& env2, tree et, path ip)
       frozen_pages_positioned (0), doc_name (""), chunk_start (0),
       chunk_end (0), doc_l (array<page_item> ()), doc_sb (stack_border ()),
       frozen_page_boxes (array<box> ()), frozen_border_boxes (array<box> ()),
-      dynamic_buffer_pages (3), page_text_height (0) {
+      dynamic_buffer_pages (3), page_text_height (0), last_page_count (0),
+      max_typeset_child (0) {
   paper= (env->get_string (PAGE_MEDIUM) == "paper");
   br   = make_bridge (this, et, ip);
   x1= y1= x2= y2= 0;
@@ -168,9 +169,10 @@ typesetter_rep::typeset () {
       page_text_height= th;
     }
     if (progressive_cur_child == 0) {
-      // cur_child 归零的两条路径（构造、progressive_reset）已清空累计状态
-      chunk_start= 0;
-      chunk_end  = min (n, 50);
+      chunk_start      = 0;
+      int target       = max_typeset_child > 0 ? max_typeset_child : 50;
+      chunk_end        = min (n, target);
+      max_typeset_child= max (max_typeset_child, chunk_end);
       if (doc_name != "") {
         bench_start ("progressive_typeset: " * doc_name);
         progressive_bench_active= true;
@@ -232,6 +234,7 @@ typesetter_rep::typeset () {
       merge_stack (doc_l, doc_sb, l, sb);
     }
     progressive_cur_child= chunk_end;
+    max_typeset_child    = max (max_typeset_child, chunk_end);
   }
 
   array<page_item> unfrozen_l= progressive_enabled ? doc_l : copy (l);
@@ -259,21 +262,47 @@ typesetter_rep::typeset () {
     else if (to_freeze > 0) {
       pagelet last_frozen_pg = ppp->last_sk[to_freeze - 1];
       int     end_in_unfrozen= 0;
-      if (N (last_frozen_pg->ins) > 0) {
-        end_in_unfrozen=
-            last_frozen_pg->ins[N (last_frozen_pg->ins) - 1]->end->item;
+      for (int ki= 0; ki < N (last_frozen_pg->ins); ki++) {
+        if (!is_nil (last_frozen_pg->ins[ki]->end)) {
+          end_in_unfrozen=
+              max (end_in_unfrozen, last_frozen_pg->ins[ki]->end->item);
+        }
+      }
+      if (to_freeze < N (ppp->last_sk) &&
+          N (ppp->last_sk[to_freeze]->ins) > 0) {
+        if (!is_nil (ppp->last_sk[to_freeze]->ins[0]->begin)) {
+          end_in_unfrozen= max (end_in_unfrozen,
+                                ppp->last_sk[to_freeze]->ins[0]->begin->item);
+        }
       }
       if (end_in_unfrozen > 0 && end_in_unfrozen < N (doc_l)) {
         doc_l= range (doc_l, end_in_unfrozen, N (doc_l));
       }
-      else if (end_in_unfrozen >= N (doc_l)) {
+      else if (end_in_unfrozen >= N (doc_l) && is_final) {
         doc_l= array<page_item> ();
       }
     }
+
+    int nr_pages= N (ppp->pages);
+    // 校验总页数不得少于本轮编辑前的已排版页数（不变式兜底）
+    if (last_page_count > 0 && nr_pages < last_page_count) {
+      progressive_reset ();
+      chunk_start          = 0;
+      chunk_end            = n;
+      progressive_cur_child= n;
+      max_typeset_child    = n;
+      progressive_pending  = false;
+      env->complete        = br->my_typeset_will_be_complete ();
+      br->typeset (PROCESSED + WANTED_PARAGRAPH);
+      tm_delete (ppp);
+      ppp= tm_new<pager_rep> (br->ip, env, l, array<box> (), array<box> ());
+      rb = ppp->make_pages ();
+      nr_pages= N (ppp->pages);
+    }
+    last_page_count= nr_pages;
   }
   if (env->complete && paper) determine_page_references (rb);
   tm_delete (ppp);
-  // env->complete= false;  // moved to edit_typeset_rep::typeset
   return rb;
 }
 
@@ -442,13 +471,15 @@ typesetter_rep::progressive_advance (int additional_paragraphs) {
   chunk_start= progressive_cur_child;
   chunk_end=
       min (progressive_total_children, chunk_start + additional_paragraphs);
+  max_typeset_child= max (max_typeset_child, chunk_end);
 }
 
 void
 typesetter_rep::progressive_fast_forward_until (int target_child) {
-  chunk_start= progressive_cur_child;
-  chunk_end  = min (progressive_total_children,
-                    max (progressive_cur_child + 10, target_child + 50));
+  chunk_start      = progressive_cur_child;
+  chunk_end        = min (progressive_total_children,
+                          max (progressive_cur_child + 10, target_child + 50));
+  max_typeset_child= max (max_typeset_child, chunk_end);
 }
 
 void

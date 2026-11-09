@@ -240,7 +240,7 @@
         (let* ((pending? (and (defined? 'typeset-in-progress?) (typeset-in-progress?)))
                (cur-child (if pending? (typeset-frontier) #f))
                (chap-idx (outline-get-chap-idx p))
-               (unready? (and pending? cur-child chap-idx (>= chap-idx cur-child)))
+               (unready? (and pending? cur-child chap-idx (>= chap-idx (+ cur-child 200))))
                (target-p
                  (if unready? (outline-fallback-path p (max 0 (- cur-child 1))) p)
                ) ;target-p
