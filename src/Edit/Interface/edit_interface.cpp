@@ -251,16 +251,16 @@ edit_interface_rep::get_visible_height () {
 #ifdef QTTEXMACS
 #include <QApplication>
 #include <QStyle>
+#endif
 static SI
 scrollbar_width () {
-  return (qApp->style ()->pixelMetric (QStyle::PM_ScrollBarExtent) + 2) * PIXEL;
-}
-#else
-static SI
-scrollbar_width () {
+#ifdef QTTEXMACS
+  if (qApp && qApp->style ())
+    return (qApp->style ()->pixelMetric (QStyle::PM_ScrollBarExtent) + 2) *
+           PIXEL;
+#endif
   return 20 * PIXEL;
 }
-#endif
 
 SI
 edit_interface_rep::get_window_width () {
@@ -663,6 +663,7 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
   if (is_nil (p)) return;
   tree pt= subtree (et, path_up (p));
   tree st= subtree (et, p);
+
   if ((is_func (st, TABLE) || is_func (st, SUBTABLE)) && recurse &&
       get_preference ("show table cells") == "on") {
     if (table_env_cache->contains (st)) {
@@ -822,7 +823,7 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
       }
       else selection_correct (p1, p2, q1, q2);
       selection sel= eb->find_check_selection (q1, q2);
-      if (N (focus_get ()) >= N (p))
+      if (sel->valid && !is_nil (sel->rs) && N (focus_get ()) >= N (p))
         if (!recurse || get_preference ("show full context") == "on") {
           if (recurse) rs << outlines (sel->rs, pixel);
           // 仅 inline 标签白名单保留半透明蓝色填充，其余结构（段落、
@@ -1238,9 +1239,11 @@ edit_interface_rep::apply_changes () {
     string medium= get_init_string (PAGE_MEDIUM);
     DI     ex1, ey1, ex2, ey2;
     scale_extents (eb, magf, ex1, ey1, ex2, ey2);
-    DI     w, h;
-    widget me= ::get_canvas (widget (cvw));
-    ::get_size (me, w, h);
+    DI w= 0, h= 0;
+    if (cvw != NULL) {
+      widget me= ::get_canvas (widget (cvw));
+      ::get_size (me, w, h);
+    }
     if (cur_sb && ey2 - ey1 > h) w-= scrollbar_width ();
     if (cur_sb && ex2 - ex1 > w) h-= scrollbar_width ();
     if (ex2 - ex1 <= w + 2 * PIXEL) {
@@ -1292,10 +1295,14 @@ edit_interface_rep::apply_changes () {
     oc= copy (cu);
 
     // set hot spot in the gui
-    send_cursor (this, (DI) floor (cu->ox * magf), (DI) floor (cu->oy * magf));
+    if (is_attached (this) && has_current_window ()) {
+      send_cursor (this, (DI) floor (cu->ox * magf),
+                   (DI) floor (cu->oy * magf));
+    }
 
     path sp           = selection_get_cursor_path ();
     bool semantic_flag= semantic_active (path_up (sp));
+
     bool full_context = (get_preference ("show full context") == "on");
     bool table_cells  = (get_preference ("show table cells") == "on");
     bool show_focus   = (get_preference ("show focus") == "on");

@@ -328,16 +328,19 @@ tm_frame_rep::scroll_where (DI& x, DI& y) {
 
 void
 tm_frame_rep::scroll_to (DI x, DI y) {
+  if (!has_current_window ()) return;
   concrete_window ()->set_scroll_pos (x, y);
 }
 
 void
 tm_frame_rep::get_extents (DI& x1, DI& y1, DI& x2, DI& y2) {
+  if (!has_current_window ()) return;
   concrete_window ()->get_extents (x1, y1, x2, y2);
 }
 
 void
 tm_frame_rep::set_extents (DI x1, DI y1, DI x2, DI y2) {
+  if (!has_current_window ()) return;
   concrete_window ()->set_extents (x1, y1, x2, y2);
 }
 
