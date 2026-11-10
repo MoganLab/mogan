@@ -169,10 +169,9 @@ typesetter_rep::typeset () {
       page_text_height= th;
     }
     if (progressive_cur_child == 0) {
-      chunk_start      = 0;
-      int target       = max_typeset_child > 0 ? max_typeset_child : 50;
-      chunk_end        = min (n, target);
-      max_typeset_child= max (max_typeset_child, chunk_end);
+      chunk_start= 0;
+      int target = max_typeset_child > 0 ? max_typeset_child : 50;
+      chunk_end  = min (n, target);
       if (doc_name != "") {
         bench_start ("progressive_typeset: " * doc_name);
         progressive_bench_active= true;
@@ -277,9 +276,6 @@ typesetter_rep::typeset () {
       }
       if (end_in_unfrozen > 0 && end_in_unfrozen < N (doc_l)) {
         doc_l= range (doc_l, end_in_unfrozen, N (doc_l));
-      }
-      else if (end_in_unfrozen >= N (doc_l) && is_final) {
-        doc_l= array<page_item> ();
       }
     }
 
@@ -471,15 +467,13 @@ typesetter_rep::progressive_advance (int additional_paragraphs) {
   chunk_start= progressive_cur_child;
   chunk_end=
       min (progressive_total_children, chunk_start + additional_paragraphs);
-  max_typeset_child= max (max_typeset_child, chunk_end);
 }
 
 void
 typesetter_rep::progressive_fast_forward_until (int target_child) {
-  chunk_start      = progressive_cur_child;
-  chunk_end        = min (progressive_total_children,
-                          max (progressive_cur_child + 10, target_child + 50));
-  max_typeset_child= max (max_typeset_child, chunk_end);
+  chunk_start= progressive_cur_child;
+  chunk_end  = min (progressive_total_children,
+                    max (progressive_cur_child + 10, target_child + 50));
 }
 
 void

@@ -251,19 +251,16 @@ edit_interface_rep::get_visible_height () {
 #ifdef QTTEXMACS
 #include <QApplication>
 #include <QStyle>
+#endif
 static SI
 scrollbar_width () {
+#ifdef QTTEXMACS
   if (qApp && qApp->style ())
     return (qApp->style ()->pixelMetric (QStyle::PM_ScrollBarExtent) + 2) *
            PIXEL;
-  return 20 * PIXEL;
-}
-#else
-static SI
-scrollbar_width () {
-  return 20 * PIXEL;
-}
 #endif
+  return 20 * PIXEL;
+}
 
 SI
 edit_interface_rep::get_window_width () {
@@ -826,17 +823,15 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
       }
       else selection_correct (p1, p2, q1, q2);
       selection sel= eb->find_check_selection (q1, q2);
-      if (sel->valid && !is_nil (sel->rs)) {
-        if (N (focus_get ()) >= N (p))
-          if (!recurse || get_preference ("show full context") == "on") {
-            if (recurse) rs << outlines (sel->rs, pixel);
-            // 仅 inline 标签白名单保留半透明蓝色填充，其余结构（段落、
-            // 列表、表格、绘图区等）一律只画边框（Issue #2091）。
-            else if (is_inline_focus_tag (st))
-              rs << thicken (sel->rs, 0, 2 * pixel);
-            else rs << outlines (sel->rs, pixel);
-          }
-      }
+      if (sel->valid && !is_nil (sel->rs) && N (focus_get ()) >= N (p))
+        if (!recurse || get_preference ("show full context") == "on") {
+          if (recurse) rs << outlines (sel->rs, pixel);
+          // 仅 inline 标签白名单保留半透明蓝色填充，其余结构（段落、
+          // 列表、表格、绘图区等）一律只画边框（Issue #2091）。
+          else if (is_inline_focus_tag (st))
+            rs << thicken (sel->rs, 0, 2 * pixel);
+          else rs << outlines (sel->rs, pixel);
+        }
     }
     set_access_mode (old_mode);
     if (recurse || N (rs) == 0) compute_env_rects (path_up (p), rs, recurse);

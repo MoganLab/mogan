@@ -69,7 +69,7 @@ TestProgressiveTypeset::test_initial_chunk () {
   the_et        = doc;
   typesetter ttt= new_typesetter (env, doc, path ());
 
-  box b= ttt->typeset ();
+  ttt->typeset ();
   QVERIFY (ttt->progressive_enabled);
   QCOMPARE (ttt->progressive_cur_child, 50);
   QVERIFY (ttt->typeset_in_progress ());
@@ -86,13 +86,13 @@ TestProgressiveTypeset::test_fast_forward_and_no_page_loss_after_edit () {
   typesetter ttt= new_typesetter (env, doc, path ());
 
   // Initial typeset: 50 paragraphs
-  box b1= ttt->typeset ();
+  ttt->typeset ();
   QCOMPARE (ttt->progressive_cur_child, 50);
 
   // Fast-forward to paragraph 70 (like outline sidebar click)
   ttt->progressive_fast_forward_until (70);
   box b2               = ttt->typeset ();
-  int pages_before_edit= ttt->last_page_count;
+  int pages_before_edit= N (b2[0]);
   QVERIFY (pages_before_edit > 0);
   QVERIFY (ttt->progressive_cur_child >= 70);
 
@@ -100,7 +100,7 @@ TestProgressiveTypeset::test_fast_forward_and_no_page_loss_after_edit () {
   the_et= substitute (doc, 70, tree ("new inserted paragraph"));
   notify_insert (ttt, path (70), tuple (tree ("new inserted paragraph")));
   box b3              = ttt->typeset ();
-  int pages_after_edit= ttt->last_page_count;
+  int pages_after_edit= N (b3[0]);
 
   // Invariant 1: Total pages after edit must not decrease
   QVERIFY (pages_after_edit >= pages_before_edit);
