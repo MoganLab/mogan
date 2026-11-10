@@ -207,7 +207,9 @@ bridge_document_rep::my_exec_until (path p) {
 
 bool
 bridge_document_rep::my_typeset_will_be_complete () {
-  if (ttt->progressive_enabled && ttt->progressive_cur_child < N (st))
+  bool is_root= (bridge (this) == ttt->br);
+  if (ttt->progressive_enabled && is_root &&
+      ttt->progressive_cur_child < N (st))
     return false;
   if (is_nil (acc)) {
     int i, n= N (brs);
@@ -225,8 +227,10 @@ bridge_document_rep::my_typeset (int desired_status) {
     int              i, n= N (st);
     array<line_item> a      = ttt->a;
     array<line_item> b      = ttt->b;
-    int              start_i= ttt->progressive_enabled ? ttt->chunk_start : 0;
-    int end_i= ttt->progressive_enabled ? min (n, ttt->chunk_end) : n;
+    bool             is_root= (bridge (this) == ttt->br);
+    int start_i= (ttt->progressive_enabled && is_root) ? ttt->chunk_start : 0;
+    int end_i=
+        (ttt->progressive_enabled && is_root) ? min (n, ttt->chunk_end) : n;
     for (i= start_i; i < end_i; i++) {
       // cout << "Typesetting " << st[i] << LF;
       int wanted=

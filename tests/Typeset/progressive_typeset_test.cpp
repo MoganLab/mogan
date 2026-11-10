@@ -59,6 +59,7 @@ private slots:
   void test_initial_chunk ();
   void test_fast_forward_and_no_page_loss_after_edit ();
   void test_offset_alignment_between_frozen_and_unfrozen ();
+  void test_nested_document_in_later_chunk ();
 };
 
 void
@@ -132,6 +133,37 @@ TestProgressiveTypeset::test_offset_alignment_between_frozen_and_unfrozen () {
   // Once fully typeset, frontier must reach n
   QCOMPARE (ttt->progressive_cur_child, n);
   QVERIFY (!ttt->typeset_in_progress ());
+
+  delete_typesetter (ttt);
+}
+
+void
+TestProgressiveTypeset::test_nested_document_in_later_chunk () {
+  edit_env env= create_test_env ();
+  int      n  = 80;
+  tree     doc (DOCUMENT, n);
+  for (int i= 0; i < n; i++) {
+    if (i == 50) {
+      // 嵌套 document 结构（模拟 equation*、equations 或表格单元格）
+      doc[i]= tree (DOCUMENT, tree ("Formula text in second chunk"));
+    }
+    else {
+      doc[i]= string ("Paragraph text line ") * as_string (i);
+    }
+  }
+  the_et        = doc;
+  typesetter ttt= new_typesetter (env, doc, path ());
+
+  // 1. 初始排版：首块覆盖 0..50
+  ttt->typeset ();
+  QCOMPARE (ttt->progressive_cur_child, 50);
+
+  // 2. 推进排版前沿至第二块（50..80）
+  ttt->progressive_advance (30);
+  box  b    = ttt->typeset ();
+  bool found= false;
+  b->find_box_path (path (50, 0, 0), found);
+  QVERIFY (found);
 
   delete_typesetter (ttt);
 }
