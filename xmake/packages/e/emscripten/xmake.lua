@@ -1,0 +1,109 @@
+-- 本地覆盖 xmake-repo 的 emscripten 配方：
+-- 上游 xmake-repo 无条件依赖 python（作为库包），非 Windows 环境自带 python3，
+-- 无需安装 C 库版 python，仅在 Windows 宿主下引入 python 依赖。
+package("emscripten")
+    set_kind("toolchain")
+    set_homepage("https://emscripten.org/")
+    set_description("Emscripten: An LLVM-to-WebAssembly Compiler.")
+    set_license("MIT")
+
+    add_urls("https://github.com/emscripten-core/emsdk/archive/refs/tags/$(version).tar.gz",
+             "https://github.com/emscripten-core/emsdk.git")
+
+    add_versions("6.0.0", "85c35c690ff6747243cb439076835c2a870df8cc5e8d304fe0800c69f6f6e265")
+    add_versions("5.0.7", "266df4b9644dde18303af05dce7d04854273b0bb527246cb7fb6a09591774ccf")
+    add_versions("5.0.3", "9a44a58bca0a3ea594ea7340d9a726cb58c772144dd37406d1c4e921823a75eb")
+    add_versions("4.0.23", "a91a4c1f42dbb0345faac093161e27d43e9b6964840d8c8d80976ab8d3eaf2d3")
+    add_versions("4.0.12", "d972bf0909718f155aeb5627429230471c94b2a8a3047ee696e2690ec73961cb")
+    add_versions("3.1.74", "4f4ba50bd09e2fa5eebbfa12d0626cb7f875174ffda88b6484a1277769a07189")
+    add_versions("3.1.55", "86a6af30e43d7b501772e5d2993457c924b73f1d1c0a3484a8c6c48452af549f")
+    add_versions("3.1.42", "bbfb6374e2a0e49147edbfe371faa1a3280217aba301ec4674bc41c8c123942a")
+    add_versions("3.1.25", "b8772e32043905b3af4b926f54ac7ca3faf5d5eb93105973c85c56ec60c832d5")
+    add_versions("3.1.14", "d184dd6bc7700d5bacfa8c4b4ff7cd6bca2cbc7b5d1b19732fe8a84935e4a529")
+    add_versions("1.39.8", "37b8807cad1aa0a976bbbdee5d3c5efc03e59175efdc555721793824f8c591f4")
+
+    -- macOS 和 Linux 环境默认均自带 python3（且无需 Python.h/libpython 动态库）。
+    -- 上游 xmake-repo 无条件依赖 python 包，导致 macOS runner 因未检测到系统
+    -- Python C 库而从源码编译 python 3.14，并在 OpenSSL 兼容性阶段报错挂起（见 #4779）。
+    -- 此处仅在 Windows 宿主下按需引入 python 依赖。
+    if is_host("windows") then
+        add_deps("python")
+    end
+
+    on_check("macosx|arm64", "linux|arm64", function (package)
+        local package_ver = package:version()
+        if package:is_plat("macosx") and package_ver and package_ver:lt("2.0.21") then
+            -- https://github.com/emscripten-core/emsdk/issues/671
+            raise("toolchain(emscripten): macOS arm64 is only supported for emscripten >= 2.0.21")
+        end
+        if package:is_plat("linux") and package_ver and package_ver:lt("3.1.58") then
+            -- https://github.com/emscripten-core/emsdk/issues/1500
+            raise("toolchain(emscripten): Linux arm64 is not fully supported for emscripten < 3.1.58.")
+        end
+    end)
+
+    on_load(function (package)
+        package:addenv("PATH", "upstream/emscripten")
+        package:addenv("PATH", ".")
+        package:addenv("EMSDK", ".")
+        package:mark_as_pathenv("EMSDK")
+        package:mark_as_pathenv("EMSDK_NODE")
+        if package:is_plat("windows") then
+            package:mark_as_pathenv("EMSDK_PYTHON")
+            package:mark_as_pathenv("JAVA_HOME")
+        end
+    end)
+
+    on_install("windows|!arm*", "macosx", "linux", function (package)
+        import("lib.detect.find_directory")
+
+        -- installation
+        os.cp("*", package:installdir())
+        local version = package:version():rawstr()
+        local installdir = package:installdir()
+        local py = package:is_plat("windows") and "python" or "python3"
+        os.vrunv(py, {path.join(installdir, "emsdk.py"), "install", version})
+
+        -- activation
+        os.vrunv(py, {path.join(installdir, "emsdk.py"), "activate", version})
+
+        -- setup env
+        local exe = package:is_plat("windows") and ".exe" or ""
+        local node_bindir = find_directory("bin", {path.join(installdir, "node", "**")})
+        if node_bindir then
+            node_bindir = path.relative(node_bindir, installdir)
+            package:addenv("PATH", node_bindir)
+            package:addenv("EMSDK_NODE", path.join(node_bindir, "node" .. exe))
+        end
+        if package:is_plat("windows") then
+            local python = find_directory("*", path.join(installdir, "python"))
+            if python then
+                python = path.relative(python, installdir)
+                package:addenv("EMSDK_PYTHON", path.join(python, "python" .. exe))
+            end
+            local java = find_directory("*", path.join(installdir, "java"))
+            if java then
+                java = path.relative(java, installdir)
+                package:addenv("JAVA_HOME", java)
+            end
+        end
+        local python_dep = package:dep("python")
+        if package:version() and package:version():lt("1.39.12") and python_dep and python_dep:version() then
+            -- if python3 and low version emscripten, we need to change the shebang
+            local py_major_ver = python_dep:version():major()
+            if py_major_ver and py_major_ver == 3 then
+                -- change shebang: python->python3
+                for _, filepath in ipairs(os.files(path.join(installdir, "upstream", "emscripten", "*"))) do
+                    io.replace(filepath, "#!/usr/bin/env python\n", "#!/usr/bin/env python3\n", {plain = true})
+                end
+            end
+        end
+    end)
+
+    on_test(function (package)
+        local emcc = "emcc"
+        if is_host("windows") then
+            emcc = emcc .. (package:version() and package:version():ge("6.0.0") and ".exe" or ".bat")
+        end
+        os.vrunv(emcc, {"--version"})
+    end)
