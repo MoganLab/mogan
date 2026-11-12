@@ -142,33 +142,28 @@ OutlineWidget::resizeEvent (QResizeEvent* event) {
 
 void
 OutlineWidget::setOutline (const QVector<PdfOutlineItem>& outline) {
-  if (!outline_sidebar_enabled () || outline.isEmpty ()) {
+  if (outline.isEmpty ()) {
     bridge_->clear ();
     setVisible (false);
     return;
   }
   bridge_->setOutline (outline);
-  setVisible (true);
+  setVisible (outline_sidebar_enabled ());
 }
 
 void
 OutlineWidget::setOutline (const QVector<OutlineItem>& outline) {
-  if (!outline_sidebar_enabled () || outline.isEmpty ()) {
+  if (outline.isEmpty ()) {
     bridge_->clear ();
     setVisible (false);
     return;
   }
   bridge_->setOutline (outline);
-  setVisible (true);
+  setVisible (outline_sidebar_enabled ());
 }
 
 bool
 OutlineWidget::loadDocumentOutline () {
-  if (!outline_sidebar_enabled ()) {
-    bridge_->clear ();
-    setVisible (false);
-    return false;
-  }
   if (!eval_scheme ("(defined? 'document-outline)")) {
     string texmacs_path= get_env ("TEXMACS_PATH");
     string file_path   = texmacs_path * "/progs/text/text-outline.scm";
@@ -190,7 +185,7 @@ OutlineWidget::loadDocumentOutline () {
     return false;
   }
   bridge_->setOutline (items);
-  setVisible (true);
+  setVisible (outline_sidebar_enabled ());
   return true;
 }
 
