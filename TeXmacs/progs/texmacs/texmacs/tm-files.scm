@@ -23,14 +23,8 @@
 
 (import (only (liii string) string-contains string-split string-join string-index)
 ) ;import
-(import (only (liii time)
-          current-date
-          date->string
-          make-date
-          date-week-day
-          date->julian-day
-        ) ;only
-) ;import
+(import (only (liii time) current-date date->string))
+(import (liii date-time))
 (import (only (srfi srfi-1) find))
 (import (only (srfi srfi-1) remove take))
 
@@ -1294,27 +1288,13 @@
 ;; YYYYMMDD → date 对象
 
 (define (day->date day)
-  (make-date 0
-    0
-    0
-    0
-    (string->number (substring day 6 8))
+  (make-date (string->number (substring day 0 4))
     (string->number (substring day 4 6))
-    (string->number (substring day 0 4))
-    0
+    (string->number (substring day 6 8))
   ) ;make-date
 ) ;define
 
-;; YYYYMMDD → 整数 julian day。date->julian-day 返回带 .5 的有理数
-;; (历元从正午起算),须 +0.5 取整,否则周界偏移一天
-
-(define (day-number day)
-  (inexact->exact
-    (floor (+ (date->julian-day (day->date day)) 0.5))
-  ) ;inexact->exact
-) ;define
-
-;; 今天的日期串与 day-number,整天不变故缓存,避免每次算标题重复历法换算
+;; 今天的日期串与 rata-die,整天不变故缓存,避免每次算标题重复历法换算
 
 (define scratch-today-info #f)
 
@@ -1323,22 +1303,24 @@
     (if (and scratch-today-info (== (car scratch-today-info) today))
       scratch-today-info
       (begin
-        (set! scratch-today-info (cons today (day-number today)))
+        (set! scratch-today-info (cons today (date->rata-die (day->date today))))
         scratch-today-info
       ) ;begin
     ) ;if
   ) ;let
 ) ;define
 
-;; 与今天是否同一自然周(周一起算)。该历元下周一恰为 jd ≡ 0 (mod 7),
-;; 故周索引直接取 quotient jd 7;先前 (jd-1)/7 的周界未对齐周一,
-;; 会把上周三误判进本周
+;; 与今天是否同一自然周(周一起算)。rata-die 历元 0001-01-01 恰为周一,
+;; 故 (rd-1)/7 商相同的两天同属一个周一开头的自然周
 
 (define (draft-this-week? day)
-  (== (quotient (cdr (scratch-today)) 7) (quotient (day-number day) 7))
+  (==
+    (quotient (- (cdr (scratch-today)) 1) 7)
+    (quotient (- (date->rata-die (day->date day)) 1) 7)
+  ) ;==
 ) ;define
 
-;; 星期名,顺序对应 srfi-19 date-week-day(周日为 0)
+;; 星期名,顺序为周日为 0(与 (modulo (date-iso-weekday d) 7) 对应)
 
 (define scratch-weekdays
   (vector "Sunday" "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday")
@@ -1363,7 +1345,9 @@
              (today (car (scratch-today)))
              (weekday
                (herk->utf8
-                 (translate (vector-ref scratch-weekdays (date-week-day (day->date day))))
+                 (translate
+                   (vector-ref scratch-weekdays (modulo (date-iso-weekday (day->date day)) 7))
+                 ) ;translate
                ) ;herk->utf8
              ) ;weekday
              (hm (string-append (substring stamp 8 10) ":" (substring stamp 10 12)))
