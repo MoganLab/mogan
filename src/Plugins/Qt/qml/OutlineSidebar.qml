@@ -131,7 +131,7 @@ Item {
     }
 
     // 主题配色
-    readonly property color sidebarBg: Theme.dark ? "#18181b" : "#ffffff"
+    readonly property color sidebarBg: Theme.dark ? "#2c2c2c" : "#f3f3f3"
     readonly property color borderRightClr: Theme.dark ? "#27272a" : "#e5e7eb"
     readonly property color headerTitleClr: Theme.dark ? "#f4f4f5" : "#1f2328"
     readonly property color itemHoverBg: Theme.dark ? "#27272a" : "#f0f2f5"
