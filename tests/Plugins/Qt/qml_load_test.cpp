@@ -1468,7 +1468,8 @@ TestQmlLoad::test_go_menu_type_tags () {
 void
 TestQmlLoad::test_outline_sidebar_loads () {
   // OutlineSidebar 是左侧目录树侧边栏（无 outlineBridge 时走 typeof 守卫的
-  // 空模型路径），断言能实例化。
+  // 空模型路径），断言能实例化且底色与工具栏一致（浅色 #f3f3f3，深色
+  // #2c2c2c）。
   QDialog       host;
   QQuickWidget* qw= new QQuickWidget (&host);
   qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
@@ -1476,6 +1477,18 @@ TestQmlLoad::test_outline_sidebar_loads () {
   qw->rootContext ()->setContextProperty ("isDark", false);
   qw->setSource (QUrl ("qrc:/qml/OutlineSidebar.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
+  QCOMPARE (qw->rootObject ()->property ("sidebarBg").value<QColor> (),
+            QColor ("#f3f3f3"));
+
+  QDialog       darkHost;
+  QQuickWidget* darkQw= new QQuickWidget (&darkHost);
+  darkQw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  darkQw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  darkQw->rootContext ()->setContextProperty ("isDark", true);
+  darkQw->setSource (QUrl ("qrc:/qml/OutlineSidebar.qml"));
+  QCOMPARE (darkQw->status (), QQuickWidget::Ready);
+  QCOMPARE (darkQw->rootObject ()->property ("sidebarBg").value<QColor> (),
+            QColor ("#2c2c2c"));
 }
 
 void
