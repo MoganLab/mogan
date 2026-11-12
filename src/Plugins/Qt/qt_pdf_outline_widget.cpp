@@ -6,6 +6,7 @@
 
 #include "qt_pdf_outline_widget.hpp"
 
+#include <QMainWindow>
 #include <QQmlContext>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -75,11 +76,16 @@ OutlineWidget::OutlineWidget (const QString& title, QWidget* parent)
 
   quick_= new QQuickWidget (this);
   quick_->setResizeMode (QQuickWidget::SizeRootObjectToView);
-  quick_->setClearColor (Qt::transparent);
+  quick_->setClearColor (qt_is_dark_theme () ? QColor ("#2c2c2c")
+                                             : QColor ("#f3f3f3"));
   quick_->setStyleSheet ("background: transparent;");
   qt_inject_theme_context (quick_);
   quick_->rootContext ()->setContextProperty ("outlineBridge", bridge_);
   // setSource 延迟到首次 showEvent：dock 默认隐藏，启动时不应解析 QML
+
+  setStyleSheet (qt_is_dark_theme ()
+                     ? "QDockWidget { background: #2c2c2c; border: none; }"
+                     : "QDockWidget { background: #f3f3f3; border: none; }");
 
   setWidget (quick_);
 
@@ -95,6 +101,8 @@ OutlineWidget::OutlineWidget (const QString& title, QWidget* parent)
 
   connect (bridge_, &OutlineBridge::outlineActivated, this,
            &OutlineWidget::outlineActivated);
+  connect (bridge_, &OutlineBridge::widthAdjustRequested, this,
+           &OutlineWidget::adjustWidthBy);
   connect (bridge_, &OutlineBridge::closeRequested, this, [this] () {
     setVisible (false);
     set_preference ("outline sidebar", "off");
@@ -195,4 +203,15 @@ OutlineWidget::clear () {
 bool
 OutlineWidget::hasContent () const {
   return bridge_->hasContent ();
+}
+
+void
+OutlineWidget::adjustWidthBy (int delta) {
+  QMainWindow* mw= qobject_cast<QMainWindow*> (parentWidget ());
+  if (!mw) return;
+  int newWidth= width () + delta;
+  int minW    = DpiUtils::scaled (kOutlineMinWidth);
+  int maxW    = DpiUtils::scaled (kOutlineMaxWidth);
+  newWidth    = qBound (minW, newWidth, maxW);
+  mw->resizeDocks ({this}, {newWidth}, Qt::Horizontal);
 }

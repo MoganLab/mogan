@@ -497,6 +497,32 @@ private slots:
 
     delete widget;
   }
+
+  void test_resize_handle_and_width_adjust () {
+    OutlineWidget* widget= new OutlineWidget ("目录");
+    widget->resize (300, 400);
+    widget->show ();
+    QTest::qWait (50);
+
+    QQuickWidget* qw= widget->quickWidget ();
+    QVERIFY (qw != nullptr);
+    QQuickItem* rootItem= qw->rootObject ();
+    QVERIFY (rootItem != nullptr);
+
+    // 验证右侧宽度调节手柄组件存在
+    QQuickItem* handle= rootItem->findChild<QQuickItem*> ("resizeHandle");
+    QVERIFY (handle != nullptr);
+    QQuickItem* pill= rootItem->findChild<QQuickItem*> ("handlePill");
+    QVERIFY (pill != nullptr);
+
+    // 验证 bridge->adjustWidth() 信号传递
+    QSignalSpy spy (widget->bridge (), &OutlineBridge::widthAdjustRequested);
+    widget->bridge ()->adjustWidth (25);
+    QCOMPARE (spy.count (), 1);
+    QCOMPARE (spy.takeFirst ().at (0).toInt (), 25);
+
+    delete widget;
+  }
 };
 
 #ifdef QTTEXMACS

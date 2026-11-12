@@ -9,6 +9,20 @@
 * 主窗口样式
 ****************************************************************************/
 QMainWindow,
+QDockWidget#pdfOutlineDock {
+  background: #f3f3f3;
+  border: none;
+}
+
+QMainWindow::separator {
+  width: 0px;
+  height: 0px;
+  margin: 0px;
+  padding: 0px;
+  border: none;
+  background: transparent;
+}
+
 QWidget#centralWidget {
   background: #ffffff;
   border: none;

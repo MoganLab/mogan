@@ -121,6 +121,7 @@ QTMProxyStyle::itemTextRect (const QFontMetrics& metrics, const QRect& rect,
 int
 QTMProxyStyle::pixelMetric (PixelMetric metric, const QStyleOption* option,
                             const QWidget* widget) const {
+  if (metric == PM_DockWidgetSeparatorExtent) return 0;
   return baseStyle ()->pixelMetric (metric, option, widget);
 }
 
@@ -440,6 +441,8 @@ QTMStyle::pixelMetric (PixelMetric metric, const QStyleOption* opt,
     return 0;
   case PM_ToolBarIconSize:
     return 17;
+  case PM_DockWidgetSeparatorExtent:
+    return 0;
     //  case PM_ToolBarFrameWidth:
     //    return 2;
   default:;
