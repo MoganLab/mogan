@@ -906,12 +906,13 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   // auxiliaryWidget->setTitleBarWidget (new QWidget ()); // Disables title bar
   mw->addDockWidget (Qt::RightDockWidgetArea, auxiliaryWidget);
 
-  // 统一为所有 dock 分隔线添加可视边框
-  int borderWidth= DpiUtils::scaled (1);
-  mw->setStyleSheet (mw->styleSheet () +
-                     QString ("QMainWindow::separator { "
-                              "border-left: %1px solid rgba(0,0,0,0.12); }")
-                         .arg (borderWidth));
+  // dock 分隔线置零，底色与工具栏/侧边栏保持一致
+  mw->setStyleSheet (
+      mw->styleSheet () +
+      QString ("QMainWindow::separator { "
+               "background: %1; border: none; width: 0px; height: 0px; "
+               "margin: 0px; padding: 0px; }")
+          .arg (qt_is_dark_theme () ? "#2c2c2c" : "#f3f3f3"));
 
   // AI 聊天侧边栏 Dock（community 版不创建，保持 nullptr，
   // 下游所有 if (chatSideDock) 判空即自动跳过）

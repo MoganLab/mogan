@@ -132,7 +132,6 @@ Item {
 
     // 主题配色
     readonly property color sidebarBg: Theme.dark ? "#2c2c2c" : "#f3f3f3"
-    readonly property color borderRightClr: Theme.dark ? "#27272a" : "#e5e7eb"
     readonly property color headerTitleClr: Theme.dark ? "#f4f4f5" : "#1f2328"
     readonly property color itemHoverBg: Theme.dark ? "#27272a" : "#f0f2f5"
     readonly property color itemSelectBg: "#0284c7"
@@ -149,15 +148,6 @@ Item {
         id: bgRect
         anchors.fill: parent
         color: sidebarBg
-
-        // 右边框分割线
-        Rectangle {
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            anchors.right: parent.right
-            width: 1 * Theme.scaleFactor
-            color: borderRightClr
-        }
 
         // 全局空白处点击收起弹出菜单
         MouseArea {
@@ -634,6 +624,64 @@ Item {
                             onClicked: setAllExpanded(modelData.expand)
                         }
                     }
+                }
+            }
+        }
+
+        // 5. 右侧宽度调节小组件（放上去呈现横向双向箭头，左右拖拽调整侧边栏宽度）
+        Item {
+            id: resizeHandle
+            objectName: "resizeHandle"
+            z: 60
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            width: 10 * Theme.scaleFactor
+            height: 48 * Theme.scaleFactor
+
+            Rectangle {
+                id: handlePill
+                objectName: "handlePill"
+                anchors.centerIn: parent
+                width: 4 * Theme.scaleFactor
+                height: 36 * Theme.scaleFactor
+                radius: width / 2
+                color: Theme.dark ? "#38bdf8" : "#0284c7"
+                opacity: (handleMouse.containsMouse || handleMouse.isDragging) ? 1.0 : 0.0
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 150 }
+                }
+            }
+
+            MouseArea {
+                id: handleMouse
+                objectName: "handleMouse"
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.SizeHorCursor
+
+                property bool isDragging: false
+                property real startGlobalX: 0
+
+                onPressed: function(mouse) {
+                    isDragging = true;
+                    startGlobalX = mapToGlobal(mouse.x, mouse.y).x;
+                }
+                onPositionChanged: function(mouse) {
+                    if (isDragging && bridge) {
+                        let curGlobalX = mapToGlobal(mouse.x, mouse.y).x;
+                        let delta = curGlobalX - startGlobalX;
+                        if (Math.abs(delta) >= 1) {
+                            bridge.adjustWidth(delta);
+                            startGlobalX = curGlobalX;
+                        }
+                    }
+                }
+                onReleased: {
+                    isDragging = false;
+                }
+                onCanceled: {
+                    isDragging = false;
                 }
             }
         }

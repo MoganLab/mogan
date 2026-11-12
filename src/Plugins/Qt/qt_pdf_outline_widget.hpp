@@ -32,6 +32,7 @@ public:
   bool loadDocumentOutline ();
   void clear ();
   bool hasContent () const;
+  void adjustWidthBy (int delta);
 
   OutlineBridge* bridge () const { return bridge_; }
   QQuickWidget*  quickWidget () const { return quick_; }

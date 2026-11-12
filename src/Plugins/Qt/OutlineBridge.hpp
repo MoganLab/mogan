@@ -46,6 +46,9 @@ public:
 
   Q_INVOKABLE void itemClicked (const QString& id, const QString& target);
   Q_INVOKABLE void closeOutline ();
+  Q_INVOKABLE void adjustWidth (int delta) {
+    emit widthAdjustRequested (delta);
+  }
 
 signals:
   void outlineModelChanged ();
@@ -53,6 +56,7 @@ signals:
   void currentIdChanged ();
   void outlineActivated (const QString& target);
   void closeRequested ();
+  void widthAdjustRequested (int delta);
 
 private:
   QVariantList m_model;
