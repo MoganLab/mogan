@@ -17,6 +17,7 @@
 
 class OutlineBridge : public QObject {
   Q_OBJECT
+  Q_PROPERTY (QString title READ title CONSTANT)
   Q_PROPERTY (
       QVariantList outlineModel READ outlineModel NOTIFY outlineModelChanged)
   Q_PROPERTY (bool hasContent READ hasContent NOTIFY outlineModelChanged)
@@ -29,6 +30,7 @@ public:
   explicit OutlineBridge (QObject* parent= nullptr);
   ~OutlineBridge () override= default;
 
+  QString             title () const;
   const QVariantList& outlineModel () const { return m_model; }
   bool                hasContent () const { return !m_model.isEmpty (); }
   const QVariantMap&  defaultExpandedMap () const {

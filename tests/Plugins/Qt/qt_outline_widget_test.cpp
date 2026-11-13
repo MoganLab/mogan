@@ -5,9 +5,12 @@
  ******************************************************************************/
 
 #include "base.hpp"
+#include "converter.hpp"
+#include "dictionary.hpp"
 #include "preferences.hpp"
 #include "qt_pdf_outline_widget.hpp"
 #include "qt_pdf_toolbar.hpp"
+#include "qt_utilities.hpp"
 #include <QQuickItem>
 #include <QSignalSpy>
 #include <QtTest/QtTest>
@@ -28,6 +31,19 @@ private slots:
     QVERIFY (widget->bridge () != nullptr);
     QVERIFY (!widget->hasContent ());
     delete widget;
+  }
+
+  void test_title_and_translation () {
+    OutlineBridge bridge;
+    QCOMPARE (bridge.title (), qt_translate ("Outline"));
+
+    string tr1=
+        cork_to_utf8 (translate (string ("Outline"), "english", "chinese"));
+    QCOMPARE (utf8_to_qstring (tr1), QString ("大纲"));
+
+    string tr2=
+        cork_to_utf8 (translate (string ("outline"), "english", "chinese"));
+    QCOMPARE (utf8_to_qstring (tr2), QString ("大纲"));
   }
 
   void test_setOutline_pdf () {

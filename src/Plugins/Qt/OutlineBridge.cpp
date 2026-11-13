@@ -6,7 +6,14 @@
 
 #include "OutlineBridge.hpp"
 
+#include "qt_utilities.hpp" // qt_translate
+
 OutlineBridge::OutlineBridge (QObject* parent) : QObject (parent) {}
+
+QString
+OutlineBridge::title () const {
+  return qt_translate ("Outline");
+}
 
 void
 OutlineBridge::setCurrentId (const QString& id) {
