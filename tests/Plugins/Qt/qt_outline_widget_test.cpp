@@ -134,6 +134,24 @@ private slots:
     delete widget;
   }
 
+  void test_setOutline_preference_off () {
+    set_preference ("outline sidebar", "off");
+    OutlineWidget* widget= new OutlineWidget ("目录");
+
+    QVector<OutlineItem> outline;
+    OutlineItem          item;
+    item.title = "Chapter 1";
+    item.target= "0";
+    outline.append (item);
+
+    widget->setOutline (outline);
+    QVERIFY (widget->hasContent ());
+    QVERIFY (!widget->isVisible ());
+
+    delete widget;
+    set_preference ("outline sidebar", "on");
+  }
+
   void test_clear_and_hasContent () {
     OutlineWidget* widget= new OutlineWidget ("目录");
     QVERIFY (!widget->hasContent ());

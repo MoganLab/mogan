@@ -1662,6 +1662,10 @@ native_menubar_pref_on () {
 void
 qt_tm_widget_rep::toggle_outline_sidebar () {
   call ("toggle-outline-sidebar");
+  if (is_editor_tab_mode () && pdfOutlineDock &&
+      get_preference ("outline sidebar", "on") == "on") {
+    pdfOutlineDock->loadDocumentOutline ();
+  }
   update_visibility ();
 }
 
@@ -2146,6 +2150,7 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
       else if (!startupTabMode && !chatTabMode) {
         // 大纲内容已由前面的 sync_startup_tab_mode() 加载，此处只同步可见性
         if (outlineEnabled) {
+          pdfOutlineDock->setVisible (pdfOutlineDock->hasContent ());
           if (pdfOutlineDock->hasContent ())
             restore_outline_dock_width (mainwindow (), pdfOutlineDock);
         }
