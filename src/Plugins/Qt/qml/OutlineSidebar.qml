@@ -158,7 +158,7 @@ Item {
             onClicked: menuOpen = false
         }
 
-        // 1. 顶部标题栏（Contents / 目录）
+        // 1. 顶部标题栏（Outline / 大纲）
         Item {
             id: headerItem
             anchors.top: parent.top
@@ -168,7 +168,8 @@ Item {
 
             Text {
                 id: titleText
-                text: qsTr("Contents")
+                objectName: "outlineTitleText"
+                text: (bridge && bridge.title) ? bridge.title : qsTr("Outline")
                 anchors.centerIn: parent
                 font.pixelSize: 14 * Theme.scaleFactor
                 font.weight: Font.DemiBold

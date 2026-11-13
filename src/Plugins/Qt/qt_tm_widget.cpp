@@ -962,9 +962,9 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       qApp->installEventFilter (new ChatSidebarFocusRestorer (mw, this));
   }
 
-  // PDF 目录（大纲）侧边栏 Dock（PDF 模式显示书签，编辑器模式显示章节结构）
+  // PDF 大纲侧边栏 Dock（PDF 模式显示书签，编辑器模式显示章节结构）
   {
-    pdfOutlineDock= new OutlineWidget ("目录", mw);
+    pdfOutlineDock= new OutlineWidget (qt_translate ("Outline"), mw);
     pdfOutlineDock->setObjectName ("pdfOutlineDock");
     pdfOutlineDock->setFloating (false);
     pdfOutlineDock->setVisible (false);
