@@ -33,9 +33,12 @@ jobs:
           # [CI reference] 同步 CI 的基础工具列表 (7zip, ninja, cmake, pandoc等)
           apt-get install -y \
             git curl wget unzip 7zip \
-            build-essential cmake ninja-build python3 \
+            build-essential cmake ninja-build python3 python3-pip python3-venv \
             ca-certificates \
             pkg-config
+          # 预装 aqtinstall：xmake 的 aqt 包在 Linux 上走 `python3 -m pip install aqtinstall`，
+          # Debian trixie 的 python3 不带 pip 且受 PEP 668 保护，不预装会让 Config 直接失败
+          python3 -m pip install --break-system-packages aqtinstall
 
       - uses: actions/checkout@v4
         with:
