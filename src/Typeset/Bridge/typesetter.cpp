@@ -177,6 +177,13 @@ typesetter_rep::typeset () {
         progressive_bench_active= true;
       }
     }
+    else if (chunk_start != progressive_cur_child || chunk_end <= chunk_start) {
+      // 上一次 typeset 之后既未 advance 也未 reset 的续排（如重复 typeset_
+      // forced）：分块边界已陈旧，若沿用会把 doc_l 重置为 [0,·) 并与已冻结
+      // 页面重复叠加。按当前前沿续取一块，保持 doc_l 与冻结页面单调一致。
+      chunk_start= progressive_cur_child;
+      chunk_end  = min (n, chunk_start + 50);
+    }
   }
   else {
     progressive_enabled    = false;
@@ -220,17 +227,22 @@ typesetter_rep::typeset () {
   else {
     progressive_pending= false;
   }
+  // 空分块（前沿已达文末）时根 bridge 缓存命中会重播上一分块的 page items，
+  // 不能并入 doc_l，否则已冻结内容被重复追加
+  bool chunk_empty= progressive_enabled && (chunk_start >= chunk_end);
   bench_start ("typeset: br->typeset");
   br->typeset (PROCESSED + WANTED_PARAGRAPH);
   bench_end ("typeset: br->typeset", 5);
 
   if (progressive_enabled) {
-    if (chunk_start == 0) {
-      doc_l = copy (l);
-      doc_sb= sb;
-    }
-    else {
-      merge_stack (doc_l, doc_sb, l, sb);
+    if (!chunk_empty) {
+      if (chunk_start == 0) {
+        doc_l = copy (l);
+        doc_sb= sb;
+      }
+      else {
+        merge_stack (doc_l, doc_sb, l, sb);
+      }
     }
     progressive_cur_child= chunk_end;
     max_typeset_child    = max (max_typeset_child, chunk_end);
