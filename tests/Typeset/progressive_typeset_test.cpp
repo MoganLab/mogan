@@ -60,6 +60,7 @@ private slots:
   void test_fast_forward_and_no_page_loss_after_edit ();
   void test_offset_alignment_between_frozen_and_unfrozen ();
   void test_nested_document_in_later_chunk ();
+  void test_append_at_end_after_full_typeset ();
 };
 
 void
@@ -163,6 +164,41 @@ TestProgressiveTypeset::test_nested_document_in_later_chunk () {
   box  b    = ttt->typeset ();
   bool found= false;
   b->find_box_path (path (50, 0, 0), found);
+  QVERIFY (found);
+
+  delete_typesetter (ttt);
+}
+
+void
+TestProgressiveTypeset::test_append_at_end_after_full_typeset () {
+  edit_env env  = create_test_env ();
+  int      n    = 120;
+  tree     doc  = create_long_document (n);
+  the_et        = doc;
+  typesetter ttt= new_typesetter (env, doc, path ());
+
+  // 1. 初始排版并快进至文末，使全文档排版完成
+  ttt->typeset ();
+  ttt->progressive_fast_forward_until (n - 1);
+  box b1          = ttt->typeset ();
+  int pages_before= N (b1[0]);
+  QVERIFY (!ttt->typeset_in_progress ());
+  QCOMPARE (ttt->progressive_cur_child, n);
+
+  // 2. 在文末插入新段落（模拟文末按回车）
+  tree new_para ("");
+  the_et= doc * tuple (new_para);
+  notify_insert (ttt, path (n), tuple (new_para));
+  box b2         = ttt->typeset ();
+  int pages_after= N (b2[0]);
+
+  // 3. 验证首轮重排即完整覆盖新插入节点，不落入未完成分块状态
+  QVERIFY (!ttt->typeset_in_progress ());
+  QCOMPARE (ttt->progressive_cur_child, n + 1);
+  QVERIFY (pages_after >= pages_before);
+
+  bool found= false;
+  b2->find_box_path (path (n, 0), found);
   QVERIFY (found);
 
   delete_typesetter (ttt);

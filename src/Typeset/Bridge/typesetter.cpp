@@ -207,18 +207,18 @@ typesetter_rep::typeset () {
   }
 
   // Typeset
-  if (env->complete) {
-    env->local_aux= hashmap<string, tree> (UNINIT);
-    env->missing  = hashmap<string, tree> (UNINIT);
-    env->redefined= array<tree> ();
-    env->touched  = hashmap<string, bool> (false);
-  }
   if (progressive_enabled && chunk_end < n) {
     progressive_pending= true;
     env->complete      = false;
   }
   else {
     progressive_pending= false;
+  }
+  if (env->complete) {
+    env->local_aux= hashmap<string, tree> (UNINIT);
+    env->missing  = hashmap<string, tree> (UNINIT);
+    env->redefined= array<tree> ();
+    env->touched  = hashmap<string, bool> (false);
   }
   bench_start ("typeset: br->typeset");
   br->typeset (PROCESSED + WANTED_PARAGRAPH);
