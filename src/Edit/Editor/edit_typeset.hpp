@@ -82,8 +82,9 @@ public:
   string   physical_font_for_string (string s);
   bool     typeset_in_progress ();
   bool     is_read_only ();
-  bool     get_manual_read_only ();
-  void     set_manual_read_only (bool on);
+  bool     can_toggle_file_read_only ();
+  bool     get_file_read_only ();
+  void     set_file_read_only (bool on);
   void     show_readonly_tip_for_reason ();
   int      typeset_frontier ();
   int      get_page_count ();

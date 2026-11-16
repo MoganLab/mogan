@@ -465,13 +465,18 @@ function main()
                 ret_type = "bool"
             },
             {
-                scm_name = "manual-read-only?",
-                cpp_name = "get_manual_read_only",
+                scm_name = "can-toggle-file-read-only?",
+                cpp_name = "can_toggle_file_read_only",
                 ret_type = "bool"
             },
             {
-                scm_name = "set-manual-read-only",
-                cpp_name = "set_manual_read_only",
+                scm_name = "file-read-only?",
+                cpp_name = "get_file_read_only",
+                ret_type = "bool"
+            },
+            {
+                scm_name = "set-file-read-only",
+                cpp_name = "set_file_read_only",
                 ret_type = "void",
                 arg_list = {
                     "bool"

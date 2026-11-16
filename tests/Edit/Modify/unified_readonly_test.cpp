@@ -13,6 +13,7 @@
 #include "boot.hpp"
 #include "data_cache.hpp"
 #include "editor.hpp"
+#include "file.hpp"
 #include "gui.hpp"
 #include "modification.hpp"
 #include "new_buffer.hpp"
@@ -63,11 +64,12 @@ private slots:
 
     editor ed= new_editor (nullptr, buf);
     QVERIFY (!ed->is_read_only ());
-    QVERIFY (!ed->get_manual_read_only ());
+    QVERIFY (!ed->get_file_read_only ());
+    QVERIFY (!ed->can_toggle_file_read_only ());
 
-    // 1. 手动开启只读模式（视图 -> 只读模式）
-    ed->set_manual_read_only (true);
-    QVERIFY (ed->get_manual_read_only ());
+    // 1. 文件权限只读 (buf->buf->read_only) 触发统一只读
+    buf->buf->read_only= true;
+    QVERIFY (ed->get_file_read_only ());
     QVERIFY (ed->is_read_only ());
 
     bool threw= false;
@@ -84,31 +86,53 @@ private slots:
     edit_announce (ed.operator->(),
                    mod_set_cursor (buf->rp * 0, 0, tree (TUPLE, tree ("x"))));
 
-    // 3. 关闭手动只读后恢复可编辑
-    ed->set_manual_read_only (false);
+    // 3. 关闭只读标志后恢复可编辑
+    buf->buf->read_only= false;
     QVERIFY (!ed->is_read_only ());
     edit_announce (ed.operator->(), mod_assign (buf->rp * 0, tree ("updated")));
 
-    // 4. 文件权限只读 (buf->buf->read_only) 同样触发统一只读
+    // 4. 系统文档装载 (set_document) 在只读模式下依然豁免
     buf->buf->read_only= true;
-    QVERIFY (ed->is_read_only ());
-    threw= false;
-    try {
-      edit_announce (ed.operator->(),
-                     mod_assign (buf->rp * 0, tree ("blocked")));
-    } catch (string msg) {
-      threw= (msg == "read-only");
-    }
-    QVERIFY (threw);
-    QCOMPARE (subtree (the_et, buf->rp * 0), tree ("initial"));
-
-    // 5. 系统文档装载 (set_document) 在只读模式下依然豁免
     QVERIFY (!in_system_document_load ());
     set_document (buf->rp, tree (DOCUMENT, tree ("reloaded")));
     QVERIFY (!in_system_document_load ());
     QCOMPARE (subtree (the_et, buf->rp), tree (DOCUMENT, tree ("reloaded")));
 
     buf->buf->read_only= false;
+
+    // 5. 本地文件支持通过 set_file_read_only 切换文件写权限与只读状态
+    url local_url= url_temp (".tm");
+    save_string (local_url, "<TeXmacs|2.1.4>\n\n<style|generic>\n");
+    set_buffer_tree (local_url, tree (DOCUMENT, tree ("local")));
+    tm_buffer local_buf= concrete_buffer (local_url);
+    QVERIFY (!is_nil (local_buf));
+    set_document (local_buf->rp, tree (DOCUMENT, tree ("local")));
+    local_buf->data->init ("no-zoom")  = "true";
+    local_buf->data->init (ZOOM_FACTOR)= "1.0";
+
+    editor local_ed= new_editor (nullptr, local_buf);
+    QVERIFY (local_ed->can_toggle_file_read_only ());
+    QVERIFY (!local_ed->get_file_read_only ());
+
+    local_ed->set_file_read_only (true);
+    QVERIFY (local_ed->get_file_read_only ());
+    QVERIFY (local_ed->is_read_only ());
+
+    threw= false;
+    try {
+      edit_announce (local_ed.operator->(),
+                     mod_assign (local_buf->rp * 0, tree ("blocked")));
+    } catch (string msg) {
+      threw= (msg == "read-only");
+    }
+    QVERIFY (threw);
+
+    local_ed->set_file_read_only (false);
+    QVERIFY (!local_ed->get_file_read_only ());
+    QVERIFY (!local_ed->is_read_only ());
+    edit_announce (local_ed.operator->(),
+                   mod_assign (local_buf->rp * 0, tree ("writable")));
+    remove (local_url);
   }
 };
 

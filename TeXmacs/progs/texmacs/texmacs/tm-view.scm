@@ -140,12 +140,6 @@
   ) ;with
 ) ;tm-define
 
-(tm-define (toggle-manual-read-only)
-  (:synopsis "Toggle manual read-only mode for the current editor")
-  (:check-mark "v" manual-read-only?)
-  (set-manual-read-only (not (manual-read-only?)))
-) ;tm-define
-
 (tm-define (toggle-chat-sidebar)
   (:synopsis "Toggle the visibility of the AI chat sidebar")
   (:check-mark "v" visible-chat-sidebar?)

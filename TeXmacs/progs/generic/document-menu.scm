@@ -1050,6 +1050,10 @@
   (if (== (get-preference "experimental encryption") "on")
     (-> "Encryption" (link document-encryption-menu))
   ) ;if
+  ---
+  (when (can-toggle-file-read-only?)
+    ("Read-only" (toggle-file-read-only))
+  ) ;when
 ) ;menu-bind
 
 (menu-bind compressed-document-menu
@@ -1086,6 +1090,10 @@
   (if (== (get-preference "experimental encryption") "on")
     (-> "Encryption" (link document-encryption-menu))
   ) ;if
+  ---
+  (when (can-toggle-file-read-only?)
+    ("Read-only" (toggle-file-read-only))
+  ) ;when
 ) ;menu-bind
 
 (menu-bind document-menu

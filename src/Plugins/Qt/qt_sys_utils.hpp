@@ -21,5 +21,6 @@ bool   qt_has_network_connection ();
 string qt_stem_user_agent ();
 string qt_stem_device_id ();
 void   qt_open_url (url u);
+bool   qt_set_file_readonly (url u, bool readonly);
 
 #endif // defined QT_SYS_UTILS_H

@@ -15,6 +15,7 @@
 #include "string.hpp"
 #include "tm_configure.hpp"
 #include "tm_debug.hpp"
+#include "tm_url.hpp"
 
 #ifdef Q_OS_WINDOWS
 #include <qt_windows.h>
@@ -237,4 +238,21 @@ qt_open_url (url u) {
     QString link= to_qstring (as_string (u));
     QDesktopServices::openUrl (QUrl (link));
   }
+}
+
+bool
+qt_set_file_readonly (url u, bool readonly) {
+  if (!is_local_and_single (u)) return false;
+  QString path= utf8_to_qstring (concretize (u));
+  QFile   f (path);
+  if (!f.exists ()) return false;
+  QFileDevice::Permissions perms= f.permissions ();
+  if (readonly) {
+    perms&= ~(QFileDevice::WriteOwner | QFileDevice::WriteUser |
+              QFileDevice::WriteGroup | QFileDevice::WriteOther);
+  }
+  else {
+    perms|= (QFileDevice::WriteOwner | QFileDevice::WriteUser);
+  }
+  return f.setPermissions (perms);
 }

@@ -622,3 +622,13 @@
   ) ;for
   (delayed (:idle 1) (set-cursor-style "normal"))
 ) ;tm-define
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Document file read-only permission
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(tm-define (toggle-file-read-only)
+  (:synopsis "Toggle read-only permission for the current document file")
+  (:check-mark "v" file-read-only?)
+  (set-file-read-only (not (file-read-only?)))
+) ;tm-define

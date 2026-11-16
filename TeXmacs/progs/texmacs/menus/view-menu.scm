@@ -113,7 +113,6 @@
   ("Focus mode" (toggle-focus-mode))
   ("Simplest mode" (toggle-simplest-mode))
   ("Presentation mode" (toggle-full-screen-mode))
-  ("Read-only mode" (toggle-manual-read-only))
   ("Show panorama" (toggle-panorama-mode))
   ("Show all slides" (toggle-slideshow-mode))
   ("Remote control" (toggle-remote-control-mode))

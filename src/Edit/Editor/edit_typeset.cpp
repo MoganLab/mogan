@@ -14,9 +14,11 @@
 #include "analyze.hpp"
 #include "convert.hpp"
 #include "converter.hpp"
+#include "dictionary.hpp"
 #include "file.hpp"
 #include "iterator.hpp"
 #include "merge_sort.hpp"
+#include "new_buffer.hpp"
 #include "new_document.hpp"
 #include "new_style.hpp"
 #include "new_window.hpp"
@@ -26,6 +28,9 @@
 #include "tm_timer.hpp"
 #include "tm_window.hpp"
 #include "tmfs_url.hpp"
+#ifdef QTTEXMACS
+#include "Qt/qt_sys_utils.hpp"
+#endif
 #include "tree_modify.hpp"
 #include "tree_observer.hpp"
 #include "typesetter.hpp"
@@ -717,18 +722,43 @@ edit_typeset_rep::typeset_in_progress () {
 
 bool
 edit_typeset_rep::is_read_only () {
-  return manual_read_only || (!is_nil (buf) && buf->buf->read_only) ||
-         typeset_in_progress ();
+  return (!is_nil (buf) && buf->buf->read_only) || typeset_in_progress ();
 }
 
 bool
-edit_typeset_rep::get_manual_read_only () {
-  return manual_read_only;
+edit_typeset_rep::can_toggle_file_read_only () {
+  if (is_nil (buf)) return false;
+#ifdef LORO_ENABLED
+  if (collab_enabled ()) return false;
+#endif
+  url name= buf->buf->name;
+  return !is_rooted_tmfs (name) && !is_ramdisc (name) &&
+         is_local_and_single (name) && exists (name);
+}
+
+bool
+edit_typeset_rep::get_file_read_only () {
+  return !is_nil (buf) && buf->buf->read_only;
 }
 
 void
-edit_typeset_rep::set_manual_read_only (bool on) {
-  manual_read_only= on;
+edit_typeset_rep::set_file_read_only (bool on) {
+  if (!can_toggle_file_read_only ()) return;
+  url name= buf->buf->name;
+#ifdef QTTEXMACS
+  if (!qt_set_file_readonly (name, on)) return;
+#else
+  (void) on;
+#endif
+  bool actual_ro     = !has_permission (name, "w");
+  buf->buf->read_only= actual_ro;
+  tree   doc         = subtree (the_et, buf->rp);
+  string title       = propose_title (buf->buf->title, name, doc);
+  if (actual_ro) {
+    string read_only_text= translate ("read-only");
+    title                = '[' * cork_to_utf8 (read_only_text) * "] " * title;
+  }
+  set_title_buffer (name, title);
   if (!is_read_only () && has_current_window ()) {
     tm_window win= concrete_window ();
     if (win != NULL) win->show_readonly_tip ("");
@@ -740,10 +770,7 @@ void
 edit_typeset_rep::show_readonly_tip_for_reason () {
   if (!has_current_window ()) return;
   string msg;
-  if (manual_read_only) {
-    msg= "Current document is read-only: View -> Read-only mode is enabled";
-  }
-  else if (!is_nil (buf) && buf->buf->read_only) {
+  if (!is_nil (buf) && buf->buf->read_only) {
     msg= "Current document is read-only: file permission is read-only";
   }
   else if (typeset_in_progress ()) {
