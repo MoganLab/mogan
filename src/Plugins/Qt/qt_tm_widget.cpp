@@ -2099,7 +2099,7 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     readonlyTipLabel->move (x, y);
     readonlyTipLabel->raise ();
     readonlyTipLabel->show ();
-    readonlyTipTimer->start (2500);
+    readonlyTipTimer->start (3000);
   } break;
   case SLOT_RIGHT_FOOTER: {
     check_type<string> (val, s);
