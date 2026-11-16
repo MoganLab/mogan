@@ -207,7 +207,7 @@ void
 pager_rep::pages_make () {
   space    ht (text_height - may_shrink, text_height, text_height + may_extend);
   skeleton sk= break_pages (l, ht, quality, fn_sep, fnote_sep, float_sep,
-                            env->fn, env->first_page);
+                            env->fn, env->first_page + N (frozen_pages));
   int      i, n= N (sk);
   env->write (PAGE_THE_TOTAL, as_string (N (frozen_pages) + n));
   pages    = copy (frozen_pages);

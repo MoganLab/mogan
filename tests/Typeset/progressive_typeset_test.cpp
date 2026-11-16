@@ -68,6 +68,7 @@ private slots:
   void test_nested_document_in_later_chunk ();
   void test_append_at_end_after_full_typeset ();
   void test_progressive_preserves_local_aux_across_chunks ();
+  void test_blank_pages_at_freeze_boundary ();
 };
 
 void
@@ -244,6 +245,54 @@ TestProgressiveTypeset::test_progressive_preserves_local_aux_across_chunks () {
   QCOMPARE (N (env->local_aux["toc"]), 2);
   QCOMPARE (env->local_aux["toc"][0], tree ("Section in chunk 0"));
   QCOMPARE (env->local_aux["toc"][1], tree ("Section in chunk 1"));
+
+  delete_typesetter (ttt);
+}
+
+static bool
+box_contains_text (box b, const string& needle) {
+  if (b->get_type () == TEXT_BOX) {
+    string s= b->get_leaf_string ();
+    if (occurs (needle, s)) return true;
+  }
+  for (int i= 0; i < b->subnr (); i++) {
+    if (box_contains_text (b->subbox (i), needle)) return true;
+  }
+  return false;
+}
+
+void
+TestProgressiveTypeset::test_blank_pages_at_freeze_boundary () {
+  edit_env env= create_test_env ();
+  int      n  = 160;
+  tree     doc (DOCUMENT, n);
+  doc[0]= tree ("UniqueCoverTitle");
+  doc[1]= tree (NEW_PAGE);
+  doc[2]= tree ("VersoNote");
+  doc[3]= tree (NEW_PAGE);
+  doc[4]= tree (NEW_DPAGE);
+  for (int i= 5; i < n; i++) {
+    doc[i]= string ("Chapter body paragraph line with enough words ") *
+            as_string (i);
+  }
+  the_et        = doc;
+  typesetter ttt= new_typesetter (env, doc, path ());
+
+  box last_box= ttt->typeset ();
+  while (ttt->typeset_in_progress ()) {
+    ttt->progressive_advance (30);
+    last_box= ttt->typeset ();
+  }
+
+  QVERIFY (last_box->subnr () == 1);
+  box pages_box = last_box->subbox (0);
+  int title_hits= 0;
+  for (int pi= 0; pi < pages_box->subnr (); pi++) {
+    if (box_contains_text (pages_box->subbox (pi), "UniqueCoverTitle")) {
+      title_hits++;
+    }
+  }
+  QCOMPARE (title_hits, 1);
 
   delete_typesetter (ttt);
 }
