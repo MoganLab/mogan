@@ -485,7 +485,14 @@ edit_interface_rep::handle_keypress (string key_u8, time_t t) {
     }
     // time_t t1= texmacs_time ();
     if (is_nil (eb)) apply_changes ();
-    bool   guard_initial_ro= initial_typeset_pending ();
+    auto is_nav_key= [] (const string& k) {
+      return k == "up" || k == "down" || k == "left" || k == "right" ||
+             k == "home" || k == "end" || k == "pageup" || k == "pagedown" ||
+             k == "S-up" || k == "S-down" || k == "S-left" ||
+             k == "S-right" || k == "S-home" || k == "S-end" ||
+             k == "S-pageup" || k == "S-pagedown" || k == "escape";
+    };
+    bool   guard_initial_ro= initial_typeset_pending () && !is_nav_key (key);
     double ro_mark         = 0;
     start_editing ();
     started= true;
