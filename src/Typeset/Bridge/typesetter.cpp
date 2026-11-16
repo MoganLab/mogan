@@ -26,9 +26,9 @@ typesetter_rep::typesetter_rep (edit_env& env2, tree et, path ip)
       progressive_bench_active (false), frozen_pages_positioned (0),
       doc_name (""), chunk_start (0), chunk_end (0),
       doc_l (array<page_item> ()), doc_sb (stack_border ()),
-      frozen_page_boxes (array<box> ()), frozen_border_boxes (array<box> ()),
-      dynamic_buffer_pages (3), page_text_height (0), last_page_count (0),
-      max_typeset_child (0) {
+      progressive_env (UNINIT), frozen_page_boxes (array<box> ()),
+      frozen_border_boxes (array<box> ()), dynamic_buffer_pages (3),
+      page_text_height (0), last_page_count (0), max_typeset_child (0) {
   paper= (env->get_string (PAGE_MEDIUM) == "paper");
   br   = make_bridge (this, et, ip);
   x1= y1= x2= y2= 0;
@@ -194,6 +194,7 @@ typesetter_rep::typeset () {
     frozen_page_boxes      = array<box> ();
     frozen_border_boxes    = array<box> ();
     frozen_pages_positioned= 0;
+    progressive_env        = hashmap<string, tree> (UNINIT);
     // 文档中途退出 progressive 模式时闭环基准，避免计时泄漏
     progressive_bench_end (this);
   }
@@ -237,9 +238,21 @@ typesetter_rep::typeset () {
     env->redefined= array<tree> ();
     env->touched  = hashmap<string, bool> (false);
   }
+  if (progressive_enabled && chunk_start > 0 && N (progressive_env) > 0) {
+    env->write_env (progressive_env);
+    env->update ();
+  }
   bench_start ("typeset: br->typeset");
   br->typeset (PROCESSED + WANTED_PARAGRAPH);
   bench_end ("typeset: br->typeset", 5);
+  if (progressive_enabled) {
+    if (chunk_end < n) {
+      env->read_env (progressive_env);
+    }
+    else {
+      progressive_env= hashmap<string, tree> (UNINIT);
+    }
+  }
   if (progressive_pending) {
     env->complete= false;
   }
@@ -523,6 +536,7 @@ typesetter_rep::progressive_reset () {
   chunk_end                = 0;
   doc_l                    = array<page_item> ();
   doc_sb                   = stack_border ();
+  progressive_env          = hashmap<string, tree> (UNINIT);
   frozen_page_boxes        = array<box> ();
   frozen_border_boxes      = array<box> ();
   progressive_pending      = false;
