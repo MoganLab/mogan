@@ -8,6 +8,7 @@
 #include "converter.hpp"
 #include "dictionary.hpp"
 #include "preferences.hpp"
+#include "qt_dpi_utils.hpp"
 #include "qt_pdf_outline_widget.hpp"
 #include "qt_pdf_toolbar.hpp"
 #include "qt_utilities.hpp"
@@ -571,7 +572,7 @@ private slots:
     for (int i= 0; i < 7; ++i) {
       QAction* act= tb->addAction (QString ("A%1").arg (i));
       QWidget* btn= tb->widgetForAction (act);
-      if (btn) btn->setFixedWidth (36);
+      if (btn) btn->setFixedWidth (DpiUtils::scaled (38));
     }
     QAction* sep= tb->addSeparator ();
     tb->addAction ("B");
@@ -585,7 +586,8 @@ private slots:
     QVERIFY (sepW != nullptr);
     int expectedX= sepW->mapTo (&mw, QPoint (sepW->width () / 2, 0)).x ();
     QCOMPARE (alignedW, expectedX);
-    QVERIFY (alignedW >= 220 && alignedW <= 550);
+    QVERIFY (alignedW >= DpiUtils::scaled (220) &&
+             alignedW <= DpiUtils::scaled (550));
 
     QWidget* central= new QWidget (&mw);
     mw.setCentralWidget (central);
