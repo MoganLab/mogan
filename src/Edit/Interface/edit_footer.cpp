@@ -133,6 +133,9 @@ edit_interface_rep::set_middle_footer () {
   // 显示页码：当前页 / 总页数（如果总页数未知，显示 ?）
   string page_display= current_page * string (" / ") * total_pages;
 
+  last_footer_page      = current_page_num;
+  last_footer_page_count= total_count;
+
   SERVER (set_middle_footer (
       serialize (tree_translate (tree (page_display), "english", "english"))));
 }

@@ -3177,3 +3177,4 @@
 ("Current document is read-only: full-document typesetting is not finished"
   "当前文档为只读模式：全文排版未完成"
 ) ;
+("Full document typesetting complete" "全文排版已完成")

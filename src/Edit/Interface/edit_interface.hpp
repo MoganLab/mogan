@@ -124,6 +124,8 @@ protected:
   void   table_scale_stop ();
   array<rectangles> alt_selection_rects;
   rectangle         last_visible;
+  int               last_footer_page      = -1;
+  int               last_footer_page_count= -1;
   rectangle         last_image_brec;  // 图片 bbox 缓存
   SI                last_image_hr;    // 图片 handle 半径缓存
   rectangle         hover_image_rect; // 鼠标悬停图片的区域缓存（用于扩大检测）

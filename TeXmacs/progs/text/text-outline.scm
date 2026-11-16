@@ -257,10 +257,14 @@
             ) ;with
           ) ;with
           (when unready?
-            (set-message (translate "Document is still typesetting in background, jumped to available page..."
-                         ) ;translate
-              (translate "typesetting progress")
-            ) ;set-message
+            (if (defined? 'show-footer-tip)
+              (show-footer-tip "Document is still typesetting in background, jumped to available page..."
+              ) ;show-footer-tip
+              (set-message (translate "Document is still typesetting in background, jumped to available page..."
+                           ) ;translate
+                (translate "typesetting progress")
+              ) ;set-message
+            ) ;if
           ) ;when
         ) ;let*
       ) ;when

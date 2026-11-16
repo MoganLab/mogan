@@ -1475,6 +1475,16 @@ edit_interface_rep::apply_changes () {
     call ("modify-ref-tooltip");
   }
 
+  if ((env_change & (THE_PROGRESSIVE | THE_TREE)) &&
+      should_update_menu (MENU_MAIN, get_name ()) &&
+      N (buffer_to_windows (get_name ())) > 0) {
+    int cur_page  = get_current_page ();
+    int page_count= get_page_count ();
+    if (cur_page != last_footer_page || page_count != last_footer_page_count) {
+      set_middle_footer ();
+    }
+  }
+
   // cout << "Applied changes\n";
   // time_t t2= texmacs_time ();
   // if (t2 - t1 >= 10) cout << "apply_changes took " << t2-t1 << "ms\n";
@@ -1487,10 +1497,13 @@ edit_interface_rep::apply_changes () {
   if (::typeset_in_progress (ttt)) {
     needs_update ();
   }
-  else if (was_typeset_in_progress && !is_read_only () &&
-           has_current_window ()) {
-    tm_window win= concrete_window ();
-    if (win != NULL) win->show_readonly_tip ("");
+  else if (was_typeset_in_progress) {
+    array<url> ws= buffer_to_windows (get_name ());
+    for (int i= 0; i < N (ws); i++) {
+      tm_window win= concrete_window (ws[i]);
+      if (win != NULL)
+        win->show_readonly_tip ("Full document typesetting complete");
+    }
   }
 }
 

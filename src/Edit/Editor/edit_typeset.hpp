@@ -86,6 +86,7 @@ public:
   bool     get_file_read_only ();
   void     set_file_read_only (bool on);
   void     show_readonly_tip_for_reason ();
+  void     show_footer_tip (string msg);
   int      typeset_frontier ();
   int      get_page_count ();
   string   get_page_number_text (int page_index);
