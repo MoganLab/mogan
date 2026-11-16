@@ -41,12 +41,13 @@ public:
   string doc_name;                   ///< 关联的文档路径（用于 benchmark）
   int    chunk_start;                ///< 本轮排版块的起点（= 上轮前沿）
   int    chunk_end;                  ///< 本轮排版块的终点（不含）
-  array<page_item> doc_l;
-  stack_border     doc_sb;
-  array<box>       frozen_page_boxes;
-  array<box>       frozen_border_boxes;
-  int              dynamic_buffer_pages;
-  DI               page_text_height;
+  array<page_item>      doc_l;
+  stack_border          doc_sb;
+  hashmap<string, tree> progressive_env;
+  array<box>            frozen_page_boxes;
+  array<box>            frozen_border_boxes;
+  int                   dynamic_buffer_pages;
+  DI                    page_text_height;
   int last_page_count;   ///< 上一轮排版完成时的总页数（用于不变式校验）
   int max_typeset_child; ///< 曾经排版达到的最大子节点下标
 

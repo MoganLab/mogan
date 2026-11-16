@@ -70,6 +70,7 @@ private slots:
   void test_progressive_preserves_local_aux_across_chunks ();
   void test_blank_pages_at_freeze_boundary ();
   void test_retypeset_after_full_typeset_without_reset ();
+  void test_progressive_preserves_env_counters_across_chunks ();
 };
 
 void
@@ -342,6 +343,40 @@ TestProgressiveTypeset::test_retypeset_after_full_typeset_without_reset () {
     }
   }
   QCOMPARE (title_hits, 1);
+
+  delete_typesetter (ttt);
+}
+
+void
+TestProgressiveTypeset::
+    test_progressive_preserves_env_counters_across_chunks () {
+  edit_env env= create_test_env ();
+  int      n  = 100;
+  tree     doc (DOCUMENT, n);
+  for (int i= 0; i < n; i++) {
+    doc[i]= string ("Paragraph ") * as_string (i);
+  }
+  doc[10]       = tree (ASSIGN, "section-nr", "5");
+  doc[60]       = tree (ASSIGN, "equation-nr",
+                        tree (PLUS, tree (VALUE, "section-nr"), "1"));
+  the_et        = doc;
+  typesetter ttt= new_typesetter (env, doc, path ());
+
+  ttt->typeset ();
+  QCOMPARE (ttt->progressive_cur_child, 50);
+  QCOMPARE (env->read ("section-nr"), tree ("5"));
+
+  // 模拟 edit_typeset_rep::typeset_prepare() 在分块间重置 env
+  env->write_default_env ();
+  env->style_init_env ();
+  env->write (PAGE_MEDIUM, "paper");
+  env->update ();
+
+  ttt->progressive_fast_forward_until (60);
+  ttt->typeset ();
+
+  QCOMPARE (env->read ("section-nr"), tree ("5"));
+  QCOMPARE (env->read ("equation-nr"), tree ("6"));
 
   delete_typesetter (ttt);
 }
