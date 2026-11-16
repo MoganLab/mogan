@@ -22,6 +22,7 @@ function main()
             "object_l5.hpp",
             "scheme.hpp",
             "glue_l5_extra.hpp",
+            "new_document.hpp",
         },
         glues = {
             {
@@ -1234,6 +1235,18 @@ function main()
                     "url",
                     "content"
                 }
+            },
+            {
+                scm_name = "begin-system-document-load",
+                cpp_name = "begin_system_document_load",
+                ret_type = "void",
+                arg_list = {}
+            },
+            {
+                scm_name = "end-system-document-load",
+                cpp_name = "end_system_document_load",
+                ret_type = "void",
+                arg_list = {}
             },
             {
                 scm_name = "buffer-get",

@@ -209,14 +209,6 @@ public:
   static int input_height_step_lines (int docLines);
 
   /**
-   * @brief 判断只读控件是否应拦截该事件。
-   * @param watched 事件目标对象（需带有 chat_message_readonly 属性）
-   * @param event   待判断的事件
-   * @return 应拦截返回 true，放行返回 false
-   */
-  static bool should_block_readonly_event (QObject* watched, QEvent* event);
-
-  /**
    * @brief 判断输入区当前按键是否应触发发送。
    * @param key 按键值
    * @param mods 修饰键状态

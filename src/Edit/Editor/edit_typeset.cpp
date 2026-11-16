@@ -772,6 +772,8 @@ edit_typeset_rep::set_file_read_only (bool on) {
 void
 edit_typeset_rep::show_readonly_tip_for_reason () {
   if (!has_current_window ()) return;
+  if (!is_nil (buf) && starts (as_string (buf->buf->name), "tmfs://chat/"))
+    return;
   string msg;
   if (!is_nil (buf) && buf->buf->read_only) {
     msg= "Current document is read-only: file permission is read-only";

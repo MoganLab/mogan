@@ -49,12 +49,22 @@ in_system_document_load () {
   return system_document_load_depth > 0;
 }
 
-system_document_load_guard::system_document_load_guard () {
+void
+begin_system_document_load () {
   system_document_load_depth++;
 }
 
+void
+end_system_document_load () {
+  if (system_document_load_depth > 0) system_document_load_depth--;
+}
+
+system_document_load_guard::system_document_load_guard () {
+  begin_system_document_load ();
+}
+
 system_document_load_guard::~system_document_load_guard () {
-  system_document_load_depth--;
+  end_system_document_load ();
 }
 
 void

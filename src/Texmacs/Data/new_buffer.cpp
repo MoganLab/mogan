@@ -344,7 +344,12 @@ set_buffer_tree (url name, tree doc) {
     buf      = concrete_buffer (name);
     tree body= detach_data (doc, buf->data);
     set_document (buf->rp, body);
-    buf->buf->title= propose_title (buf->buf->title, name, body);
+    bool new_ro        = is_rooted_tmfs (name)
+                             ? !has_permission (name, "w")
+                             : (exists (name) && is_file_read_only (name));
+    buf->buf->read_only= new_ro;
+    string title       = propose_title (buf->buf->title, name, body);
+    buf->buf->title    = apply_read_only_prefix (title, new_ro);
     if (buf->data->project != "") {
       url prj_name= head (name) * as_string (buf->data->project);
       buf->prj    = concrete_buffer_insist (prj_name);
@@ -410,6 +415,7 @@ set_buffer_body (url name, tree body) {
     set_buffer_tree (name, attach_data (body, data));
   }
   else {
+    system_document_load_guard guard;
     assign (buf->rp, body);
     pretend_buffer_saved (name);
   }
