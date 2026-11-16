@@ -22,6 +22,9 @@
 #include "tm_file.hpp"
 #include "tm_link.hpp"
 #include "tm_sys_utils.hpp"
+#ifdef QTTEXMACS
+#include "Qt/qt_sys_utils.hpp"
+#endif
 #include "tmfs_url.hpp"
 #include "tree_observer.hpp"
 #include "web_files.hpp"
@@ -203,7 +206,7 @@ rename_buffer (url name, url new_name) {
   buf->buf->read_only=
       is_rooted_tmfs (new_name)
           ? !has_permission (new_name, "w")
-          : (exists (new_name) && !has_permission (new_name, "w"));
+          : (exists (new_name) && is_file_read_only (new_name));
   array<url> vs= buffer_to_views (new_name);
   for (int i= 0; i < N (vs); i++) {
     editor ed= view_to_editor (vs[i]);
@@ -359,7 +362,7 @@ set_buffer_tree (url name, tree doc) {
     bool old_ro        = buf->buf->read_only;
     bool new_ro        = is_rooted_tmfs (name)
                              ? !has_permission (name, "w")
-                             : (exists (name) && !has_permission (name, "w"));
+                             : (exists (name) && is_file_read_only (name));
     buf->buf->read_only= new_ro;
     string title       = propose_title (old_title, name, body);
     title              = apply_read_only_prefix (title, new_ro);
@@ -573,6 +576,15 @@ import_tree (url u, string fm) {
 }
 
 bool
+is_file_read_only (url u) {
+  if (!has_permission (u, "w")) return true;
+#ifdef QTTEXMACS
+  if (qt_is_file_readonly (u)) return true;
+#endif
+  return false;
+}
+
+bool
 buffer_import (url name, url src, string fm) {
   tree t= import_tree (src, fm);
   if (t == "error") return true;
@@ -583,7 +595,7 @@ buffer_import (url name, url src, string fm) {
   tm_buffer buf= concrete_buffer (name);
   if (is_nil (buf)) return true;
   // Check if the file has write permissions
-  if (!has_permission (src, "w")) {
+  if (is_file_read_only (src)) {
     buf->buf->read_only= true;
     string title       = apply_read_only_prefix (buf->buf->title, true);
     set_title_buffer (name, title);

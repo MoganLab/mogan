@@ -753,7 +753,7 @@ edit_typeset_rep::set_file_read_only (bool on) {
 #else
   (void) on;
 #endif
-  bool actual_ro     = !has_permission (name, "w");
+  bool actual_ro     = is_file_read_only (name);
   buf->buf->read_only= actual_ro;
   tree   doc         = subtree (the_et, buf->rp);
   string title       = propose_title (buf->buf->title, name, doc);
