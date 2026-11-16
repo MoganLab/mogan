@@ -61,6 +61,7 @@ private slots:
   void test_offset_alignment_between_frozen_and_unfrozen ();
   void test_nested_document_in_later_chunk ();
   void test_append_at_end_after_full_typeset ();
+  void test_counter_preserved_across_chunks ();
 };
 
 void
@@ -200,6 +201,52 @@ TestProgressiveTypeset::test_append_at_end_after_full_typeset () {
   bool found= false;
   b2->find_box_path (path (n, 0), found);
   QVERIFY (found);
+
+  delete_typesetter (ttt);
+}
+
+void
+TestProgressiveTypeset::test_counter_preserved_across_chunks () {
+  drd_info              drd ("none", std_drd);
+  hashmap<string, tree> h1 (UNINIT), h2 (UNINIT), h3 (UNINIT), h4 (UNINIT);
+  hashmap<string, tree> h5 (UNINIT), h6 (UNINIT);
+  edit_env              env (drd, "none", h1, h2, h3, h4, h5, h6);
+  env->style_init_env ();
+  env->write (PAGE_MEDIUM, "paper");
+  env->write ("cnt", "0");
+  env->update ();
+  int  n= 80;
+  tree doc (DOCUMENT, n);
+  for (int i= 0; i < n; i++) {
+    if (i == 0 || i == 15 || i == 30 || i == 55 || i == 65) {
+      doc[i]= tree (
+          CONCAT, tree (ASSIGN, "cnt", tree (PLUS, tree (VALUE, "cnt"), "1")),
+          tree (ASSIGN, "last-cnt", tree (VALUE, "cnt")), tree (VALUE, "cnt"));
+    }
+    else {
+      doc[i]= string ("Paragraph text line ") * as_string (i);
+    }
+  }
+  the_et        = doc;
+  typesetter ttt= new_typesetter (env, doc, path ());
+
+  // 1. 首块 0..50：递增计数器 3 次
+  ttt->typeset ();
+  QCOMPARE (ttt->progressive_cur_child, 50);
+  QCOMPARE (env->read ("last-cnt"), tree ("3"));
+
+  // 2. 模拟 edit_typeset_rep::typeset_prepare() 在下轮分块前重置 env
+  env->write_default_env ();
+  env->style_init_env ();
+  env->write (PAGE_MEDIUM, "paper");
+  env->write ("cnt", "0");
+  env->update ();
+
+  // 3. 推进至第二块 50..80：应重放前置分块变更，计数器连续递增至 4、5
+  ttt->progressive_advance (30);
+  ttt->typeset ();
+  QCOMPARE (ttt->progressive_cur_child, 80);
+  QCOMPARE (env->read ("last-cnt"), tree ("5"));
 
   delete_typesetter (ttt);
 }
