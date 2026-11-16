@@ -17,7 +17,9 @@
 #include "OutlineBridge.hpp"
 #include "qt_pdf_reader_widget.hpp"
 
+class QMainWindow;
 class QTimer;
+class QToolBar;
 
 class OutlineWidget : public QDockWidget {
   Q_OBJECT
@@ -33,6 +35,10 @@ public:
   void clear ();
   bool hasContent () const;
   void adjustWidthBy (int delta);
+  void applyDockWidth (QMainWindow* mw, int scaledWidth);
+
+  static int defaultWidth ();
+  static int separatorAlignWidth (QMainWindow* mw, QToolBar* toolbar);
 
   OutlineBridge* bridge () const { return bridge_; }
   QQuickWidget*  quickWidget () const { return quick_; }
@@ -56,7 +62,8 @@ private:
   QTimer* widthSaveTimer_;
   int     pendingWidth_= 0;
   // QML 源延迟到首次显示再加载，避免主窗口启动时无谓解析
-  bool qmlLoaded_= false;
+  bool qmlLoaded_       = false;
+  bool ignoreResizeSave_= false;
 };
 
 #endif // QT_PDF_OUTLINE_WIDGET_HPP

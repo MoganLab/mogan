@@ -9,6 +9,7 @@
 #include <QMainWindow>
 #include <QQmlContext>
 #include <QTimer>
+#include <QToolBar>
 #include <QVBoxLayout>
 
 #include "converter.hpp" // cork_to_utf8
@@ -21,7 +22,7 @@
 
 namespace {
 constexpr int kOutlineMinWidth    = 220;
-constexpr int kOutlineDefaultWidth= 300;
+constexpr int kOutlineDefaultWidth= 290;
 constexpr int kOutlineMaxWidth    = 550;
 
 static bool
@@ -111,9 +112,35 @@ OutlineWidget::OutlineWidget (const QString& title, QWidget* parent)
 
 QSize
 OutlineWidget::sizeHint () const {
-  int savedWidth= as_int (get_preference ("outline sidebar width", "300"));
+  int savedWidth= as_int (get_preference ("outline sidebar width", "290"));
   if (savedWidth <= 0) savedWidth= kOutlineDefaultWidth;
   return QSize (DpiUtils::scaled (savedWidth), DpiUtils::scaled (600));
+}
+
+int
+OutlineWidget::defaultWidth () {
+  return kOutlineDefaultWidth;
+}
+
+int
+OutlineWidget::separatorAlignWidth (QMainWindow* mw, QToolBar* toolbar) {
+  if (!mw || !toolbar || !toolbar->isVisible () || toolbar->isFloating ())
+    return -1;
+  const QList<QAction*> actions= toolbar->actions ();
+  for (int i= 0; i < actions.size (); ++i) {
+    QAction* act= actions.at (i);
+    if (act && act->isSeparator () && act->isVisible ()) {
+      QWidget* w= toolbar->widgetForAction (act);
+      if (w && w->width () > 0) {
+        int sepX= w->mapTo (mw, QPoint (w->width () / 2, 0)).x ();
+        int minW= DpiUtils::scaled (kOutlineMinWidth);
+        int maxW= DpiUtils::scaled (kOutlineMaxWidth);
+        if (sepX >= minW && sepX <= maxW) return sepX;
+        return -1;
+      }
+    }
+  }
+  return -1;
 }
 
 void
@@ -128,6 +155,7 @@ OutlineWidget::showEvent (QShowEvent* event) {
 void
 OutlineWidget::resizeEvent (QResizeEvent* event) {
   QDockWidget::resizeEvent (event);
+  if (ignoreResizeSave_) return;
   int w= width ();
   if (w > 0 && isVisible ()) {
     qreal factor  = DpiUtils::scaleFactor ();
@@ -209,4 +237,13 @@ OutlineWidget::adjustWidthBy (int delta) {
   int maxW    = DpiUtils::scaled (kOutlineMaxWidth);
   newWidth    = qBound (minW, newWidth, maxW);
   mw->resizeDocks ({this}, {newWidth}, Qt::Horizontal);
+}
+
+void
+OutlineWidget::applyDockWidth (QMainWindow* mw, int scaledWidth) {
+  if (!mw) return;
+  ignoreResizeSave_= true;
+  if (widthSaveTimer_) widthSaveTimer_->stop ();
+  mw->resizeDocks ({this}, {scaledWidth}, Qt::Horizontal);
+  QTimer::singleShot (0, this, [this] () { ignoreResizeSave_= false; });
 }
