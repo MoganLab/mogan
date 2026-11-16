@@ -483,6 +483,14 @@ function main()
                 }
             },
             {
+                scm_name = "show-footer-tip",
+                cpp_name = "show_footer_tip",
+                ret_type = "void",
+                arg_list = {
+                    "string"
+                }
+            },
+            {
                 scm_name = "typeset-frontier",
                 cpp_name = "typeset_frontier",
                 ret_type = "int"

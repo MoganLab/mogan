@@ -785,6 +785,13 @@ edit_typeset_rep::show_readonly_tip_for_reason () {
   if (win != NULL) win->show_readonly_tip (msg);
 }
 
+void
+edit_typeset_rep::show_footer_tip (string msg) {
+  if (!has_current_window ()) return;
+  tm_window win= concrete_window ();
+  if (win != NULL) win->show_readonly_tip (msg);
+}
+
 int
 edit_typeset_rep::typeset_frontier () {
   return ::typeset_frontier (ttt);

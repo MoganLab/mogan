@@ -328,6 +328,7 @@ public:
   virtual bool          get_file_read_only ()                             = 0;
   virtual void          set_file_read_only (bool on)                      = 0;
   virtual void          show_readonly_tip_for_reason ()                   = 0;
+  virtual void          show_footer_tip (string msg)                      = 0;
   virtual int           typeset_frontier ()                               = 0;
   virtual int           get_page_count ()                                 = 0;
   virtual string        get_page_number_text (int page_index)             = 0;
