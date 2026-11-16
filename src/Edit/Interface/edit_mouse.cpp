@@ -1260,8 +1260,10 @@ edit_interface_rep::handle_mouse (string kind, SI x, SI y, int m, time_t t,
     }
     end_editing ();
   } catch (string msg) {
-    table_resizing_type= 0;
     if (started) cancel_editing ();
+    if (table_resizing_type == 1) table_line_stop ();
+    else if (table_resizing_type == 2) table_scale_stop ();
+    else table_resizing_type= 0;
   }
   handle_exceptions ();
 }
