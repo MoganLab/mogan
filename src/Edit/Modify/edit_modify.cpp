@@ -246,8 +246,12 @@ edit_set_cursor (editor_rep* ed, path pp, tree data) {
 
 void
 edit_announce (editor_rep* ed, modification mod) {
+  bool applying_remote= false;
+#ifdef LORO_ENABLED
+  applying_remote= ed->collab_applying_remote ();
+#endif
   if (mod->k != MOD_SET_CURSOR && !in_system_document_load () &&
-      ed->is_read_only ()) {
+      !applying_remote && ed->is_read_only ()) {
     ed->show_readonly_tip_for_reason ();
     throw string ("read-only");
   }
