@@ -294,14 +294,22 @@ QFileDialog QListView::item:selected {
 * 滚动条样式
 ****************************************************************************/
 QScrollBar:vertical,
-QScrollBar:horizontal {
-  background: #202020;
+QScrollBar:horizontal,
+QWidget#centralWidget QScrollBar:vertical,
+QWidget#centralWidget QScrollBar:horizontal {
+  background: transparent;
   margin: 0px;
-  border: none;         
+  border: none;
+}
+
+QAbstractScrollArea::corner,
+QWidget#centralWidget QAbstractScrollArea::corner {
+  background: transparent;
+  border: none;
 }
 
 QScrollBar:vertical {
-  width: 14px;          
+  width: 14px;
 }
 
 QScrollBar:horizontal {
@@ -309,22 +317,29 @@ QScrollBar:horizontal {
 }
 
 QScrollBar::handle:vertical,
-QScrollBar::handle:horizontal {
-  background: #4c4c4c;       
-  border-radius: 7px;        
-  border: 3px solid #202020;
+QScrollBar::handle:horizontal,
+QWidget#centralWidget QScrollBar::handle:vertical,
+QWidget#centralWidget QScrollBar::handle:horizontal {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  border: none;
+  margin: 3px;
   min-height: 20px;
   min-width: 20px;
 }
 
 QScrollBar::handle:vertical:hover,
-QScrollBar::handle:horizontal:hover {
-  background: #6a6a6a;
+QScrollBar::handle:horizontal:hover,
+QWidget#centralWidget QScrollBar::handle:vertical:hover,
+QWidget#centralWidget QScrollBar::handle:horizontal:hover {
+  background: rgba(255, 255, 255, 0.42);
 }
 
 QScrollBar::handle:vertical:pressed,
-QScrollBar::handle:horizontal:pressed {
-  background: #808080;
+QScrollBar::handle:horizontal:pressed,
+QWidget#centralWidget QScrollBar::handle:vertical:pressed,
+QWidget#centralWidget QScrollBar::handle:horizontal:pressed {
+  background: rgba(255, 255, 255, 0.58);
 }
 
 QScrollBar::add-line,

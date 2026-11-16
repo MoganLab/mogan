@@ -33,9 +33,10 @@ class QPaintEvent;
 class QTMScrollView : public QAbstractScrollArea {
   Q_OBJECT
 
-  bool   editor_flag; // Set to true for editor widgets
-  QRect  p_extents;   // The size of the virtual area where things are drawn.
-  QPoint p_origin;    // The offset into that area
+  bool   editor_flag;         // Set to true for editor widgets
+  bool   laying_out_overlay_; // Re-entrancy guard for overlay scrollbar layout
+  QRect  p_extents; // The size of the virtual area where things are drawn.
+  QPoint p_origin;  // The offset into that area
   QWidget*
       p_surface; // Actual drawing area, centered (or not) in the scrollarea
 
@@ -58,12 +59,14 @@ public:
 
 protected:
   void updateScrollBars ();
+  void layoutOverlayScrollBars ();
   void scrollContentsBy (int dx, int dy);
 
   virtual void resizeEventBis (QResizeEvent* e);
   virtual bool viewportEvent (QEvent* e);
   virtual bool surfaceEvent (QEvent* e);
   virtual bool event (QEvent* e);
+  virtual bool eventFilter (QObject* obj, QEvent* e);
 
   friend class QTMSurface;
   friend class qt_simple_widget_rep;

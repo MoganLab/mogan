@@ -58,7 +58,7 @@ protected:
  */
 QTMScrollView::QTMScrollView (QWidget* _parent)
     : QAbstractScrollArea (_parent), editor_flag (false),
-      p_extents (QRect (0, 0, 0, 0)) {
+      laying_out_overlay_ (false), p_extents (QRect (0, 0, 0, 0)) {
   QWidget* _viewport= QAbstractScrollArea::viewport ();
   _viewport->setBackgroundRole (QPalette::Mid);
   _viewport->setAutoFillBackground (true);
@@ -79,6 +79,24 @@ QTMScrollView::QTMScrollView (QWidget* _parent)
   layout->addWidget (p_surface, 0, Qt::AlignHCenter | Qt::AlignVCenter);
   layout->setContentsMargins (0, 0, 0, 0);
   _viewport->setLayout (layout);
+
+  // 滚动条悬浮在 viewport 之上，确保容器背景透明，不遮挡底层画面
+  auto setupOverlayBar= [this] (QScrollBar* bar) {
+    if (!bar) return;
+    bar->setAttribute (Qt::WA_NoSystemBackground, true);
+    bar->setAutoFillBackground (false);
+    bar->installEventFilter (this);
+    if (QWidget* container= bar->parentWidget ()) {
+      if (container != this) {
+        container->setAttribute (Qt::WA_NoSystemBackground, true);
+        container->setAutoFillBackground (false);
+        container->setStyleSheet ("background: transparent; border: none;");
+        container->installEventFilter (this);
+      }
+    }
+  };
+  setupOverlayBar (QAbstractScrollArea::horizontalScrollBar ());
+  setupOverlayBar (QAbstractScrollArea::verticalScrollBar ());
 }
 
 void
@@ -145,21 +163,15 @@ QTMScrollView::ensureVisible (int cx, int cy, int mx, int my) {
 /*! Scrollbar stabilization */
 void
 QTMScrollView::updateScrollBars (void) {
-  QWidget*    _viewport  = QAbstractScrollArea::viewport ();
   QScrollBar* _hScrollBar= QAbstractScrollArea::horizontalScrollBar ();
   QScrollBar* _vScrollBar= QAbstractScrollArea::verticalScrollBar ();
 
-  int  xw    = p_extents.width ();
-  int  xh    = p_extents.height ();
-  int  w     = _viewport->width ();  // -2
-  int  h     = _viewport->height (); // -2
-  bool hbarOn= horizontalScrollBarPolicy () != Qt::ScrollBarAlwaysOff;
-  bool vbarOn= verticalScrollBarPolicy () != Qt::ScrollBarAlwaysOff;
-  int  sbw   = qApp->style ()->pixelMetric (QStyle::PM_ScrollBarExtent);
-  if (hbarOn && _hScrollBar->maximum () > _hScrollBar->minimum ()) h+= sbw;
-  if (vbarOn && _vScrollBar->maximum () > _vScrollBar->minimum ()) w+= sbw;
-  if (hbarOn && xw > w) h-= sbw;
-  if (vbarOn && xh > h) w-= sbw;
+  int xw= p_extents.width ();
+  int xh= p_extents.height ();
+  // 悬浮滚动条不占用 viewport 空间，直接使用内容区完整宽高计算可滚动范围
+  QRect cr= contentsRect ();
+  int   w = cr.width ();
+  int   h = cr.height ();
   if (!editor_flag) {
     if (xw < w) xw= w;
     if (xh < h) xh= h;
@@ -182,6 +194,58 @@ QTMScrollView::updateScrollBars (void) {
 
   // we may need a relayout if the surface width is changed
   updateGeometry ();
+  layoutOverlayScrollBars ();
+}
+
+/*!
+ * @brief 将水平和垂直滚动条以悬浮透明层方式定位在 viewport 边缘之上。
+ */
+void
+QTMScrollView::layoutOverlayScrollBars () {
+  if (laying_out_overlay_) return;
+  laying_out_overlay_= true;
+
+  QRect    cr       = contentsRect ();
+  QWidget* _viewport= QAbstractScrollArea::viewport ();
+  if (_viewport && _viewport->geometry () != cr) {
+    _viewport->setGeometry (cr);
+  }
+
+  QScrollBar* hbar= QAbstractScrollArea::horizontalScrollBar ();
+  QScrollBar* vbar= QAbstractScrollArea::verticalScrollBar ();
+  bool hVis= hbar && horizontalScrollBarPolicy () != Qt::ScrollBarAlwaysOff &&
+             (hbar->maximum () > hbar->minimum () ||
+              horizontalScrollBarPolicy () == Qt::ScrollBarAlwaysOn);
+  bool vVis= vbar && verticalScrollBarPolicy () != Qt::ScrollBarAlwaysOff &&
+             (vbar->maximum () > vbar->minimum () ||
+              verticalScrollBarPolicy () == Qt::ScrollBarAlwaysOn);
+
+  int hH= hbar ? hbar->sizeHint ().height () : 0;
+  if (hH <= 0) hH= qApp->style ()->pixelMetric (QStyle::PM_ScrollBarExtent);
+  int vW= vbar ? vbar->sizeHint ().width () : 0;
+  if (vW <= 0) vW= qApp->style ()->pixelMetric (QStyle::PM_ScrollBarExtent);
+
+  if (hVis && hbar) {
+    QWidget* target= (hbar->parentWidget () && hbar->parentWidget () != this)
+                         ? hbar->parentWidget ()
+                         : static_cast<QWidget*> (hbar);
+    int      w     = qMax (0, cr.width () - (vVis ? vW : 0));
+    QRect    r (cr.x (), cr.bottom () - hH + 1, w, hH);
+    if (target->geometry () != r) target->setGeometry (r);
+    target->raise ();
+  }
+
+  if (vVis && vbar) {
+    QWidget* target= (vbar->parentWidget () && vbar->parentWidget () != this)
+                         ? vbar->parentWidget ()
+                         : static_cast<QWidget*> (vbar);
+    int      h     = qMax (0, cr.height () - (hVis ? hH : 0));
+    QRect    r (cr.right () - vW + 1, cr.y (), vW, h);
+    if (target->geometry () != r) target->setGeometry (r);
+    target->raise ();
+  }
+
+  laying_out_overlay_= false;
 }
 
 /*! Scroll area updater */
@@ -194,9 +258,15 @@ QTMScrollView::scrollContentsBy (int dx, int dy) {
 bool
 QTMScrollView::viewportEvent (QEvent* e) {
   switch (e->type ()) {
-  case QEvent::Resize:
+  case QEvent::Resize: {
+    QWidget* _viewport= QAbstractScrollArea::viewport ();
+    if (!laying_out_overlay_ && _viewport &&
+        _viewport->geometry () != contentsRect ()) {
+      layoutOverlayScrollBars ();
+    }
     updateScrollBars ();
     return false;
+  }
   case QEvent::MouseButtonPress:
   case QEvent::MouseButtonRelease:
   case QEvent::MouseButtonDblClick:
@@ -270,14 +340,45 @@ QTMScrollView::event (QEvent* event) {
   case QEvent::Resize: {
     bool          res= QAbstractScrollArea::event (event);
     QResizeEvent* re = static_cast<QResizeEvent*> (event);
+    layoutOverlayScrollBars ();
     updateScrollBars ();
     resizeEventBis (re);
+    return res;
+  }
+  case QEvent::LayoutRequest:
+  case QEvent::PolishRequest:
+  case QEvent::StyleChange:
+  case QEvent::Show: {
+    bool res= QAbstractScrollArea::event (event);
+    layoutOverlayScrollBars ();
     return res;
   }
   default:
     break;
   }
-  return QAbstractScrollArea::event (event);
+  bool res= QAbstractScrollArea::event (event);
+  if (!laying_out_overlay_ && viewport () &&
+      viewport ()->geometry () != contentsRect ()) {
+    layoutOverlayScrollBars ();
+  }
+  return res;
+}
+
+bool
+QTMScrollView::eventFilter (QObject* obj, QEvent* e) {
+  switch (e->type ()) {
+  case QEvent::Show:
+  case QEvent::Hide:
+  case QEvent::Move:
+  case QEvent::Resize:
+    if (!laying_out_overlay_) {
+      layoutOverlayScrollBars ();
+    }
+    break;
+  default:
+    break;
+  }
+  return QAbstractScrollArea::eventFilter (obj, e);
 }
 
 void
