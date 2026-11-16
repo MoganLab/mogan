@@ -1420,11 +1420,13 @@ QWidget#chat-tab-conversation-stack,
 QWidget#chat-tab-conversation-page,
 QWidget#chat-tab-top-panel,
 QWidget#chat-tab-input-area-wrap,
+QWidget#chat-tab-attachment-row,
 QWidget#centralWidget QWidget#chat-tab-content,
 QWidget#centralWidget QWidget#chat-tab-conversation-stack,
 QWidget#centralWidget QWidget#chat-tab-conversation-page,
 QWidget#centralWidget QWidget#chat-tab-top-panel,
-QWidget#centralWidget QWidget#chat-tab-input-area-wrap {
+QWidget#centralWidget QWidget#chat-tab-input-area-wrap,
+QWidget#centralWidget QWidget#chat-tab-attachment-row {
   background-color: #404040;
 }
 
