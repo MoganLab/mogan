@@ -1086,6 +1086,14 @@ edit_typeset_rep::commit_animation (tree t) {
 
 void
 edit_typeset_rep::change_style (tree t) {
+  bool applying_remote= false;
+#ifdef LORO_ENABLED
+  applying_remote= collab_applying_remote ();
+#endif
+  if (!in_system_document_load () && !applying_remote && is_read_only ()) {
+    show_readonly_tip_for_reason ();
+    return;
+  }
   bool changed= (the_style != t);
   the_style   = copy (t);
   if (changed) {
@@ -1104,6 +1112,14 @@ edit_typeset_rep::init_style () {
 
 void
 edit_typeset_rep::init_style (string name) {
+  bool applying_remote= false;
+#ifdef LORO_ENABLED
+  applying_remote= collab_applying_remote ();
+#endif
+  if (!in_system_document_load () && !applying_remote && is_read_only ()) {
+    show_readonly_tip_for_reason ();
+    return;
+  }
   if ((name == "none") || (name == "") || (name == "style")) the_style= TUPLE;
   else if (arity (the_style) == 0) the_style= tree (TUPLE, name);
   else the_style= tree (TUPLE, name) * the_style (1, N (the_style));
@@ -1122,6 +1138,17 @@ edit_typeset_rep::get_init_all () {
 void
 edit_typeset_rep::init_env (string var, tree by) {
   if (init (var) == by) return;
+  bool is_view_only= (var == "full-screen-mode" || var == PAGE_SCREEN_WIDTH ||
+                      var == PAGE_SCREEN_HEIGHT || var == ZOOM_FACTOR);
+  bool applying_remote= false;
+#ifdef LORO_ENABLED
+  applying_remote= collab_applying_remote ();
+#endif
+  if (!is_view_only && !in_system_document_load () && !applying_remote &&
+      is_read_only ()) {
+    show_readonly_tip_for_reason ();
+    return;
+  }
   init (var)= by;
   pre       = hashmap<string, tree> (UNINIT);
   typeset_invalidate_env ();
@@ -1139,6 +1166,14 @@ edit_typeset_rep::init_env (string var, tree by) {
 void
 edit_typeset_rep::init_default (string var) {
   if (!init->contains (var)) return;
+  bool applying_remote= false;
+#ifdef LORO_ENABLED
+  applying_remote= collab_applying_remote ();
+#endif
+  if (!in_system_document_load () && !applying_remote && is_read_only ()) {
+    show_readonly_tip_for_reason ();
+    return;
+  }
   init->reset (var);
   pre= hashmap<string, tree> (UNINIT);
   typeset_invalidate_env ();
