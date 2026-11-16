@@ -512,11 +512,18 @@ apply (tree& ref, modification mod) {
       is_busy   = true;
       busy_paths= list<path> (p);
       upcoming  = list<modification> (reverse (ip) * mod);
-      while (!is_nil (upcoming)) {
-        // cout << "Handle " << upcoming->item << "\n";
-        raw_apply (the_et, upcoming->item);
-        // cout << "Done " << upcoming->item << "\n";
-        upcoming= upcoming->next;
+      try {
+        while (!is_nil (upcoming)) {
+          // cout << "Handle " << upcoming->item << "\n";
+          raw_apply (the_et, upcoming->item);
+          // cout << "Done " << upcoming->item << "\n";
+          upcoming= upcoming->next;
+        }
+      } catch (...) {
+        busy_paths= list<path> ();
+        upcoming  = list<modification> ();
+        is_busy   = false;
+        throw;
       }
       busy_paths= list<path> ();
       is_busy   = false;
