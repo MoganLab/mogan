@@ -394,6 +394,10 @@ edit_modify_rep::undo_possibilities () {
 
 void
 edit_modify_rep::undo (bool redoable) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   interrupt_shortcut ();
   arch->forget_cursor ();
   if (inside_graphics () && !as_bool (eval ("graphics-undo-enabled"))) {
@@ -434,6 +438,10 @@ edit_modify_rep::redo_possibilities () {
 
 void
 edit_modify_rep::redo (int i) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   interrupt_shortcut ();
   arch->forget_cursor ();
   if (arch->redo_possibilities () == 0) {

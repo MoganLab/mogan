@@ -2078,9 +2078,8 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
       readonlyTipLabel->setAttribute (Qt::WA_TransparentForMouseEvents);
       readonlyTipTimer= new QTimer (mw);
       readonlyTipTimer->setSingleShot (true);
-      QObject::connect (readonlyTipTimer, &QTimer::timeout, [this] () {
-        if (readonlyTipLabel) readonlyTipLabel->hide ();
-      });
+      QObject::connect (readonlyTipTimer, &QTimer::timeout, readonlyTipLabel,
+                        &QLabel::hide);
     }
     readonlyTipLabel->setText (qt_translate (msg));
     readonlyTipLabel->adjustSize ();

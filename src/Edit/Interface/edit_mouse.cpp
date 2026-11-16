@@ -237,6 +237,10 @@ void
 edit_interface_rep::mouse_paste (SI x, SI y) {
   (void) x;
   (void) y;
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   if (mouse_message ("paste", x, y)) return;
   go_to (x, y);
   selection_paste ("mouse");
@@ -1024,7 +1028,7 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
   // if (inside_graphics (false)) {
   // if (inside_graphics ()) {
   bool is_graphics_drag= (type == "dragging-left" || type == "end-drag-left");
-  if (inside_graphics (type != "release-left") &&
+  if (!initial_typeset_pending () && inside_graphics (type != "release-left") &&
       !(is_graphics_drag && !is_in_graphics_mode)) {
     if (mouse_graphics (type, x, y, mods, t, data)) {
       // 绘图手势结束时，选中对象会变，轻量刷新 mode/focus 栏；
@@ -1056,10 +1060,18 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
       !table_resizing_type) {
     table_hit hit;
     if (table_line_hit (x, y, hit)) {
+      if (initial_typeset_pending ()) {
+        show_initial_typeset_readonly_tip ();
+        return;
+      }
       table_line_start (hit, x, y);
       return;
     }
     if (table_scale_hit (x, y)) {
+      if (initial_typeset_pending ()) {
+        show_initial_typeset_readonly_tip ();
+        return;
+      }
       table_scale_start (x, y);
       return;
     }
@@ -1229,6 +1241,10 @@ edit_interface_rep::handle_mouse (string kind, SI x, SI y, int m, time_t t,
     //      << " at " << t << "\n";
 
     if (kind == "drop") {
+      if (initial_typeset_pending ()) {
+        show_initial_typeset_readonly_tip ();
+        return;
+      }
       call_drop_event (kind, x, y, m, t, buf->buf->name);
       if (inside_graphics (true))
         mouse_graphics ("drop-object", x, y, m, t, data);
