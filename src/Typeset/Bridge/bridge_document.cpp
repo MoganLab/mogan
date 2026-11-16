@@ -145,8 +145,8 @@ bridge_document_rep::notify_remove (path p, int nr) {
     n-= nr;
     st= st (0, pos) * st (pos + nr, N (st));
     if (bridge (this) == ttt->br && ttt->max_typeset_child > pos) {
-      ttt->max_typeset_child=
-          max (0, ttt->max_typeset_child - min (nr, ttt->max_typeset_child - pos));
+      ttt->max_typeset_child= max (
+          0, ttt->max_typeset_child - min (nr, ttt->max_typeset_child - pos));
     }
     // Policy per requirements:
     // - If nr == 1, only touch neighbors at pos-1 and pos.
