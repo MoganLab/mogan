@@ -28,7 +28,7 @@
         (macro "body"
           (style-with "src-compact"
             "none"
-            (concat (new-dpage*)
+            (concat (new-page*)
               (no-indent)
               (assign "page-this-header" "")
               (assign "page-this-footer" "")
@@ -45,7 +45,7 @@
               ) ;with
               (vspace "0.05pag")
               (no-indent*)
-              (new-dpage)
+              (new-page)
             ) ;concat
           ) ;style-with
         ) ;macro
@@ -83,7 +83,7 @@
         (macro "name"
           (style-with "src-compact"
             "none"
-            (concat (new-dpage*)
+            (concat (new-page*)
               (no-indent)
               (new-line)
               (no-indent)
