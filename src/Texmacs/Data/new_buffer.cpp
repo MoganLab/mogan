@@ -327,7 +327,10 @@ set_buffer_tree (url name, tree doc) {
     string old_title  = buf->buf->title;
     string old_project= buf->data->project->label;
     tree   body       = detach_data (doc, buf->data);
-    assign (buf->rp, body);
+    {
+      system_document_load_guard guard;
+      assign (buf->rp, body);
+    }
     set_buffer_data (name, buf->data);
     buf->buf->title= propose_title (old_title, name, body);
     if (buf->data->project != "" && buf->data->project != old_project) {
