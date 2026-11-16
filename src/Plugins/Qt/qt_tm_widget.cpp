@@ -90,13 +90,46 @@ bool in_presentation_mode ();
 using moebius::data::scm_quote;
 
 namespace {
-/** @brief 恢复大纲 dock 的持久化宽度（显示时调用）。 */
+bool
+has_custom_outline_width () {
+  if (!has_user_preference ("outline sidebar width")) return false;
+  int savedWidth= as_int (get_preference ("outline sidebar width", "0"));
+  return savedWidth > 0 && savedWidth != 300;
+}
+
+/** @brief 恢复大纲 dock 的持久化宽度（显示时调用），默认与 modeToolBar
+ * 分隔线对齐。 */
 void
-restore_outline_dock_width (QMainWindow* mw, QDockWidget* dock) {
+restore_outline_dock_width (QMainWindow* mw, OutlineWidget* dock,
+                            QToolBar* modeToolBar) {
   if (!mw || !dock) return;
-  int savedWidth= as_int (get_preference ("outline sidebar width", "300"));
-  if (savedWidth <= 0) savedWidth= 300;
-  mw->resizeDocks ({dock}, {DpiUtils::scaled (savedWidth)}, Qt::Horizontal);
+  if (has_custom_outline_width ()) {
+    int savedWidth= as_int (get_preference (
+        "outline sidebar width",
+        from_qstring (QString::number (OutlineWidget::defaultWidth ()))));
+    dock->applyDockWidth (mw, DpiUtils::scaled (savedWidth));
+    return;
+  }
+  int alignedW= OutlineWidget::separatorAlignWidth (mw, modeToolBar);
+  if (alignedW > 0) {
+    dock->applyDockWidth (mw, alignedW);
+  }
+  else {
+    dock->applyDockWidth (mw,
+                          DpiUtils::scaled (OutlineWidget::defaultWidth ()));
+  }
+  if (modeToolBar) {
+    QPointer<QMainWindow>   safeMw (mw);
+    QPointer<OutlineWidget> safeDock (dock);
+    QPointer<QToolBar>      safeTb (modeToolBar);
+    QTimer::singleShot (0, dock, [safeMw, safeDock, safeTb] () {
+      if (!safeMw || !safeDock || !safeTb) return;
+      if (has_custom_outline_width ()) return;
+      int w= OutlineWidget::separatorAlignWidth (safeMw, safeTb);
+      if (w > 0 && w != safeDock->width ())
+        safeDock->applyDockWidth (safeMw, w);
+    });
+  }
 }
 } // namespace
 
@@ -1815,7 +1848,7 @@ qt_tm_widget_rep::update_visibility () {
       XOR (old_pdfOutlineVisibility, new_pdfOutlineVisibility)) {
     pdfOutlineDock->setVisible (new_pdfOutlineVisibility);
     if (new_pdfOutlineVisibility) {
-      restore_outline_dock_width (mainwindow (), pdfOutlineDock);
+      restore_outline_dock_width (mainwindow (), pdfOutlineDock, modeToolBar);
     }
   }
 
@@ -2139,7 +2172,8 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
         if (outlineEnabled && pdfViewerWidget) {
           pdfOutlineDock->setVisible (pdfOutlineDock->hasContent ());
           if (pdfOutlineDock->hasContent ())
-            restore_outline_dock_width (mainwindow (), pdfOutlineDock);
+            restore_outline_dock_width (mainwindow (), pdfOutlineDock,
+                                        modeToolBar);
         }
         if (pdfToolBar) {
           bool hasContent= pdfOutlineDock->hasContent ();
@@ -2152,7 +2186,8 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
         if (outlineEnabled) {
           pdfOutlineDock->setVisible (pdfOutlineDock->hasContent ());
           if (pdfOutlineDock->hasContent ())
-            restore_outline_dock_width (mainwindow (), pdfOutlineDock);
+            restore_outline_dock_width (mainwindow (), pdfOutlineDock,
+                                        modeToolBar);
         }
         else {
           pdfOutlineDock->setVisible (false);
@@ -2544,6 +2579,11 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
       if (list) {
         replaceButtons (modeToolBar, list);
         update_visibility ();
+        if (pdfOutlineDock && pdfOutlineDock->isVisible () &&
+            !has_custom_outline_width ()) {
+          restore_outline_dock_width (mainwindow (), pdfOutlineDock,
+                                      modeToolBar);
+        }
       }
     }
     break;

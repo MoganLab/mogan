@@ -11,8 +11,10 @@
 #include "qt_pdf_outline_widget.hpp"
 #include "qt_pdf_toolbar.hpp"
 #include "qt_utilities.hpp"
+#include <QMainWindow>
 #include <QQuickItem>
 #include <QSignalSpy>
+#include <QToolBar>
 #include <QtTest/QtTest>
 
 class TestOutlineWidget : public QObject {
@@ -556,6 +558,53 @@ private slots:
     QCOMPARE (spy.takeFirst ().at (0).toInt (), 25);
 
     delete widget;
+  }
+
+  void test_separatorAlignWidth_and_defaultWidth () {
+    QCOMPARE (OutlineWidget::defaultWidth (), 290);
+
+    QMainWindow mw;
+    mw.resize (900, 600);
+    QToolBar* tb= new QToolBar (&mw);
+    mw.addToolBar (Qt::TopToolBarArea, tb);
+
+    for (int i= 0; i < 7; ++i) {
+      QAction* act= tb->addAction (QString ("A%1").arg (i));
+      QWidget* btn= tb->widgetForAction (act);
+      if (btn) btn->setFixedWidth (36);
+    }
+    QAction* sep= tb->addSeparator ();
+    tb->addAction ("B");
+    tb->addAction ("I");
+
+    mw.show ();
+    QTest::qWait (50);
+
+    int      alignedW= OutlineWidget::separatorAlignWidth (&mw, tb);
+    QWidget* sepW    = tb->widgetForAction (sep);
+    QVERIFY (sepW != nullptr);
+    int expectedX= sepW->mapTo (&mw, QPoint (sepW->width () / 2, 0)).x ();
+    QCOMPARE (alignedW, expectedX);
+    QVERIFY (alignedW >= 220 && alignedW <= 550);
+
+    QWidget* central= new QWidget (&mw);
+    mw.setCentralWidget (central);
+    OutlineWidget* dock= new OutlineWidget ("Outline", &mw);
+    mw.addDockWidget (Qt::LeftDockWidgetArea, dock);
+    dock->setVisible (true);
+    dock->applyDockWidth (&mw, alignedW);
+    QTest::qWait (50);
+    qDebug () << "alignedW=" << alignedW << "dock->width()=" << dock->width ()
+              << "central->x()=" << central->x ();
+    QCOMPARE (dock->width (), alignedW);
+
+    // 工具栏隐藏或无分隔符时应返回 -1
+    tb->setVisible (false);
+    QCOMPARE (OutlineWidget::separatorAlignWidth (&mw, tb), -1);
+
+    tb->setVisible (true);
+    sep->setVisible (false);
+    QCOMPARE (OutlineWidget::separatorAlignWidth (&mw, tb), -1);
   }
 };
 
