@@ -318,7 +318,12 @@
       (exists?
         (lambda (item)
           (exists?
-            (lambda (vertex) (and (func? vertex 'url 1) (string-starts? (cadr vertex) "#")))
+            (lambda (vertex)
+              (and (func? vertex 'url 1)
+                (string? (cadr vertex))
+                (string-starts? (cadr vertex) "#")
+              ) ;and
+            ) ;lambda
             (link-item-vertices item)
           ) ;exists?
         ) ;lambda

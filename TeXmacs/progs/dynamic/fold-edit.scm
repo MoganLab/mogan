@@ -160,14 +160,27 @@
 
 (tm-define (alternate-toggle t)
   (:require (toggle-context? t))
-  (with i
-    (if (toggle-first-context? t) 1 0)
-    (variant-set t (ahash-ref alternate-table (tree-label t)))
-    (tree-go-to t i :start)
-    (when (> i 0)
-      (players-set-elapsed (tree-ref t i) 0.0)
-    ) ;when
-  ) ;with
+  (dynamic-wind (lambda ()
+                  (when (defined? 'begin-system-document-load)
+                    (begin-system-document-load)
+                  ) ;when
+                ) ;lambda
+    (lambda ()
+      (with i
+        (if (toggle-first-context? t) 1 0)
+        (variant-set t (ahash-ref alternate-table (tree-label t)))
+        (tree-go-to t i :start)
+        (when (> i 0)
+          (players-set-elapsed (tree-ref t i) 0.0)
+        ) ;when
+      ) ;with
+    ) ;lambda
+    (lambda ()
+      (when (defined? 'end-system-document-load)
+        (end-system-document-load)
+      ) ;when
+    ) ;lambda
+  ) ;dynamic-wind
 ) ;tm-define
 
 (tm-define (dynamic-extremal t forwards?)

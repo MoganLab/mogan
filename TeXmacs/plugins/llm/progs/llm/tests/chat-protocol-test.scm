@@ -845,6 +845,37 @@
   ) ;with-input-from-string
 ) ;define
 
+;;; ---------- tmfs://chat/*/message 只读权限与系统写入豁免 ----------
+
+(define (test-chat-message-readonly-permission)
+  (let ((msg-url (string->url "tmfs://chat/test-ro-sess/message"))
+        (inp-url (string->url "tmfs://chat/test-ro-sess/input"))
+       ) ;
+    (check (tmfs-permission? msg-url "read") => #t)
+    (check (tmfs-permission? msg-url "write") => #f)
+    (check (tmfs-permission? inp-url "read") => #t)
+    (check (tmfs-permission? inp-url "write") => #t)
+    (buffer-set msg-url '(document "init"))
+    (buffer-set inp-url '(document "draft"))
+    (switch-to-buffer msg-url)
+    ;; chat-tab-with-buffer 通过系统写入豁免可正常更新只读 message buffer
+    (chat-tab-with-buffer msg-url
+      (tree-set! (buffer-get-body msg-url)
+        0
+        '(folded-explain (document "title") (document "body"))
+      ) ;tree-set!
+    ) ;chat-tab-with-buffer
+    (let ((explain-node (tree-ref (buffer-get-body msg-url) 0)))
+      (check (tree-label explain-node) => 'folded-explain)
+      ;; 只读文档特例：允许折叠/展开操作（alternate-toggle / mouse-unfold / mouse-fold）
+      (alternate-toggle explain-node)
+      (check (tree-label explain-node) => 'unfolded-explain)
+      (alternate-toggle explain-node)
+      (check (tree-label explain-node) => 'folded-explain)
+    ) ;let
+  ) ;let
+) ;define
+
 ;;; ---------- 测试套件入口 ----------
 
 (tm-define (regtest-chat-protocol)
@@ -871,5 +902,6 @@
   (test-fake-llm-no-attachments)
   (test-chat-wire-encoding)
   (test-read-paragraph-eof-marker)
+  (test-chat-message-readonly-permission)
   (check-report)
 ) ;tm-define

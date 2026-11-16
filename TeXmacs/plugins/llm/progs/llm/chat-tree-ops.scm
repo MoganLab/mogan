@@ -33,17 +33,23 @@
 
 (define-public-macro (chat-tab-with-buffer name . body)
   (let* ((old (gensym)) (res (gensym)))
-    `(if (== ,name (current-buffer))
-       (begin ,@body)
-       (let* ((,old (current-buffer)))
-         (with chat-tab-focus-ok?
-           (and (or (url? ,name) (string? ,name))
-             (buffer-exists? ,name)
-             (buffer-focus ,name #f))
-           (with ,res
-             (begin ,@body)
-             (when chat-tab-focus-ok? (buffer-focus ,old #f))
-             ,res))))
+    `(dynamic-wind (lambda ()
+                     (when (defined? 'begin-system-document-load)
+                       (begin-system-document-load)))
+       (lambda ,()
+         (if (== ,name (current-buffer))
+           (begin ,@body)
+           (let* ((,old (current-buffer)))
+             (with chat-tab-focus-ok?
+               (and (or (url? ,name) (string? ,name))
+                 (buffer-exists? ,name)
+                 (buffer-focus ,name #f))
+               (with ,res
+                 (begin ,@body)
+                 (when chat-tab-focus-ok? (buffer-focus ,old #f))
+                 ,res)))))
+       (lambda ()
+         (when (defined? 'end-system-document-load) (end-system-document-load))))
   ) ;let*
 ) ;define-public-macro
 

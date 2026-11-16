@@ -188,6 +188,41 @@ private slots:
     QCOMPARE (tmfs_buf->buf->title, ro_prefix_tmfs * "Document");
     QVERIFY (!starts (tmfs_buf->buf->title, ro_prefix_tmfs * ro_prefix_tmfs));
 
+    // 9. begin_system_document_load / end_system_document_load 系统写入豁免
+    url chat_msg_url= url_system ("tmfs://chat/unit-test/message");
+    set_buffer_tree (chat_msg_url, tree (DOCUMENT, tree ("hello")));
+    tm_buffer chat_msg_buf= concrete_buffer (chat_msg_url);
+    QVERIFY (!is_nil (chat_msg_buf));
+    chat_msg_buf->data->init ("no-zoom")  = "true";
+    chat_msg_buf->data->init (ZOOM_FACTOR)= "1.0";
+    chat_msg_buf->buf->read_only          = true;
+    editor chat_msg_ed                    = new_editor (nullptr, chat_msg_buf);
+    QVERIFY (chat_msg_ed->is_read_only ());
+
+    threw= false;
+    try {
+      edit_announce (chat_msg_ed.operator->(),
+                     mod_assign (chat_msg_buf->rp * 0, tree ("blocked")));
+    } catch (string msg) {
+      threw= (msg == "read-only");
+    }
+    QVERIFY (threw);
+
+    begin_system_document_load ();
+    edit_announce (chat_msg_ed.operator->(),
+                   mod_assign (chat_msg_buf->rp * 0, tree ("streamed")));
+    end_system_document_load ();
+    QVERIFY (!in_system_document_load ());
+
+    threw= false;
+    try {
+      edit_announce (chat_msg_ed.operator->(),
+                     mod_assign (chat_msg_buf->rp * 0, tree ("blocked-again")));
+    } catch (string msg) {
+      threw= (msg == "read-only");
+    }
+    QVERIFY (threw);
+
     remove (local_url);
   }
 };

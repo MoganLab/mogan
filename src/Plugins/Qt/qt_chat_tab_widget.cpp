@@ -666,7 +666,6 @@ ChatConversationPanel::ensureMessageWidget () {
   }
   QTMWidget* msgEditor= messageQWidget->findChild<QTMWidget*> ();
   if (msgEditor) {
-    msgEditor->setProperty ("chat_message_readonly", true);
     msgEditor->installEventFilter (this);
     msgEditor->setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
   }
@@ -877,54 +876,6 @@ has_active_math_completion_popup (QObject* watched) {
 }
 
 bool
-ChatConversationPanel::should_block_readonly_event (QObject* watched,
-                                                    QEvent*  event) {
-  if (!watched->property ("chat_message_readonly").toBool ()) return false;
-  QEvent::Type t= event->type ();
-  if (t == QEvent::InputMethod) return true;
-  if (t == QEvent::KeyPress) {
-    QKeyEvent*            ke  = static_cast<QKeyEvent*> (event);
-    int                   key = ke->key ();
-    Qt::KeyboardModifiers mods= ke->modifiers ();
-    bool ctrl_or_meta         = mods & (Qt::ControlModifier | Qt::MetaModifier);
-    bool is_nav_key=
-        (key == Qt::Key_Left || key == Qt::Key_Right || key == Qt::Key_Up ||
-         key == Qt::Key_Down || key == Qt::Key_Home || key == Qt::Key_End ||
-         key == Qt::Key_PageUp || key == Qt::Key_PageDown);
-    if (is_nav_key) return false;
-    if (ctrl_or_meta) {
-      // 放行允许的快捷键：复制(C)、全选(A)、搜索(F)、缩放(+/-/=)、AI 侧边栏(J)
-      if (key == Qt::Key_C || key == Qt::Key_A || key == Qt::Key_F ||
-          key == Qt::Key_J || key == Qt::Key_Plus || key == Qt::Key_Equal ||
-          key == Qt::Key_Minus)
-        return false;
-      return true;
-    }
-    return true;
-  }
-  if (t == QEvent::KeyRelease) {
-    QKeyEvent*            ke  = static_cast<QKeyEvent*> (event);
-    int                   key = ke->key ();
-    Qt::KeyboardModifiers mods= ke->modifiers ();
-    bool ctrl_or_meta         = mods & (Qt::ControlModifier | Qt::MetaModifier);
-    bool is_nav_key=
-        (key == Qt::Key_Left || key == Qt::Key_Right || key == Qt::Key_Up ||
-         key == Qt::Key_Down || key == Qt::Key_Home || key == Qt::Key_End ||
-         key == Qt::Key_PageUp || key == Qt::Key_PageDown);
-    if (is_nav_key) return false;
-    if (ctrl_or_meta) {
-      if (key == Qt::Key_C || key == Qt::Key_A || key == Qt::Key_F ||
-          key == Qt::Key_J || key == Qt::Key_Plus || key == Qt::Key_Equal ||
-          key == Qt::Key_Minus)
-        return false;
-      return true;
-    }
-    return true;
-  }
-  return false;
-}
-
-bool
 ChatConversationPanel::should_send_on_keypress (int                   key,
                                                 Qt::KeyboardModifiers mods,
                                                 bool hasActiveCompletionPopup,
@@ -939,7 +890,6 @@ ChatConversationPanel::should_send_on_keypress (int                   key,
 
 bool
 ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
-  if (should_block_readonly_event (watched, event)) return true;
   if (event->type () == QEvent::KeyPress) {
     QKeyEvent* keyEvent= static_cast<QKeyEvent*> (event);
     cout << "[ChatConvPanel::eventFilter] key=" << keyEvent->key ()

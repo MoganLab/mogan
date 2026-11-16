@@ -20,6 +20,8 @@ path new_document ();
 void delete_document (path rp);
 void set_document (path rp, tree t);
 bool in_system_document_load ();
+void begin_system_document_load ();
+void end_system_document_load ();
 
 struct system_document_load_guard {
   system_document_load_guard ();

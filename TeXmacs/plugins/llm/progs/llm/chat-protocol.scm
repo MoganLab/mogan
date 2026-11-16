@@ -511,3 +511,9 @@
     ) ;if
   ) ;let
 ) ;tm-define
+
+;;; ---------- tmfs 权限声明 ----------
+
+(tmfs-permission-handler (chat name type)
+  (if (and (string? name) (string-ends? name "/message")) (== type "read") #t)
+) ;tmfs-permission-handler
