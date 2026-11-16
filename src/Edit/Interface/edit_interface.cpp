@@ -1475,6 +1475,10 @@ edit_interface_rep::apply_changes () {
     call ("modify-ref-tooltip");
   }
 
+  if (env_change & (THE_PROGRESSIVE | THE_TREE)) {
+    set_middle_footer ();
+  }
+
   // cout << "Applied changes\n";
   // time_t t2= texmacs_time ();
   // if (t2 - t1 >= 10) cout << "apply_changes took " << t2-t1 << "ms\n";
