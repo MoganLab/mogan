@@ -182,7 +182,11 @@ rename_buffer (url name, url new_name) {
   notify_rename_before (name);
   buf->buf->name  = new_name;
   buf->buf->master= new_name;
-  array<url> vs   = buffer_to_views (new_name);
+  buf->buf->read_only=
+      is_rooted_tmfs (new_name)
+          ? !has_permission (new_name, "w")
+          : (exists (new_name) && !has_permission (new_name, "w"));
+  array<url> vs= buffer_to_views (new_name);
   for (int i= 0; i < N (vs); i++) {
     editor ed= view_to_editor (vs[i]);
     ed->notify_change (THE_ENVIRONMENT);
@@ -191,6 +195,10 @@ rename_buffer (url name, url new_name) {
   notify_rename_after (new_name);
   tree   doc  = subtree (the_et, buf->rp);
   string title= propose_title (buf->buf->title, new_name, doc);
+  if (buf->buf->read_only) {
+    string read_only_text= translate ("read-only");
+    title                = '[' * cork_to_utf8 (read_only_text) * "] " * title;
+  }
   set_title_buffer (new_name, title);
 }
 
