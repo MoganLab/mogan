@@ -267,6 +267,12 @@ typesetter_rep::typeset () {
     int  num_new = N (ppp->new_pages);
     bool is_final= (chunk_end >= n);
     int to_freeze= is_final ? num_new : max (0, num_new - dynamic_buffer_pages);
+    if (!is_final) {
+      while (to_freeze > 0 && to_freeze <= N (ppp->last_sk) &&
+             N (ppp->last_sk[to_freeze - 1]->ins) == 0) {
+        to_freeze--;
+      }
+    }
     for (int fi= 0; fi < to_freeze; fi++) {
       frozen_page_boxes << ppp->new_pages[fi];
       frozen_border_boxes << ppp->new_border_boxes[fi];
@@ -276,12 +282,13 @@ typesetter_rep::typeset () {
       progressive_bench_end (this);
     }
     else if (to_freeze > 0) {
-      pagelet last_frozen_pg = ppp->last_sk[to_freeze - 1];
-      int     end_in_unfrozen= 0;
-      for (int ki= 0; ki < N (last_frozen_pg->ins); ki++) {
-        if (!is_nil (last_frozen_pg->ins[ki]->end)) {
-          end_in_unfrozen=
-              max (end_in_unfrozen, last_frozen_pg->ins[ki]->end->item);
+      int end_in_unfrozen= 0;
+      for (int fi= to_freeze - 1; fi >= 0 && end_in_unfrozen == 0; fi--) {
+        pagelet pg= ppp->last_sk[fi];
+        for (int ki= 0; ki < N (pg->ins); ki++) {
+          if (!is_nil (pg->ins[ki]->end)) {
+            end_in_unfrozen= max (end_in_unfrozen, pg->ins[ki]->end->item);
+          }
         }
       }
       if (to_freeze < N (ppp->last_sk) &&
