@@ -353,6 +353,22 @@ edit_interface_rep::key_press (string gkey) {
     focus_on_buffer (window_to_buffer (parent_window), true);
   }
 
+  auto is_editing_key= [] (const string& k) {
+    return k == "return" || k == "S-return" || k == "C-return" ||
+           k == "M-return" || k == "enter" || k == "S-enter" ||
+           k == "C-enter" || k == "M-enter" || k == "backspace" ||
+           k == "S-backspace" || k == "delete" || k == "S-delete" ||
+           k == "tab" || k == "S-tab" || k == "space" || k == "C-v" ||
+           k == "C-x" || k == "C-z" || k == "C-y" || k == "C-d" ||
+           k == "C-k" || k == "M-v" || k == "M-x" || k == "M-z" ||
+           k == "M-y";
+  };
+  if (initial_typeset_pending () && is_editing_key (key)) {
+    show_initial_typeset_readonly_tip ();
+    interrupt_shortcut ();
+    return;
+  }
+
   string new_sh= N (sh_s) == 0 ? key : sh_s * " " * key;
   if (try_shortcut (new_sh)) return;
   if (new_sh != key) {
