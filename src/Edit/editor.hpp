@@ -323,6 +323,11 @@ public:
   virtual language      get_env_language ()                               = 0;
   virtual string        physical_font_for_string (string s)               = 0;
   virtual bool          typeset_in_progress ()                            = 0;
+  virtual bool          is_read_only ()                                   = 0;
+  virtual bool          can_toggle_file_read_only ()                      = 0;
+  virtual bool          get_file_read_only ()                             = 0;
+  virtual void          set_file_read_only (bool on)                      = 0;
+  virtual void          show_readonly_tip_for_reason ()                   = 0;
   virtual int           typeset_frontier ()                               = 0;
   virtual int           get_page_count ()                                 = 0;
   virtual string        get_page_number_text (int page_index)             = 0;

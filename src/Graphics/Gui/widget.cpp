@@ -79,6 +79,7 @@ slot_name (const slot s) {
                              "SLOT_LEFT_FOOTER",
                              "SLOT_RIGHT_FOOTER",
                              "SLOT_MIDDLE_FOOTER",
+                             "SLOT_READONLY_TIP",
                              "SLOT_INTERACTIVE_MODE",
                              "SLOT_INTERACTIVE_PROMPT",
                              "SLOT_INTERACTIVE_INPUT",

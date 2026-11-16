@@ -14,16 +14,23 @@
 #include "analyze.hpp"
 #include "convert.hpp"
 #include "converter.hpp"
+#include "dictionary.hpp"
 #include "file.hpp"
 #include "iterator.hpp"
 #include "merge_sort.hpp"
+#include "new_buffer.hpp"
 #include "new_document.hpp"
 #include "new_style.hpp"
+#include "new_window.hpp"
 #include "observers.hpp"
 #include "tm_buffer.hpp"
 #include "tm_file.hpp"
 #include "tm_timer.hpp"
+#include "tm_window.hpp"
 #include "tmfs_url.hpp"
+#ifdef QTTEXMACS
+#include "Qt/qt_sys_utils.hpp"
+#endif
 #include "tree_modify.hpp"
 #include "tree_observer.hpp"
 #include "typesetter.hpp"
@@ -713,6 +720,71 @@ edit_typeset_rep::typeset_in_progress () {
   return ::typeset_in_progress (ttt);
 }
 
+bool
+edit_typeset_rep::is_read_only () {
+  return (!is_nil (buf) && buf->buf->read_only) || typeset_in_progress ();
+}
+
+bool
+edit_typeset_rep::can_toggle_file_read_only () {
+  if (is_nil (buf)) return false;
+#ifdef LORO_ENABLED
+  if (collab_enabled ()) return false;
+#endif
+  url name= buf->buf->name;
+  return !is_rooted_tmfs (name) && !is_ramdisc (name) &&
+         is_local_and_single (name) && exists (name);
+}
+
+bool
+edit_typeset_rep::get_file_read_only () {
+  return !is_nil (buf) && buf->buf->read_only;
+}
+
+void
+edit_typeset_rep::set_file_read_only (bool on) {
+  if (!can_toggle_file_read_only ()) return;
+  url name= buf->buf->name;
+  if (on && buf->needs_to_be_saved ()) {
+    if (buffer_save (name)) return;
+  }
+#ifdef QTTEXMACS
+  if (!qt_set_file_readonly (name, on)) return;
+#else
+  (void) on;
+#endif
+  bool actual_ro     = !has_permission (name, "w");
+  buf->buf->read_only= actual_ro;
+  tree   doc         = subtree (the_et, buf->rp);
+  string title       = propose_title (buf->buf->title, name, doc);
+  if (actual_ro) {
+    string read_only_text= translate ("read-only");
+    title                = '[' * cork_to_utf8 (read_only_text) * "] " * title;
+  }
+  set_title_buffer (name, title);
+  if (!is_read_only () && has_current_window ()) {
+    tm_window win= concrete_window ();
+    if (win != NULL) win->show_readonly_tip ("");
+  }
+  notify_change (THE_MENUS);
+}
+
+void
+edit_typeset_rep::show_readonly_tip_for_reason () {
+  if (!has_current_window ()) return;
+  string msg;
+  if (!is_nil (buf) && buf->buf->read_only) {
+    msg= "Current document is read-only: file permission is read-only";
+  }
+  else if (typeset_in_progress ()) {
+    msg= "Current document is read-only: full-document typesetting is not "
+         "finished";
+  }
+  else return;
+  tm_window win= concrete_window ();
+  if (win != NULL) win->show_readonly_tip (msg);
+}
+
 int
 edit_typeset_rep::typeset_frontier () {
   return ::typeset_frontier (ttt);
@@ -1044,6 +1116,14 @@ edit_typeset_rep::commit_animation (tree t) {
 
 void
 edit_typeset_rep::change_style (tree t) {
+  bool applying_remote= false;
+#ifdef LORO_ENABLED
+  applying_remote= collab_applying_remote ();
+#endif
+  if (!in_system_document_load () && !applying_remote && is_read_only ()) {
+    show_readonly_tip_for_reason ();
+    return;
+  }
   bool changed= (the_style != t);
   the_style   = copy (t);
   if (changed) {
@@ -1062,6 +1142,14 @@ edit_typeset_rep::init_style () {
 
 void
 edit_typeset_rep::init_style (string name) {
+  bool applying_remote= false;
+#ifdef LORO_ENABLED
+  applying_remote= collab_applying_remote ();
+#endif
+  if (!in_system_document_load () && !applying_remote && is_read_only ()) {
+    show_readonly_tip_for_reason ();
+    return;
+  }
   if ((name == "none") || (name == "") || (name == "style")) the_style= TUPLE;
   else if (arity (the_style) == 0) the_style= tree (TUPLE, name);
   else the_style= tree (TUPLE, name) * the_style (1, N (the_style));
@@ -1080,6 +1168,17 @@ edit_typeset_rep::get_init_all () {
 void
 edit_typeset_rep::init_env (string var, tree by) {
   if (init (var) == by) return;
+  bool is_view_only= (var == "full-screen-mode" || var == PAGE_SCREEN_WIDTH ||
+                      var == PAGE_SCREEN_HEIGHT || var == ZOOM_FACTOR);
+  bool applying_remote= false;
+#ifdef LORO_ENABLED
+  applying_remote= collab_applying_remote ();
+#endif
+  if (!is_view_only && !in_system_document_load () && !applying_remote &&
+      is_read_only ()) {
+    show_readonly_tip_for_reason ();
+    return;
+  }
   init (var)= by;
   pre       = hashmap<string, tree> (UNINIT);
   typeset_invalidate_env ();
@@ -1097,6 +1196,14 @@ edit_typeset_rep::init_env (string var, tree by) {
 void
 edit_typeset_rep::init_default (string var) {
   if (!init->contains (var)) return;
+  bool applying_remote= false;
+#ifdef LORO_ENABLED
+  applying_remote= collab_applying_remote ();
+#endif
+  if (!in_system_document_load () && !applying_remote && is_read_only ()) {
+    show_readonly_tip_for_reason ();
+    return;
+  }
   init->reset (var);
   pre= hashmap<string, tree> (UNINIT);
   typeset_invalidate_env ();
@@ -1123,7 +1230,10 @@ edit_typeset_rep::typeset_sub (DI& x1, DI& y1, DI& x2, DI& y2) {
   } catch (string msg) {
     the_exception= msg;
     std_error << "Typesetting failure, resetting to empty document\n";
-    assign (rp, tree (DOCUMENT, ""));
+    {
+      system_document_load_guard guard;
+      assign (rp, tree (DOCUMENT, ""));
+    }
     ::notify_assign (ttt, path (), subtree (et, rp));
     eb= ::typeset (ttt, x1, y1, x2, y2);
   }

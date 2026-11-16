@@ -173,6 +173,24 @@ path_to_buffer (path p) {
   return url_none ();
 }
 
+static string
+strip_read_only_prefix (string title) {
+  string prefix= '[' * cork_to_utf8 (translate ("read-only")) * "] ";
+  while (starts (title, prefix))
+    title= title (N (prefix), N (title));
+  return title;
+}
+
+static string
+apply_read_only_prefix (string title, bool read_only) {
+  title= strip_read_only_prefix (title);
+  if (read_only) {
+    string prefix= '[' * cork_to_utf8 (translate ("read-only")) * "] ";
+    title        = prefix * title;
+  }
+  return title;
+}
+
 void
 rename_buffer (url name, url new_name) {
   if (new_name == name || is_nil (concrete_buffer (name))) return;
@@ -182,15 +200,21 @@ rename_buffer (url name, url new_name) {
   notify_rename_before (name);
   buf->buf->name  = new_name;
   buf->buf->master= new_name;
-  array<url> vs   = buffer_to_views (new_name);
+  buf->buf->read_only=
+      is_rooted_tmfs (new_name)
+          ? !has_permission (new_name, "w")
+          : (exists (new_name) && !has_permission (new_name, "w"));
+  array<url> vs= buffer_to_views (new_name);
   for (int i= 0; i < N (vs); i++) {
     editor ed= view_to_editor (vs[i]);
     ed->notify_change (THE_ENVIRONMENT);
     ed->notify_change (THE_MENUS);
   }
   notify_rename_after (new_name);
-  tree   doc  = subtree (the_et, buf->rp);
-  string title= propose_title (buf->buf->title, new_name, doc);
+  string clean_old_title= strip_read_only_prefix (buf->buf->title);
+  tree   doc            = subtree (the_et, buf->rp);
+  string title          = propose_title (clean_old_title, new_name, doc);
+  title                 = apply_read_only_prefix (title, buf->buf->read_only);
   set_title_buffer (new_name, title);
 }
 
@@ -324,12 +348,34 @@ set_buffer_tree (url name, tree doc) {
     }
   }
   else {
-    string old_title  = buf->buf->title;
+    string old_title  = strip_read_only_prefix (buf->buf->title);
     string old_project= buf->data->project->label;
     tree   body       = detach_data (doc, buf->data);
-    assign (buf->rp, body);
+    {
+      system_document_load_guard guard;
+      assign (buf->rp, body);
+    }
     set_buffer_data (name, buf->data);
-    buf->buf->title= propose_title (old_title, name, body);
+    bool old_ro        = buf->buf->read_only;
+    bool new_ro        = is_rooted_tmfs (name)
+                             ? !has_permission (name, "w")
+                             : (exists (name) && !has_permission (name, "w"));
+    buf->buf->read_only= new_ro;
+    string title       = propose_title (old_title, name, body);
+    title              = apply_read_only_prefix (title, new_ro);
+    set_title_buffer (name, title);
+    if (old_ro != new_ro) {
+      array<url> vs= buffer_to_views (name);
+      for (int i= 0; i < N (vs); i++) {
+        editor ed= view_to_editor (vs[i]);
+        ed->notify_change (THE_ENVIRONMENT);
+        ed->notify_change (THE_MENUS);
+        if (!ed->is_read_only ()) {
+          tm_window win= concrete_window (view_to_window (vs[i]));
+          if (win != NULL) win->show_readonly_tip ("");
+        }
+      }
+    }
     if (buf->data->project != "" && buf->data->project != old_project) {
       url prj_name= head (name) * as_string (buf->data->project);
       buf->prj    = concrete_buffer_insist (prj_name);
@@ -538,9 +584,8 @@ buffer_import (url name, url src, string fm) {
   if (is_nil (buf)) return true;
   // Check if the file has write permissions
   if (!has_permission (src, "w")) {
-    string title         = buf->buf->title;
-    string read_only_text= translate ("read-only");
-    title                = '[' * cork_to_utf8 (read_only_text) * "] " * title;
+    buf->buf->read_only= true;
+    string title       = apply_read_only_prefix (buf->buf->title, true);
     set_title_buffer (name, title);
   }
   return false;

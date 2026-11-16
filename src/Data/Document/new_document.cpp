@@ -42,8 +42,24 @@ delete_document (path rp) {
   clean_observers (subtree (the_et, rp));
 }
 
+static int system_document_load_depth= 0;
+
+bool
+in_system_document_load () {
+  return system_document_load_depth > 0;
+}
+
+system_document_load_guard::system_document_load_guard () {
+  system_document_load_depth++;
+}
+
+system_document_load_guard::~system_document_load_guard () {
+  system_document_load_depth--;
+}
+
 void
 set_document (path rp, tree t) {
+  system_document_load_guard guard;
   // assign (subtree (the_et, rp), t);
   assign (subtree (the_et, rp), copy (t));
 }

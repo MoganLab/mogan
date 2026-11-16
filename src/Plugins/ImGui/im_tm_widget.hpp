@@ -63,6 +63,8 @@ protected:
   string footer_left;
   string footer_middle;
   string footer_right;
+  string readonly_tip;
+  time_t readonly_tip_expire_time;
   SI     footer_height;
   bool   footer_interactive;
   // 缓冲区加载（SLOT_SCROLLABLE，即新画布挂载）后，连续若干帧把滚动重置到顶部

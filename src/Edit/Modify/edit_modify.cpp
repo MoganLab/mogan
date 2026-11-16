@@ -11,6 +11,7 @@
 
 #include "edit_modify.hpp"
 #include "modification.hpp"
+#include "new_document.hpp"
 #include "new_view.hpp"
 #include "new_window.hpp"
 #include "observers.hpp"
@@ -245,6 +246,17 @@ edit_set_cursor (editor_rep* ed, path pp, tree data) {
 
 void
 edit_announce (editor_rep* ed, modification mod) {
+  bool applying_remote= false;
+#ifdef LORO_ENABLED
+  applying_remote= ed->collab_applying_remote ();
+#endif
+  bool buffer_ro  = (!is_nil (ed->buf) && ed->buf->buf->read_only);
+  bool active_view= !has_current_view () || ed->is_current_editor ();
+  if (mod->k != MOD_SET_CURSOR && !in_system_document_load () &&
+      !applying_remote && (buffer_ro || (active_view && ed->is_read_only ()))) {
+    ed->show_readonly_tip_for_reason ();
+    throw string ("read-only");
+  }
 #ifdef LORO_ENABLED
   if (DEBUG_LORO) {
     if (mod->k != MOD_SET_CURSOR) debug_loro << "mod: " << mod << "\n";
@@ -391,6 +403,10 @@ edit_modify_rep::undo_possibilities () {
 
 void
 edit_modify_rep::undo (bool redoable) {
+  if (is_read_only ()) {
+    show_readonly_tip_for_reason ();
+    return;
+  }
   interrupt_shortcut ();
   arch->forget_cursor ();
   if (inside_graphics () && !as_bool (eval ("graphics-undo-enabled"))) {
@@ -431,6 +447,10 @@ edit_modify_rep::redo_possibilities () {
 
 void
 edit_modify_rep::redo (int i) {
+  if (is_read_only ()) {
+    show_readonly_tip_for_reason ();
+    return;
+  }
   interrupt_shortcut ();
   arch->forget_cursor ();
   if (arch->redo_possibilities () == 0) {

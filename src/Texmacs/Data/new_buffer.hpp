@@ -91,6 +91,7 @@ url        get_master_buffer (url name);
 void       set_master_buffer (url name, url master);
 void       set_title_buffer (url name, string title);
 string     get_title_buffer (url name);
+string     propose_title (string old_title, url u, tree doc);
 void       set_buffer_tree (url name, tree doc);
 /** @brief 对指定缓冲区的所有视图强制执行 apply_changes()，冲刷未排版的改动
  * @param name 缓冲区 url

@@ -86,6 +86,7 @@ public:
   void set_left_footer (string s);
   void set_right_footer (string s);
   void set_middle_footer (string s);
+  void show_readonly_tip (string s);
   bool get_interactive_mode ();
   void set_interactive_mode (bool on);
   void interactive (string name, string type, array<string> def, string& s,
