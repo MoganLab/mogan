@@ -22,9 +22,10 @@ using namespace moebius;
 typesetter_rep::typesetter_rep (edit_env& env2, tree et, path ip)
     : env (env2), old_patch (UNINIT), progressive_enabled (false),
       progressive_cur_child (0), progressive_total_children (0),
-      progressive_pending (false), progressive_bench_active (false),
-      frozen_pages_positioned (0), doc_name (""), chunk_start (0),
-      chunk_end (0), doc_l (array<page_item> ()), doc_sb (stack_border ()),
+      progressive_pending (false), progressive_complete_pass (false),
+      progressive_bench_active (false), frozen_pages_positioned (0),
+      doc_name (""), chunk_start (0), chunk_end (0),
+      doc_l (array<page_item> ()), doc_sb (stack_border ()),
       frozen_page_boxes (array<box> ()), frozen_border_boxes (array<box> ()),
       dynamic_buffer_pages (3), page_text_height (0), last_page_count (0),
       max_typeset_child (0) {
@@ -193,7 +194,18 @@ typesetter_rep::typeset () {
 
   // Test whether we are doing a complete typesetting
   env->complete= br->my_typeset_will_be_complete ();
-  int i        = 0;
+  if (progressive_enabled) {
+    if (chunk_start == 0) {
+      progressive_complete_pass= env->complete;
+    }
+    else if (progressive_complete_pass) {
+      env->complete= true;
+    }
+  }
+  else {
+    progressive_complete_pass= false;
+  }
+  int i= 0;
   if (n > 0) {
     if (is_compound (st[0], "show-preamble")) {
       i++;
@@ -209,12 +221,11 @@ typesetter_rep::typeset () {
   // Typeset
   if (progressive_enabled && chunk_end < n) {
     progressive_pending= true;
-    env->complete      = false;
   }
   else {
     progressive_pending= false;
   }
-  if (env->complete) {
+  if (env->complete && (!progressive_enabled || chunk_start == 0)) {
     env->local_aux= hashmap<string, tree> (UNINIT);
     env->missing  = hashmap<string, tree> (UNINIT);
     env->redefined= array<tree> ();
@@ -223,6 +234,12 @@ typesetter_rep::typeset () {
   bench_start ("typeset: br->typeset");
   br->typeset (PROCESSED + WANTED_PARAGRAPH);
   bench_end ("typeset: br->typeset", 5);
+  if (progressive_pending) {
+    env->complete= false;
+  }
+  else {
+    progressive_complete_pass= false;
+  }
 
   if (progressive_enabled) {
     if (chunk_start == 0) {
@@ -289,6 +306,12 @@ typesetter_rep::typeset () {
       max_typeset_child    = n;
       progressive_pending  = false;
       env->complete        = br->my_typeset_will_be_complete ();
+      if (env->complete) {
+        env->local_aux= hashmap<string, tree> (UNINIT);
+        env->missing  = hashmap<string, tree> (UNINIT);
+        env->redefined= array<tree> ();
+        env->touched  = hashmap<string, bool> (false);
+      }
       br->typeset (PROCESSED + WANTED_PARAGRAPH);
       tm_delete (ppp);
       ppp= tm_new<pager_rep> (br->ip, env, l, array<box> (), array<box> ());
@@ -366,7 +389,10 @@ typesetter_rep::typeset (DI& x1b, DI& y1b, DI& x2b, DI& y2b) {
 
 void
 notify_assign (typesetter ttt, path p, tree u) {
-  if (is_nil (p)) ttt->br= make_bridge (ttt, u, ttt->br->ip);
+  if (is_nil (p)) {
+    ttt->progressive_reset ();
+    ttt->br= make_bridge (ttt, u, ttt->br->ip);
+  }
   else ttt->br->notify_assign (p, u);
 }
 
@@ -478,16 +504,17 @@ typesetter_rep::progressive_fast_forward_until (int target_child) {
 
 void
 typesetter_rep::progressive_reset () {
-  progressive_cur_child   = 0;
-  chunk_start             = 0;
-  chunk_end               = 0;
-  doc_l                   = array<page_item> ();
-  doc_sb                  = stack_border ();
-  frozen_page_boxes       = array<box> ();
-  frozen_border_boxes     = array<box> ();
-  progressive_pending     = false;
-  progressive_bench_active= false;
-  frozen_pages_positioned = 0;
+  progressive_cur_child    = 0;
+  chunk_start              = 0;
+  chunk_end                = 0;
+  doc_l                    = array<page_item> ();
+  doc_sb                   = stack_border ();
+  frozen_page_boxes        = array<box> ();
+  frozen_border_boxes      = array<box> ();
+  progressive_pending      = false;
+  progressive_complete_pass= false;
+  progressive_bench_active = false;
+  frozen_pages_positioned  = 0;
 }
 
 bool
