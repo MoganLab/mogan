@@ -745,6 +745,9 @@ void
 edit_typeset_rep::set_file_read_only (bool on) {
   if (!can_toggle_file_read_only ()) return;
   url name= buf->buf->name;
+  if (on && buf->needs_to_be_saved ()) {
+    if (buffer_save (name)) return;
+  }
 #ifdef QTTEXMACS
   if (!qt_set_file_readonly (name, on)) return;
 #else

@@ -11,13 +11,20 @@
 #include "Metafont/load_tex.hpp"
 #include "base.hpp"
 #include "boot.hpp"
+#include "converter.hpp"
 #include "data_cache.hpp"
+#include "dictionary.hpp"
 #include "editor.hpp"
 #include "file.hpp"
 #include "gui.hpp"
+#include "language.hpp"
 #include "modification.hpp"
 #include "new_buffer.hpp"
 #include "new_document.hpp"
+#include "new_view.hpp"
+#ifdef QTTEXMACS
+#include "Qt/qt_sys_utils.hpp"
+#endif
 #include "s7_tm.hpp"
 #include "server.hpp"
 #include "tm_buffer.hpp"
@@ -132,6 +139,55 @@ private slots:
     QVERIFY (!local_ed->is_read_only ());
     edit_announce (local_ed.operator->(),
                    mod_assign (local_buf->rp * 0, tree ("writable")));
+
+    // 6. 有未保存修改时启用只读，应先保存再启用只读，避免修改丢失
+    url local_vw= get_passive_view (local_url);
+    QVERIFY (!is_none (local_vw));
+    editor local_vw_ed= view_to_editor (local_vw);
+    assign (local_buf->rp * 0, tree ("saved_before_ro"));
+    pretend_buffer_modified (local_url);
+    QVERIFY (local_buf->needs_to_be_saved ());
+    local_vw_ed->set_file_read_only (true);
+    QVERIFY (!local_buf->needs_to_be_saved ());
+    QVERIFY (local_vw_ed->get_file_read_only ());
+    QVERIFY (local_vw_ed->is_read_only ());
+    string saved_content;
+    QVERIFY (!load_string (local_url, saved_content, false));
+    QVERIFY (occurs ("saved_before_ro", saved_content));
+    delete_view (local_vw);
+
+    // 7. 外部修改文件权限后重新加载 (set_buffer_tree)，同步更新 read_only
+    // 与标题
+#ifdef QTTEXMACS
+    local_ed->set_file_read_only (false);
+    QVERIFY (!local_buf->buf->read_only);
+    QVERIFY (qt_set_file_readonly (local_url, true));
+    set_buffer_tree (local_url, tree (DOCUMENT, tree ("reloaded_ro")));
+    QVERIFY (local_buf->buf->read_only);
+    QVERIFY (local_ed->is_read_only ());
+    string ro_prefix= '[' * cork_to_utf8 (translate ("read-only")) * "] ";
+    QVERIFY (starts (local_buf->buf->title, ro_prefix));
+
+    QVERIFY (qt_set_file_readonly (local_url, false));
+    set_buffer_tree (local_url, tree (DOCUMENT, tree ("reloaded_rw")));
+    QVERIFY (!local_buf->buf->read_only);
+    QVERIFY (!local_ed->is_read_only ());
+    QVERIFY (!starts (local_buf->buf->title, ro_prefix));
+#endif
+
+    // 8. 重命名已有只读前缀的 tmfs 缓冲区时，不重复添加 [只读] 前缀
+    url tmfs_a= url_system ("tmfs://help/readonly_rename_a");
+    url tmfs_b= url_system ("tmfs://help/readonly_rename_b");
+    set_buffer_tree (tmfs_a, tree (DOCUMENT, tree ("tmfs")));
+    tm_buffer tmfs_buf= concrete_buffer (tmfs_a);
+    QVERIFY (!is_nil (tmfs_buf));
+    string ro_prefix_tmfs= '[' * cork_to_utf8 (translate ("read-only")) * "] ";
+    tmfs_buf->buf->read_only= true;
+    set_title_buffer (tmfs_a, ro_prefix_tmfs * "Document");
+    rename_buffer (tmfs_a, tmfs_b);
+    QCOMPARE (tmfs_buf->buf->title, ro_prefix_tmfs * "Document");
+    QVERIFY (!starts (tmfs_buf->buf->title, ro_prefix_tmfs * ro_prefix_tmfs));
+
     remove (local_url);
   }
 };

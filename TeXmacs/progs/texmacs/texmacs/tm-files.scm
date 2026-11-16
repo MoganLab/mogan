@@ -397,6 +397,7 @@
   ;; (display* "save-buffer-post " name "\n")
   (cond ((in? :update opts) (update-buffer name))
         ((in? :commit opts) (commit-buffer name))
+        ((in? :read-only opts) (with-buffer name (set-file-read-only #t)))
   ) ;cond
 ) ;define
 
