@@ -69,6 +69,7 @@ private slots:
   void test_append_at_end_after_full_typeset ();
   void test_progressive_preserves_local_aux_across_chunks ();
   void test_blank_pages_at_freeze_boundary ();
+  void test_retypeset_after_full_typeset_without_reset ();
 };
 
 void
@@ -286,6 +287,54 @@ TestProgressiveTypeset::test_blank_pages_at_freeze_boundary () {
 
   QVERIFY (last_box->subnr () == 1);
   box pages_box = last_box->subbox (0);
+  int title_hits= 0;
+  for (int pi= 0; pi < pages_box->subnr (); pi++) {
+    if (box_contains_text (pages_box->subbox (pi), "UniqueCoverTitle")) {
+      title_hits++;
+    }
+  }
+  QCOMPARE (title_hits, 1);
+
+  delete_typesetter (ttt);
+}
+
+void
+TestProgressiveTypeset::test_retypeset_after_full_typeset_without_reset () {
+  edit_env env= create_test_env ();
+  int      n  = 120;
+  tree     doc (DOCUMENT, n);
+  doc[0]= tree ("UniqueCoverTitle");
+  for (int i= 1; i < n; i++) {
+    doc[i]= string ("Chapter body paragraph line with enough words ") *
+            as_string (i);
+  }
+  the_et        = doc;
+  typesetter ttt= new_typesetter (env, doc, path ());
+
+  box b1= ttt->typeset ();
+  while (ttt->typeset_in_progress ()) {
+    ttt->progressive_advance (30);
+    b1= ttt->typeset ();
+  }
+  QCOMPARE (ttt->progressive_cur_child, n);
+  int pages_first= N (b1[0]);
+  QVERIFY (pages_first > 0);
+
+  // 1. 渐进排版完成后，未调用 progressive_reset() 直接再次触发 typeset()
+  box b2= ttt->typeset ();
+  QCOMPARE (N (b2[0]), pages_first);
+  QCOMPARE (ttt->progressive_cur_child, n);
+
+  // 2. 经过一次 reset + 全量 typeset()（使 chunk_start=0, chunk_end=n）后，
+  //    再次直接触发 typeset()，仍不得将整书页面叠加到 frozen_page_boxes 之后
+  ttt->progressive_reset ();
+  box b3= ttt->typeset ();
+  QCOMPARE (N (b3[0]), pages_first);
+  box b4= ttt->typeset ();
+  QCOMPARE (N (b4[0]), pages_first);
+
+  QVERIFY (b4->subnr () == 1);
+  box pages_box = b4->subbox (0);
   int title_hits= 0;
   for (int pi= 0; pi < pages_box->subnr (); pi++) {
     if (box_contains_text (pages_box->subbox (pi), "UniqueCoverTitle")) {

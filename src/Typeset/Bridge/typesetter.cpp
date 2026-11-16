@@ -178,6 +178,12 @@ typesetter_rep::typeset () {
         progressive_bench_active= true;
       }
     }
+    else if (progressive_cur_child >= n) {
+      progressive_reset ();
+      chunk_start= 0;
+      chunk_end  = n;
+      br->status = 0;
+    }
   }
   else {
     progressive_enabled    = false;
@@ -312,6 +318,7 @@ typesetter_rep::typeset () {
       progressive_cur_child= n;
       max_typeset_child    = n;
       progressive_pending  = false;
+      br->status           = 0;
       env->complete        = br->my_typeset_will_be_complete ();
       if (env->complete) {
         env->local_aux= hashmap<string, tree> (UNINIT);
