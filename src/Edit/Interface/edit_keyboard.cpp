@@ -288,6 +288,11 @@ edit_interface_rep::key_press (string gkey) {
     pre_edit_mark= 0;
   }
   if (starts (key, "speech:")) {
+    if (initial_typeset_pending ()) {
+      show_initial_typeset_readonly_tip ();
+      interrupt_shortcut ();
+      return;
+    }
     if (pre_edit_s != "") return;
     interrupt_shortcut ();
     archive_state ();
