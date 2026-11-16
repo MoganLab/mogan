@@ -2074,7 +2074,6 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
                                        "  border: 1px solid #555555;"
                                        "  border-radius: 6px;"
                                        "  padding: 6px 12px;"
-                                       "  font-size: 13px;"
                                        "}");
       readonlyTipLabel->setAttribute (Qt::WA_TransparentForMouseEvents);
       readonlyTipTimer= new QTimer (mw);
@@ -2082,6 +2081,14 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
       QObject::connect (readonlyTipTimer, &QTimer::timeout, readonlyTipLabel,
                         &QLabel::hide);
     }
+    QFont tipFont= QApplication::font ();
+    if (tipFont.pointSizeF () > 0) {
+      tipFont.setPointSizeF (tipFont.pointSizeF () * 1.2);
+    }
+    else if (tipFont.pixelSize () > 0) {
+      tipFont.setPixelSize (qRound (tipFont.pixelSize () * 1.2));
+    }
+    readonlyTipLabel->setFont (tipFont);
     readonlyTipLabel->setText (qt_translate (msg).replace ("<gtr>", ">"));
     readonlyTipLabel->adjustSize ();
     int x= 12;
