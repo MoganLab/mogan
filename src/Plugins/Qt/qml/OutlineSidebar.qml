@@ -490,18 +490,13 @@ Item {
                     }
                 }
 
-                // 轨道背景（半透明，圆角）
+                // 轨道背景（完全透明，保留点击翻页区域）
                 Rectangle {
                     id: scrollbarTrack
                     objectName: "scrollbarTrack"
                     anchors.fill: parent
                     radius: width / 2
-                    color: Theme.dark ? (trackMouse.containsMouse ? "#20ffffff" : "#14ffffff")
-                                      : (trackMouse.containsMouse ? "#18000000" : "#0d000000")
-
-                    Behavior on color {
-                        ColorAnimation { duration: 150 }
-                    }
+                    color: "transparent"
 
                     // 点击轨道空白区翻页
                     MouseArea {
@@ -533,8 +528,8 @@ Item {
                         readonly property bool isHovered: thumbMouse.containsMouse
                         readonly property bool isDragging: thumbMouse.isDragging
 
-                        color: Theme.dark ? "#a1a1aa" : "#9ca3af"
-                        opacity: (isHovered || isDragging) ? 0.9 : 0.6
+                        color: Theme.dark ? "#ffffff" : "#000000"
+                        opacity: isDragging ? 0.58 : (isHovered ? 0.42 : 0.25)
 
                         Behavior on opacity {
                             NumberAnimation { duration: 150 }
