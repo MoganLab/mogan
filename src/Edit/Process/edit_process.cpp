@@ -532,6 +532,7 @@ edit_process_rep::generate_aux_recursively (string which, tree st, path p) {
       if (is_compound (st[i])) generate_aux_recursively (which, st[i], p * i);
     }
     else {
+      if (typeset_in_progress ()) continue;
       tree t    = st[i];
       path doc_p= p * path (i, N (t) - 1);
       assign (doc_p, tree (DOCUMENT, ""));

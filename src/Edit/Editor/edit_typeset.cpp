@@ -719,6 +719,16 @@ edit_typeset_rep::typeset_frontier () {
 }
 
 int
+edit_typeset_rep::typeset_total_children () {
+  return ::typeset_total_children (ttt);
+}
+
+int
+edit_typeset_rep::typeset_estimated_pages () {
+  return ::typeset_estimated_pages (ttt);
+}
+
+int
 edit_typeset_rep::get_page_count () {
   if (is_nil (eb) || N (eb) == 0) return 0;
   box pages= eb[0];

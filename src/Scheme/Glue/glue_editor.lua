@@ -465,6 +465,16 @@ function main()
                 ret_type = "int"
             },
             {
+                scm_name = "typeset-total-children",
+                cpp_name = "typeset_total_children",
+                ret_type = "int"
+            },
+            {
+                scm_name = "typeset-estimated-pages",
+                cpp_name = "typeset_estimated_pages",
+                ret_type = "int"
+            },
+            {
                 scm_name = "get-page-count",
                 cpp_name = "get_page_count",
                 ret_type = "int"

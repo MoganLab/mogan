@@ -603,22 +603,49 @@
   (update-current-buffer)
 ) ;define
 
+(define (update-document-progress-message)
+  (let* ((est (if (defined? 'typeset-estimated-pages) (typeset-estimated-pages) 0))
+         (cur (if (defined? 'typeset-frontier) (typeset-frontier) 0))
+         (tot (if (defined? 'typeset-total-children) (typeset-total-children) 0))
+         (pct (if (> tot 0) (min 99 (quotient (* cur 100) tot)) 0)))
+    (if (> est 100)
+        (set-message (string-append "Typesetting document to update (" (number->string pct) "%)...") "please wait")
+        (set-message "Completing document typesetting before updating..." "please wait"))
+  ) ;let*
+) ;define
+
+(define (update-document-run-once what)
+  (cursor-after
+    (cond ((== what "all")
+           (generate-all-aux)
+           (inclusions-gc)
+           (picture-gc)
+           (wait-update-current-buffer)
+          ) ;
+          ((== what "bibliography") (generate-all-aux) (wait-update-current-buffer))
+          ((== what "buffer") (wait-update-current-buffer))
+          (else (generate-aux what))
+    ) ;cond
+  ) ;cursor-after
+) ;define
+
+(define (update-document-step what remaining)
+  (cond ((<= remaining 0)
+         (set-cursor-style "normal")
+         (set-message "Document updated" ""))
+        ((and (!= what "buffer")
+              (defined? 'typeset-in-progress?)
+              (typeset-in-progress?))
+         (update-document-progress-message)
+         (delayed (:idle 50) (update-document-step what remaining)))
+        (else
+         (update-document-run-once what)
+         (delayed (:idle 1) (update-document-step what (- remaining 1))))
+  ) ;cond
+) ;define
+
 (tm-define (update-document what)
   (set-cursor-style "wait")
-  (for (.. 0 doc-update-times)
-    (delayed (:idle 1)
-      (cursor-after (cond ((== what "all")
-                           (generate-all-aux)
-                           (inclusions-gc)
-                           (picture-gc)
-                           (wait-update-current-buffer)
-                          ) ;
-                          ((== what "bibliography") (generate-all-aux) (wait-update-current-buffer))
-                          ((== what "buffer") (wait-update-current-buffer))
-                          (else (generate-aux what))
-                    ) ;cond
-      ) ;cursor-after
-    ) ;delayed
-  ) ;for
-  (delayed (:idle 1) (set-cursor-style "normal"))
+  (delayed (:idle 1)
+    (update-document-step what doc-update-times))
 ) ;tm-define

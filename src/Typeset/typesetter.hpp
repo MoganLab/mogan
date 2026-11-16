@@ -38,6 +38,8 @@ bool typeset_in_progress (typesetter ttt);
 void progressive_advance (typesetter ttt, int additional_paragraphs);
 void progressive_fast_forward_until (typesetter ttt, int target_child);
 int  typeset_frontier (typesetter ttt);
+int  typeset_total_children (typesetter ttt);
+int  typeset_estimated_pages (typesetter ttt);
 DI   progressive_get_page_height (typesetter ttt);
 void progressive_set_doc_name (typesetter ttt, string name);
 
