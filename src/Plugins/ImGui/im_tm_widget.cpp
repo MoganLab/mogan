@@ -393,8 +393,9 @@ im_tm_widget_rep::im_tm_widget_rep (int mask, command _quit)
       document_texture (0), tex_w (0), tex_h (0), texture_dirty (true),
       initialized (false), needs_refocus (false), last_key_mods (0),
       last_key_handled (false), pic_w (0), pic_h (0), pic_rf (0),
-      menu_offset_y (0), footer_height (0), footer_interactive (false),
-      scroll_reset_frames (0), last_size_canvas (nullptr) {
+      menu_offset_y (0), readonly_tip (""), readonly_tip_expire_time (0),
+      footer_height (0), footer_interactive (false), scroll_reset_frames (0),
+      last_size_canvas (nullptr) {
   visibility[0] = (mask & 1) == 1;       // header
   visibility[1] = (mask & 2) == 2;       // main icons
   visibility[2] = (mask & 4) == 4;       // mode icons
@@ -826,10 +827,21 @@ im_tm_widget_rep::im_main_loop () {
                           ImGuiWindowFlags_NoScrollWithMouse)) {
       ImGui::PopStyleVar (3);
       if (!footer_interactive) {
+        if (N (readonly_tip) > 0 &&
+            texmacs_time () >= readonly_tip_expire_time) {
+          readonly_tip            = "";
+          readonly_tip_expire_time= 0;
+#ifdef __EMSCRIPTEN__
+          im_react_push_footer (footer_left, footer_middle, footer_right,
+                                footer_interactive);
+#endif
+        }
         // 三栏布局：左、中、右。使用绝对 X 定位避免表格单元格宽度歧义。
         float pad_x= 4.0f;
         // 左侧
-        ImGui::TextUnformatted (c_string (footer_left));
+        string displayed_left=
+            N (readonly_tip) > 0 ? readonly_tip : footer_left;
+        ImGui::TextUnformatted (c_string (displayed_left));
         // 中间
         ImVec2 ts= ImGui::CalcTextSize (c_string (footer_middle));
         ImGui::SameLine ();
@@ -1264,10 +1276,18 @@ im_tm_widget_rep::send (slot s, blackbox val) {
 #endif
   } break;
   case SLOT_READONLY_TIP: {
-    footer_left= open_box<string> (val);
+    string msg= open_box<string> (val);
+    if (msg == "") {
+      readonly_tip            = "";
+      readonly_tip_expire_time= 0;
+    }
+    else {
+      readonly_tip            = msg;
+      readonly_tip_expire_time= texmacs_time () + 3000;
+    }
 #ifdef __EMSCRIPTEN__
-    im_react_push_footer (footer_left, footer_middle, footer_right,
-                          footer_interactive);
+    im_react_push_footer (N (readonly_tip) > 0 ? readonly_tip : footer_left,
+                          footer_middle, footer_right, footer_interactive);
 #endif
   } break;
   case SLOT_INTERACTIVE_MODE: {
