@@ -2091,14 +2091,16 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     readonlyTipLabel->setFont (tipFont);
     readonlyTipLabel->setText (qt_translate (msg).replace ("<gtr>", ">"));
     readonlyTipLabel->adjustSize ();
-    int x= qMax (8, mw->width () - readonlyTipLabel->width () - 12);
+    int x= 12;
     int y= mw->height () - readonlyTipLabel->height () - 40;
     if (pageOutlineBtn && pageOutlineBtn->isVisible ()) {
       QPoint p= pageOutlineBtn->mapTo (mw, QPoint (0, 0));
+      x       = qMax (8, p.x ());
       y       = qMax (8, p.y () - readonlyTipLabel->height () - 8);
     }
     else if (mw->statusBar () && mw->statusBar ()->isVisible ()) {
       QPoint p= mw->statusBar ()->mapTo (mw, QPoint (0, 0));
+      x       = 12;
       y       = qMax (8, p.y () - readonlyTipLabel->height () - 8);
     }
     if (pdfOutlineDock && pdfOutlineDock->isVisible ()) {
