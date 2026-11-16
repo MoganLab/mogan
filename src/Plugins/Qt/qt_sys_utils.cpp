@@ -241,6 +241,19 @@ qt_open_url (url u) {
 }
 
 bool
+qt_is_file_readonly (url u) {
+  if (!is_local_and_single (u)) return false;
+  QString path= utf8_to_qstring (concretize (u));
+  QFile   f (path);
+  if (!f.exists ()) return false;
+  QFileDevice::Permissions perms= f.permissions ();
+  // WriteUser reflects access(W_OK) on Unix and remains set for root on 0444
+  // files; check the actual mode bits (Owner/Group/Other) instead.
+  return (perms & (QFileDevice::WriteOwner | QFileDevice::WriteGroup |
+                   QFileDevice::WriteOther)) == 0;
+}
+
+bool
 qt_set_file_readonly (url u, bool readonly) {
   if (!is_local_and_single (u)) return false;
   QString path= utf8_to_qstring (concretize (u));

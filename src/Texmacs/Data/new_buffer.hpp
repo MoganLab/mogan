@@ -114,6 +114,7 @@ void   pretend_buffer_saved (url name);
 void   pretend_buffer_autosaved (url name);
 void   attach_buffer_notifier (url name);
 bool   buffer_has_name (url name);
+bool   is_file_read_only (url u);
 bool   buffer_import (url name, url src, string fm);
 bool   buffer_load (url name);
 bool   buffer_export (url name, url dest, string fm);
