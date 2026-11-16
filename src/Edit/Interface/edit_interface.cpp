@@ -1487,7 +1487,8 @@ edit_interface_rep::apply_changes () {
   if (::typeset_in_progress (ttt)) {
     needs_update ();
   }
-  else if (was_typeset_in_progress && !is_read_only () && mvw != NULL) {
+  else if (was_typeset_in_progress && !is_read_only () &&
+           has_current_window ()) {
     tm_window win= concrete_window ();
     if (win != NULL) win->show_readonly_tip ("");
   }

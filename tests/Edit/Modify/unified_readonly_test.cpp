@@ -72,7 +72,7 @@ private slots:
 
     bool threw= false;
     try {
-      edit_announce (ed.operator-> (),
+      edit_announce (ed.operator->(),
                      mod_assign (buf->rp * 0, tree ("modified")));
     } catch (string msg) {
       threw= (msg == "read-only");
@@ -81,21 +81,20 @@ private slots:
     QCOMPARE (subtree (the_et, buf->rp * 0), tree ("initial"));
 
     // 2. 光标移动 (MOD_SET_CURSOR) 在只读模式下依然放行
-    edit_announce (ed.operator-> (),
+    edit_announce (ed.operator->(),
                    mod_set_cursor (buf->rp * 0, 0, tree (TUPLE, tree ("x"))));
 
     // 3. 关闭手动只读后恢复可编辑
     ed->set_manual_read_only (false);
     QVERIFY (!ed->is_read_only ());
-    edit_announce (ed.operator-> (),
-                   mod_assign (buf->rp * 0, tree ("updated")));
+    edit_announce (ed.operator->(), mod_assign (buf->rp * 0, tree ("updated")));
 
     // 4. 文件权限只读 (buf->buf->read_only) 同样触发统一只读
     buf->buf->read_only= true;
     QVERIFY (ed->is_read_only ());
     threw= false;
     try {
-      edit_announce (ed.operator-> (),
+      edit_announce (ed.operator->(),
                      mod_assign (buf->rp * 0, tree ("blocked")));
     } catch (string msg) {
       threw= (msg == "read-only");

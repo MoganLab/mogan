@@ -42,6 +42,7 @@
 #include "config.h"
 #include "scheme.hpp"
 
+#include "cork.hpp"
 #include "dictionary.hpp"
 #include "qt_chat_controller.hpp"
 #include "qt_gui.hpp"
@@ -2081,7 +2082,7 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
       QObject::connect (readonlyTipTimer, &QTimer::timeout, readonlyTipLabel,
                         &QLabel::hide);
     }
-    readonlyTipLabel->setText (qt_translate (msg));
+    readonlyTipLabel->setText (qt_translate (msg).replace ("<gtr>", ">"));
     readonlyTipLabel->adjustSize ();
     int x= 12;
     int y= mw->height () - readonlyTipLabel->height () - 40;

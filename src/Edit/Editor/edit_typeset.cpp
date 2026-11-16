@@ -19,6 +19,7 @@
 #include "merge_sort.hpp"
 #include "new_document.hpp"
 #include "new_style.hpp"
+#include "new_window.hpp"
 #include "observers.hpp"
 #include "tm_buffer.hpp"
 #include "tm_file.hpp"
@@ -728,7 +729,7 @@ edit_typeset_rep::get_manual_read_only () {
 void
 edit_typeset_rep::set_manual_read_only (bool on) {
   manual_read_only= on;
-  if (!is_read_only () && mvw != NULL) {
+  if (!is_read_only () && has_current_window ()) {
     tm_window win= concrete_window ();
     if (win != NULL) win->show_readonly_tip ("");
   }
@@ -737,7 +738,7 @@ edit_typeset_rep::set_manual_read_only (bool on) {
 
 void
 edit_typeset_rep::show_readonly_tip_for_reason () {
-  if (mvw == NULL) return;
+  if (!has_current_window ()) return;
   string msg;
   if (manual_read_only) {
     msg= "Current document is read-only: View -> Read-only mode is enabled";
