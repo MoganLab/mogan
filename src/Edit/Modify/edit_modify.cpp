@@ -250,8 +250,10 @@ edit_announce (editor_rep* ed, modification mod) {
 #ifdef LORO_ENABLED
   applying_remote= ed->collab_applying_remote ();
 #endif
+  bool buffer_ro  = (!is_nil (ed->buf) && ed->buf->buf->read_only);
+  bool active_view= !has_current_view () || ed->is_current_editor ();
   if (mod->k != MOD_SET_CURSOR && !in_system_document_load () &&
-      !applying_remote && ed->is_read_only ()) {
+      !applying_remote && (buffer_ro || (active_view && ed->is_read_only ()))) {
     ed->show_readonly_tip_for_reason ();
     throw string ("read-only");
   }
