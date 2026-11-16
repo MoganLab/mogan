@@ -3169,3 +3169,5 @@
   "文档正在后台排版中，已跳至当前就绪页面..."
 ) ;
 ("typesetting progress" "排版进度")
+("Typesetting document, read-only for now" "正在全文排版中，暂不可编辑")
+("Full document typesetting complete" "全文排版已完成")

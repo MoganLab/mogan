@@ -81,6 +81,8 @@ public:
   language get_env_language ();
   string   physical_font_for_string (string s);
   bool     typeset_in_progress ();
+  bool     initial_typeset_pending ();
+  void     show_initial_typeset_readonly_tip ();
   int      typeset_frontier ();
   int      get_page_count ();
   string   get_page_number_text (int page_index);

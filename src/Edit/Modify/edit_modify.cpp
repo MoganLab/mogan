@@ -154,6 +154,9 @@ void
 edit_modify_rep::post_notify (path p) {
   // cout << "Post notify\n";
   if (!(rp <= p)) return;
+  if (initial_typeset_pending ()) {
+    edit_blocked_during_initial_typeset= true;
+  }
   selection_cancel ();
   cancel_alt_selections ();
   notify_change (THE_TREE);

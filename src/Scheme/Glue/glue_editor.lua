@@ -460,6 +460,16 @@ function main()
                 ret_type = "bool"
             },
             {
+                scm_name = "initial-typeset-pending?",
+                cpp_name = "initial_typeset_pending",
+                ret_type = "bool"
+            },
+            {
+                scm_name = "show-initial-typeset-readonly-tip",
+                cpp_name = "show_initial_typeset_readonly_tip",
+                ret_type = "void"
+            },
+            {
                 scm_name = "typeset-frontier",
                 cpp_name = "typeset_frontier",
                 ret_type = "int"

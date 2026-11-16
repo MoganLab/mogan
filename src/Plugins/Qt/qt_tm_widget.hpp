@@ -76,6 +76,8 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QLabel*        middleLabel;
   QToolButton*   pageOutlineBtn; ///< 文档编辑界面左下角展示/隐藏目录的页码按钮
   QString        pagePrefix;     ///< 页码按钮文本前缀（构造时翻译一次）
+  QLabel*        readonlyTipLabel; ///< 左下角页码上方只读提示气泡
+  QTimer*        readonlyTipTimer; ///< 只读提示气泡自动隐藏定时器
   QToolBar*      menuToolBar;
   QToolBar*      mainToolBar;
   QToolBar*      modeToolBar;

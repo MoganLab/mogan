@@ -299,6 +299,11 @@ edit_interface_rep::key_press (string gkey) {
     interrupt_shortcut ();
     return;
   }
+  if (starts (key, "pre-edit:") && initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    interrupt_shortcut ();
+    return;
+  }
   if (starts (key, "pre-edit:")) {
     string s= key (9, N (key));
     int    i, n= N (s), pos= N (s);
@@ -360,6 +365,11 @@ edit_interface_rep::key_press (string gkey) {
     int i ((unsigned char) rew[0]);
     if ((i >= 1 && i <= 127) || (i >= 128 && i <= 255) || (i == 25))
       if (!inside_active_graphics ()) {
+        if (initial_typeset_pending ()) {
+          show_initial_typeset_readonly_tip ();
+          interrupt_shortcut ();
+          return;
+        }
         archive_state ();
         call ("kbd-insert", rew);
         source_complete_try ();
@@ -367,6 +377,11 @@ edit_interface_rep::key_press (string gkey) {
     interrupt_shortcut ();
   }
   else if (contains_unicode_char (rew)) {
+    if (initial_typeset_pending ()) {
+      show_initial_typeset_readonly_tip ();
+      interrupt_shortcut ();
+      return;
+    }
     archive_state ();
     call ("kbd-insert", key);
     interrupt_shortcut ();
@@ -382,11 +397,21 @@ edit_interface_rep::key_press (string gkey) {
            !contains (key, '<') && !contains (key, '>') &&
            cork_to_utf8 ("<" * key * ">") != ("<" * key * ">") &&
            !inside_active_graphics ()) {
+    if (initial_typeset_pending ()) {
+      show_initial_typeset_readonly_tip ();
+      interrupt_shortcut ();
+      return;
+    }
     archive_state ();
     call ("kbd-insert", "<" * key * ">");
     interrupt_shortcut ();
   }
   else if (N (key) > 1 && !is_combo_shortcuts (key) && key != "escape") {
+    if (initial_typeset_pending ()) {
+      show_initial_typeset_readonly_tip ();
+      interrupt_shortcut ();
+      return;
+    }
     archive_state ();
     call ("insert", key);
     interrupt_shortcut ();
@@ -460,8 +485,15 @@ edit_interface_rep::handle_keypress (string key_u8, time_t t) {
     }
     // time_t t1= texmacs_time ();
     if (is_nil (eb)) apply_changes ();
+    bool   guard_initial_ro= initial_typeset_pending ();
+    double ro_mark         = 0;
     start_editing ();
     started= true;
+    if (guard_initial_ro) {
+      edit_blocked_during_initial_typeset= false;
+      ro_mark                            = new_marker ();
+      mark_start (ro_mark);
+    }
 
     string zero= "a";
     zero[0]    = '\0';
@@ -511,6 +543,15 @@ edit_interface_rep::handle_keypress (string key_u8, time_t t) {
     // 键盘事件后更新文本工具栏显示状态
     update_text_popup ();
     update_ai_actions_bar ();
+    if (guard_initial_ro) {
+      bool blocked                       = edit_blocked_during_initial_typeset;
+      edit_blocked_during_initial_typeset= false;
+      mark_cancel (ro_mark);
+      if (blocked) {
+        interrupt_shortcut ();
+        show_initial_typeset_readonly_tip ();
+      }
+    }
     end_editing ();
     // time_t t2= texmacs_time ();
     // if (t2 - t1 >= 10) cout << "handle_keypress took " << t2-t1 << "ms\n";

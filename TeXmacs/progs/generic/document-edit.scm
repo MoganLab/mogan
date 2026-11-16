@@ -604,21 +604,29 @@
 ) ;define
 
 (tm-define (update-document what)
-  (set-cursor-style "wait")
-  (for (.. 0 doc-update-times)
-    (delayed (:idle 1)
-      (cursor-after (cond ((== what "all")
-                           (generate-all-aux)
-                           (inclusions-gc)
-                           (picture-gc)
-                           (wait-update-current-buffer)
-                          ) ;
-                          ((== what "bibliography") (generate-all-aux) (wait-update-current-buffer))
-                          ((== what "buffer") (wait-update-current-buffer))
-                          (else (generate-aux what))
-                    ) ;cond
-      ) ;cursor-after
-    ) ;delayed
-  ) ;for
-  (delayed (:idle 1) (set-cursor-style "normal"))
+  (if (and (!= what "buffer")
+           (defined? 'initial-typeset-pending?)
+           (initial-typeset-pending?))
+      (when (defined? 'show-initial-typeset-readonly-tip)
+        (show-initial-typeset-readonly-tip))
+      (begin
+        (set-cursor-style "wait")
+        (for (.. 0 doc-update-times)
+          (delayed (:idle 1)
+            (cursor-after (cond ((== what "all")
+                                 (generate-all-aux)
+                                 (inclusions-gc)
+                                 (picture-gc)
+                                 (wait-update-current-buffer)
+                                ) ;
+                                ((== what "bibliography") (generate-all-aux) (wait-update-current-buffer))
+                                ((== what "buffer") (wait-update-current-buffer))
+                                (else (generate-aux what))
+                          ) ;cond
+            ) ;cursor-after
+          ) ;delayed
+        ) ;for
+        (delayed (:idle 1) (set-cursor-style "normal"))
+      ) ;begin
+  ) ;if
 ) ;tm-define

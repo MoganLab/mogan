@@ -23,6 +23,7 @@
 #include "tm_buffer.hpp"
 #include "tm_file.hpp"
 #include "tm_timer.hpp"
+#include "tm_window.hpp"
 #include "tmfs_url.hpp"
 #include "tree_modify.hpp"
 #include "tree_observer.hpp"
@@ -711,6 +712,19 @@ edit_typeset_rep::get_env_language () {
 bool
 edit_typeset_rep::typeset_in_progress () {
   return ::typeset_in_progress (ttt);
+}
+
+bool
+edit_typeset_rep::initial_typeset_pending () {
+  return ::initial_typeset_pending (ttt);
+}
+
+void
+edit_typeset_rep::show_initial_typeset_readonly_tip () {
+  if (has_current_window ()) {
+    concrete_window ()->show_readonly_tip (
+        "Typesetting document, read-only for now");
+  }
 }
 
 int

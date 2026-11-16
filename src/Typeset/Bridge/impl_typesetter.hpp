@@ -35,6 +35,12 @@ public:
   int    progressive_cur_child;      ///< 排版前沿：已排到的正文子节点下标
   int    progressive_total_children; ///< 正文子节点总数
   bool   progressive_pending;        ///< 前沿未到文末，后台排版仍在进行
+  bool   progressive_complete_pass;  ///< 本轮流式排版是否为全量完整排版轮次
+  bool   initial_typeset_done;       ///< 首轮流式排版是否已抵达文末完成
+public:
+  bool   is_initial_typeset_pending () const {
+    return !initial_typeset_done;
+  }
   bool   progressive_bench_active;   ///< 全生命周期基准测试是否已启动
   int    frozen_pages_positioned;    ///< 已执行 position_at 的成熟冻结页面数
   string doc_name;                   ///< 关联的文档路径（用于 benchmark）
