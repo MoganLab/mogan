@@ -23,11 +23,17 @@ extern tree the_et;
 
 static edit_env
 create_test_env () {
-  drd_info              drd ("none", std_drd);
-  hashmap<string, tree> h1 (UNINIT), h2 (UNINIT);
-  hashmap<string, tree> h3 (UNINIT), h4 (UNINIT);
-  hashmap<string, tree> h5 (UNINIT), h6 (UNINIT);
-  edit_env              env (drd, "none", h1, h2, h3, h4, h5, h6);
+  static drd_info              drd ("none", std_drd);
+  static hashmap<string, tree> h1 (UNINIT), h2 (UNINIT);
+  static hashmap<string, tree> h3 (UNINIT), h4 (UNINIT);
+  static hashmap<string, tree> h5 (UNINIT), h6 (UNINIT);
+  h1= hashmap<string, tree> (UNINIT);
+  h2= hashmap<string, tree> (UNINIT);
+  h3= hashmap<string, tree> (UNINIT);
+  h4= hashmap<string, tree> (UNINIT);
+  h5= hashmap<string, tree> (UNINIT);
+  h6= hashmap<string, tree> (UNINIT);
+  edit_env env (drd, "none", h1, h2, h3, h4, h5, h6);
   env->style_init_env ();
   env->write (PAGE_MEDIUM, "paper");
   env->update ();
@@ -61,6 +67,7 @@ private slots:
   void test_offset_alignment_between_frozen_and_unfrozen ();
   void test_nested_document_in_later_chunk ();
   void test_append_at_end_after_full_typeset ();
+  void test_progressive_preserves_local_aux_across_chunks ();
 };
 
 void
@@ -200,6 +207,43 @@ TestProgressiveTypeset::test_append_at_end_after_full_typeset () {
   bool found= false;
   b2->find_box_path (path (n, 0), found);
   QVERIFY (found);
+
+  delete_typesetter (ttt);
+}
+
+void
+TestProgressiveTypeset::test_progressive_preserves_local_aux_across_chunks () {
+  edit_env env= create_test_env ();
+  int      n  = 80;
+  tree     doc (DOCUMENT, n);
+  for (int i= 0; i < n; i++) {
+    if (i == 5) {
+      doc[i]= tree (CONCAT, tree (WRITE, "toc", "Section in chunk 0"));
+    }
+    else if (i == 60) {
+      doc[i]= tree (CONCAT, tree (WRITE, "toc", "Section in chunk 1"));
+    }
+    else {
+      doc[i]= tree ("Paragraph " * as_string (i));
+    }
+  }
+  the_et        = doc;
+  typesetter ttt= new_typesetter (env, doc, path ());
+
+  // 1. 首块 [0, 50)：尚未抵达文末，处于排版中状态，同时收集 chunk 0 的 toc 条目
+  ttt->typeset ();
+  QVERIFY (ttt->typeset_in_progress ());
+  QVERIFY (env->local_aux->contains ("toc"));
+  QCOMPARE (N (env->local_aux["toc"]), 1);
+
+  // 2. 推进至文末 [50, 80)：完成全量排版，且累计保留全部分块的 local_aux
+  ttt->progressive_advance (30);
+  ttt->typeset ();
+  QVERIFY (!ttt->typeset_in_progress ());
+  QVERIFY (env->local_aux->contains ("toc"));
+  QCOMPARE (N (env->local_aux["toc"]), 2);
+  QCOMPARE (env->local_aux["toc"][0], tree ("Section in chunk 0"));
+  QCOMPARE (env->local_aux["toc"][1], tree ("Section in chunk 1"));
 
   delete_typesetter (ttt);
 }

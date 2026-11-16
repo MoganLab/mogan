@@ -215,10 +215,6 @@ bridge_document_rep::my_exec_until (path p) {
 
 bool
 bridge_document_rep::my_typeset_will_be_complete () {
-  bool is_root= (bridge (this) == ttt->br);
-  if (ttt->progressive_enabled && is_root &&
-      ttt->progressive_cur_child < N (st))
-    return false;
   if (is_nil (acc)) {
     int i, n= N (brs);
     for (i= 0; i < n; i++)
