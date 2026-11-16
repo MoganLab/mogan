@@ -3169,3 +3169,13 @@
   "文档正在后台排版中，已跳至当前就绪页面..."
 ) ;
 ("typesetting progress" "排版进度")
+("Read-only mode" "只读模式")
+("Current document is read-only: View -> Read-only mode is enabled"
+  "当前文档为只读模式：视图->只读模式已开启"
+) ;
+("Current document is read-only: file permission is read-only"
+  "当前文档为只读模式：文件的权限为只读"
+) ;
+("Current document is read-only: full-document typesetting is not finished"
+  "当前文档为只读模式：全文排版未完成"
+) ;

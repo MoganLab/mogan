@@ -81,6 +81,10 @@ public:
   language get_env_language ();
   string   physical_font_for_string (string s);
   bool     typeset_in_progress ();
+  bool     is_read_only ();
+  bool     get_manual_read_only ();
+  void     set_manual_read_only (bool on);
+  void     show_readonly_tip_for_reason ();
   int      typeset_frontier ();
   int      get_page_count ();
   string   get_page_number_text (int page_index);

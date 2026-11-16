@@ -1056,10 +1056,18 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
       !table_resizing_type) {
     table_hit hit;
     if (table_line_hit (x, y, hit)) {
+      if (is_read_only ()) {
+        show_readonly_tip_for_reason ();
+        return;
+      }
       table_line_start (hit, x, y);
       return;
     }
     if (table_scale_hit (x, y)) {
+      if (is_read_only ()) {
+        show_readonly_tip_for_reason ();
+        return;
+      }
       table_scale_start (x, y);
       return;
     }
@@ -1252,6 +1260,7 @@ edit_interface_rep::handle_mouse (string kind, SI x, SI y, int m, time_t t,
     }
     end_editing ();
   } catch (string msg) {
+    table_resizing_type= 0;
     if (started) cancel_editing ();
   }
   handle_exceptions ();

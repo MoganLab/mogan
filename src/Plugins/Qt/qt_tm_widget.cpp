@@ -238,6 +238,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       pdfViewerWidget (nullptr), pdfTabMode (false), currentPdfPath (""),
       chatContentWidget (nullptr), chatTabMode (false), chatSideDock (nullptr),
       pdfOutlineDock (nullptr), pageOutlineBtn (nullptr),
+      readonlyTipLabel (nullptr), readonlyTipTimer (nullptr),
       chatSidebarToggleBtn (nullptr), chatSidebarMode (false),
       chatSidebarModeMemory_ (false), centralWidgetUpdatesFrozen_ (false),
       centralUnfreezeGeneration_ (0) {
@@ -2052,6 +2053,52 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     check_type<string> (val, s);
     string msg= open_box<string> (val);
     if (pageOutlineBtn) pageOutlineBtn->setText (pagePrefix + to_qstring (msg));
+  } break;
+  case SLOT_READONLY_TIP: {
+    check_type<string> (val, s);
+    string msg= open_box<string> (val);
+    if (msg == "") {
+      if (readonlyTipLabel) readonlyTipLabel->hide ();
+      if (readonlyTipTimer) readonlyTipTimer->stop ();
+      break;
+    }
+    QMainWindow* mw= mainwindow ();
+    if (!mw) break;
+    if (!readonlyTipLabel) {
+      readonlyTipLabel= new QLabel (mw);
+      readonlyTipLabel->setObjectName ("editor-readonly-tip-label");
+      readonlyTipLabel->setStyleSheet ("QLabel#editor-readonly-tip-label {"
+                                       "  background-color: #2b2b2b;"
+                                       "  color: #f5f5f5;"
+                                       "  border: 1px solid #555555;"
+                                       "  border-radius: 6px;"
+                                       "  padding: 6px 12px;"
+                                       "  font-size: 13px;"
+                                       "}");
+      readonlyTipLabel->setAttribute (Qt::WA_TransparentForMouseEvents);
+      readonlyTipTimer= new QTimer (mw);
+      readonlyTipTimer->setSingleShot (true);
+      QObject::connect (readonlyTipTimer, &QTimer::timeout, readonlyTipLabel,
+                        &QLabel::hide);
+    }
+    readonlyTipLabel->setText (qt_translate (msg));
+    readonlyTipLabel->adjustSize ();
+    int x= 12;
+    int y= mw->height () - readonlyTipLabel->height () - 40;
+    if (pageOutlineBtn && pageOutlineBtn->isVisible ()) {
+      QPoint p= pageOutlineBtn->mapTo (mw, QPoint (0, 0));
+      x       = qMax (8, p.x ());
+      y       = qMax (8, p.y () - readonlyTipLabel->height () - 8);
+    }
+    else if (mw->statusBar () && mw->statusBar ()->isVisible ()) {
+      QPoint p= mw->statusBar ()->mapTo (mw, QPoint (0, 0));
+      x       = 12;
+      y       = qMax (8, p.y () - readonlyTipLabel->height () - 8);
+    }
+    readonlyTipLabel->move (x, y);
+    readonlyTipLabel->raise ();
+    readonlyTipLabel->show ();
+    readonlyTipTimer->start (2500);
   } break;
   case SLOT_RIGHT_FOOTER: {
     check_type<string> (val, s);

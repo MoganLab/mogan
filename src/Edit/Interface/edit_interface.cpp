@@ -1085,7 +1085,8 @@ edit_interface_rep::apply_changes () {
     // cout << "Tremble- " << tremble_count << LF;
   }
 
-  typesetter ttt= get_typesetter ();
+  typesetter ttt                    = get_typesetter ();
+  bool       was_typeset_in_progress= ::typeset_in_progress (ttt);
 
   if (env_change == 0) {
     if (new_visible == last_visible) {
@@ -1485,6 +1486,10 @@ edit_interface_rep::apply_changes () {
 
   if (::typeset_in_progress (ttt)) {
     needs_update ();
+  }
+  else if (was_typeset_in_progress && !is_read_only () && mvw != NULL) {
+    tm_window win= concrete_window ();
+    if (win != NULL) win->show_readonly_tip ("");
   }
 }
 

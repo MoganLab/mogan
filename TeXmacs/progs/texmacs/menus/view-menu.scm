@@ -147,6 +147,7 @@
   ;; ("User provided icons" (toggle-visible-icon-bar 3))
   ("Status bar" (toggle-visible-footer))
   ("Outline" (toggle-outline-sidebar))
+  ("Read-only mode" (toggle-manual-read-only))
   (if (with-developer-tool?)
    ("Left side tools" (toggle-visible-side-tools 1))
    ("Right side tools" (toggle-visible-side-tools 0))

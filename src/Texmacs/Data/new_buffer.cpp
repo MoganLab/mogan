@@ -538,6 +538,7 @@ buffer_import (url name, url src, string fm) {
   if (is_nil (buf)) return true;
   // Check if the file has write permissions
   if (!has_permission (src, "w")) {
+    buf->buf->read_only  = true;
     string title         = buf->buf->title;
     string read_only_text= translate ("read-only");
     title                = '[' * cork_to_utf8 (read_only_text) * "] " * title;

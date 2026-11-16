@@ -460,6 +460,24 @@ function main()
                 ret_type = "bool"
             },
             {
+                scm_name = "read-only?",
+                cpp_name = "is_read_only",
+                ret_type = "bool"
+            },
+            {
+                scm_name = "manual-read-only?",
+                cpp_name = "get_manual_read_only",
+                ret_type = "bool"
+            },
+            {
+                scm_name = "set-manual-read-only",
+                cpp_name = "set_manual_read_only",
+                ret_type = "void",
+                arg_list = {
+                    "bool"
+                }
+            },
+            {
                 scm_name = "typeset-frontier",
                 cpp_name = "typeset_frontier",
                 ret_type = "int"

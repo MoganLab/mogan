@@ -19,5 +19,6 @@ extern tree the_et;
 path new_document ();
 void delete_document (path rp);
 void set_document (path rp, tree t);
+bool in_system_document_load ();
 
 #endif // NEW_DOCUMENT_H
