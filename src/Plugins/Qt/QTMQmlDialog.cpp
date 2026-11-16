@@ -873,15 +873,17 @@ cpp_updater_dialog_open (string message) {
 }
 
 /**
- * @brief 关闭更新中间态弹窗（close → WA_DeleteOnClose 析构宿主）。
- * @details 必须走 host->close() 而非 closeBridge->cancel()：后者 QDialog::done
- * 只 hide()，不触发 show() 型弹窗的 WA_DeleteOnClose 析构，会泄漏宿主并使
- * QPointer 悬垂。close() 同步析构宿主，QPointer 自动置空；此处再显式置空。
+ * @brief 关闭更新中间态弹窗：先置空 QPointer 再同步 delete 宿主（不走
+ * close()/deleteLater 的延迟析构，避免随后 exec() + exit(0) 时残留
+ * DeferredDelete 在 TLS 释放后析构 QQuickWidget 触发崩溃）。
  */
 void
 cpp_updater_dialog_close () {
-  if (g_updater_dialog_host) g_updater_dialog_host->close ();
-  g_updater_dialog_host= nullptr;
+  if (g_updater_dialog_host) {
+    QDialog* host        = g_updater_dialog_host;
+    g_updater_dialog_host= nullptr;
+    delete host;
+  }
 }
 
 // ---- 通用等待中间态弹窗 ---------------------------------------------------

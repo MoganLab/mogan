@@ -363,6 +363,7 @@ private slots:
   void test_export_pdf_home_path_display ();
   void test_export_pdf_path_utf8_roundtrip ();
   void test_updater_progress_loads ();
+  void test_updater_dialog_close_destroys_synchronously ();
   void test_wait_progress_dialog_loads ();
   void test_wait_progress_dialog_escape_interaction ();
   void test_color_picker_loads ();
@@ -914,6 +915,29 @@ TestQmlLoad::test_updater_progress_loads () {
       "dialogMessage", QString ("Downloading the update..."));
   qw->setSource (QUrl ("qrc:/qml/UpdaterProgress.qml"));
   QCOMPARE (qw->status (), QQuickWidget::Ready);
+}
+
+void
+TestQmlLoad::test_updater_dialog_close_destroys_synchronously () {
+  cpp_updater_dialog_open (string ("Downloading the update..."));
+  QPointer<QDialog> host;
+  for (QWidget* w : QApplication::topLevelWidgets ()) {
+    if (QDialog* d= qobject_cast<QDialog*> (w)) {
+      if (d->objectName () == "QTMQmlDialog" && d->isVisible ()) {
+        host= d;
+        break;
+      }
+    }
+  }
+  QVERIFY (host != nullptr);
+  QSignalSpy destroyedSpy (host.data (), &QObject::destroyed);
+  cpp_updater_dialog_close ();
+  // 必须同步析构（不等事件循环派发 DeferredDelete），否则随后 exec()+exit(0)
+  // 会在 Qt TLS 销毁后析构内嵌 QQuickWidget 触发 SIGSEGV。
+  QVERIFY (host == nullptr);
+  QCOMPARE (destroyedSpy.count (), 1);
+  // 幂等兜底：宿主已析构后再次调用不崩溃。
+  cpp_updater_dialog_close ();
 }
 
 void
