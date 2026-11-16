@@ -1493,7 +1493,8 @@ edit_interface_rep::apply_changes () {
   }
   if (was_initial_pending && !::initial_typeset_pending (ttt) &&
       ::typeset_total_children (ttt) >= 60 && has_current_window ()) {
-    concrete_window ()->show_readonly_tip ("Full document typesetting complete");
+    concrete_window ()->show_readonly_tip (
+        "Full document typesetting complete");
   }
 }
 

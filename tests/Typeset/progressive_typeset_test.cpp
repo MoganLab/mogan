@@ -230,7 +230,8 @@ TestProgressiveTypeset::test_progressive_preserves_local_aux_across_chunks () {
   the_et        = doc;
   typesetter ttt= new_typesetter (env, doc, path ());
 
-  // 1. 首块 [0, 50)：尚未抵达文末，处于首轮只读状态，同时收集 chunk 0 的 toc 条目
+  // 1. 首块 [0, 50)：尚未抵达文末，处于首轮只读状态，同时收集 chunk 0 的 toc
+  // 条目
   ttt->typeset ();
   QVERIFY (ttt->typeset_in_progress ());
   QVERIFY (ttt->is_initial_typeset_pending ());

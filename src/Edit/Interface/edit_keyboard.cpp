@@ -364,9 +364,8 @@ edit_interface_rep::key_press (string gkey) {
            k == "C-enter" || k == "M-enter" || k == "backspace" ||
            k == "S-backspace" || k == "delete" || k == "S-delete" ||
            k == "tab" || k == "S-tab" || k == "space" || k == "C-v" ||
-           k == "C-x" || k == "C-z" || k == "C-y" || k == "C-d" ||
-           k == "C-k" || k == "M-v" || k == "M-x" || k == "M-z" ||
-           k == "M-y";
+           k == "C-x" || k == "C-z" || k == "C-y" || k == "C-d" || k == "C-k" ||
+           k == "M-v" || k == "M-x" || k == "M-z" || k == "M-y";
   };
   if (initial_typeset_pending () && is_editing_key (key)) {
     show_initial_typeset_readonly_tip ();
@@ -509,9 +508,9 @@ edit_interface_rep::handle_keypress (string key_u8, time_t t) {
     auto is_nav_key= [] (const string& k) {
       return k == "up" || k == "down" || k == "left" || k == "right" ||
              k == "home" || k == "end" || k == "pageup" || k == "pagedown" ||
-             k == "S-up" || k == "S-down" || k == "S-left" ||
-             k == "S-right" || k == "S-home" || k == "S-end" ||
-             k == "S-pageup" || k == "S-pagedown" || k == "escape";
+             k == "S-up" || k == "S-down" || k == "S-left" || k == "S-right" ||
+             k == "S-home" || k == "S-end" || k == "S-pageup" ||
+             k == "S-pagedown" || k == "escape";
     };
     bool   guard_initial_ro= initial_typeset_pending () && !is_nav_key (key);
     double ro_mark         = 0;

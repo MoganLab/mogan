@@ -206,7 +206,7 @@ typesetter_rep::typeset () {
   else {
     progressive_complete_pass= false;
   }
-  int i        = 0;
+  int i= 0;
   if (n > 0) {
     if (is_compound (st[0], "show-preamble")) {
       i++;
@@ -506,13 +506,13 @@ typesetter_rep::progressive_fast_forward_until (int target_child) {
 
 void
 typesetter_rep::progressive_reset () {
-  progressive_cur_child   = 0;
-  chunk_start             = 0;
-  chunk_end               = 0;
-  doc_l                   = array<page_item> ();
-  doc_sb                  = stack_border ();
-  frozen_page_boxes       = array<box> ();
-  frozen_border_boxes     = array<box> ();
+  progressive_cur_child    = 0;
+  chunk_start              = 0;
+  chunk_end                = 0;
+  doc_l                    = array<page_item> ();
+  doc_sb                   = stack_border ();
+  frozen_page_boxes        = array<box> ();
+  frozen_border_boxes      = array<box> ();
   progressive_pending      = false;
   progressive_complete_pass= false;
   progressive_bench_active = false;

@@ -2067,22 +2067,20 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     if (!readonlyTipLabel) {
       readonlyTipLabel= new QLabel (mw);
       readonlyTipLabel->setObjectName ("editor-readonly-tip-label");
-      readonlyTipLabel->setStyleSheet (
-          "QLabel#editor-readonly-tip-label {"
-          "  background-color: #2b2b2b;"
-          "  color: #f5f5f5;"
-          "  border: 1px solid #555555;"
-          "  border-radius: 6px;"
-          "  padding: 6px 12px;"
-          "  font-size: 13px;"
-          "}");
+      readonlyTipLabel->setStyleSheet ("QLabel#editor-readonly-tip-label {"
+                                       "  background-color: #2b2b2b;"
+                                       "  color: #f5f5f5;"
+                                       "  border: 1px solid #555555;"
+                                       "  border-radius: 6px;"
+                                       "  padding: 6px 12px;"
+                                       "  font-size: 13px;"
+                                       "}");
       readonlyTipLabel->setAttribute (Qt::WA_TransparentForMouseEvents);
       readonlyTipTimer= new QTimer (mw);
       readonlyTipTimer->setSingleShot (true);
-      QObject::connect (readonlyTipTimer, &QTimer::timeout,
-                        [this] () {
-                          if (readonlyTipLabel) readonlyTipLabel->hide ();
-                        });
+      QObject::connect (readonlyTipTimer, &QTimer::timeout, [this] () {
+        if (readonlyTipLabel) readonlyTipLabel->hide ();
+      });
     }
     readonlyTipLabel->setText (qt_translate (msg));
     readonlyTipLabel->adjustSize ();
