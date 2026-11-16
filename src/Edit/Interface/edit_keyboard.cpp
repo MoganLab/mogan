@@ -528,30 +528,41 @@ edit_interface_rep::handle_keypress (string key_u8, time_t t) {
     if (key_u8 == "`") {
       call ("keyboard-press", object (key_u8), object ((double) t));
     }
-    else if (key_u8 == "‘") {
-      call ("insert", "`");
-    }
-    else if (key_u8 == "’") {
-      call ("insert", "<#2019>");
+    else if (key_u8 == "‘" || key_u8 == "’" || key_u8 == "“”" ||
+             key_u8 == "‘’" || key_u8 == "——") {
+      if (initial_typeset_pending ()) {
+        show_initial_typeset_readonly_tip ();
+      }
+      else if (key_u8 == "‘") {
+        call ("insert", "`");
+      }
+      else if (key_u8 == "’") {
+        call ("insert", "<#2019>");
+      }
+      else if (key_u8 == "“”") {
+        call ("insert", "<#201C><#201D>");
+      }
+      else if (key_u8 == "‘’") {
+        call ("insert", "<#2018><#2019>");
+      }
+      else if (key_u8 == "——") {
+        call ("insert", "<#2014><#2014>");
+      }
     }
     else if (key_u8 == "M-`") {
       call ("keyboard-press", object (key_u8), object ((double) t));
     }
-    else if (key_u8 == "“”") {
-      call ("insert", "<#201C><#201D>");
-    }
-    else if (key_u8 == "‘’") {
-      call ("insert", "<#2018><#2019>");
-    }
-    else if (key_u8 == "——") {
-      call ("insert", "<#2014><#2014>");
-    }
     else if (starts (gkey, "pre-edit:")) {
-      if (get_input_mode () == INPUT_COMPLETE) {
-        // pre-edit之前确保不在补全模式下，以防意外触发补全
-        set_input_normal ();
+      if (initial_typeset_pending ()) {
+        show_initial_typeset_readonly_tip ();
       }
-      call ("delayed-keyboard-press", object (gkey), object ((double) t));
+      else {
+        if (get_input_mode () == INPUT_COMPLETE) {
+          // pre-edit之前确保不在补全模式下，以防意外触发补全
+          set_input_normal ();
+        }
+        call ("delayed-keyboard-press", object (gkey), object ((double) t));
+      }
     }
     else {
       call ("keyboard-press", object (gkey), object ((double) t));
