@@ -1,0 +1,130 @@
+(document (TeXmacs "2.1.4")
+  (style (tuple "source"))
+  (body
+    (document
+      (active*
+        (src-title
+          (document (src-package-dtd "title-book" "1.0" "header-title" "1.0")
+            (src-purpose (document "Titles for books."))
+            (src-copyright "1998--2004" "Joris van der Hoeven")
+            (src-license (document (concat "This software falls under the "
+                                     (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                     ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                     (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                       "http://www.gnu.org/licenses/gpl-3.0.html"
+                                     ) ;hlink
+                                     "."
+                                   ) ;concat
+                         ) ;document
+            ) ;src-license
+          ) ;document
+        ) ;src-title
+      ) ;active*
+      (use-package "title-base")
+      (active* (document (src-comment (document "Containers."))))
+      (assign "doc-make-title"
+        (macro "body"
+          (document (concat (no-indent)
+                      (assign "page-this-header" "")
+                      (assign "page-this-footer" "")
+                      (vspace "0.25pag")
+                    ) ;concat
+            (doc-title-block (font-magnify "1.414" (arg "body")))
+            (new-page)
+          ) ;document
+        ) ;macro
+      ) ;assign
+      (assign "render-abstract"
+        (macro "body"
+          (document (surround (no-indent) "" (chapter* (abstract-text)))
+            (surround "" (hflush) (arg "body"))
+          ) ;document
+        ) ;macro
+      ) ;assign
+      (active* (document (src-comment (document "Title elements."))))
+      (assign "doc-render-title"
+        (macro "x"
+          (surround ""
+            (vspace "0.1pag")
+            (style-with "src-compact"
+              "none"
+              (doc-title-block (with "math-font-series"
+                                 "bold"
+                                 "font-series"
+                                 "bold"
+                                 (font-magnify "2" (arg "x"))
+                               ) ;with
+              ) ;doc-title-block
+            ) ;style-with
+          ) ;surround
+        ) ;macro
+      ) ;assign
+      (assign "render-doc-author"
+        (macro "body"
+          (surround (vspace* "0.1pag")
+            (vspace "0.1pag")
+            (document
+              (with "par-par-sep" "0fn" (document (doc-title-block (arg "body"))))
+            ) ;document
+          ) ;surround
+        ) ;macro
+      ) ;assign
+      (assign "doc-date"
+        (macro "x"
+          (surround (vspace* "0.1pag")
+            ""
+            (doc-author-block (with "font-shape" "italic" (arg "x")))
+          ) ;surround
+        ) ;macro
+      ) ;assign
+      (active* (document (src-comment (document "Author elements."))))
+      (assign "by-text" (macro ""))
+      (assign "author-render-name"
+        (macro "x"
+          (surround (vspace* "1fn")
+            ""
+            (doc-author-block (with "font-shape" "small-caps" (font-magnify "1.091" (arg "x")))
+            ) ;doc-author-block
+          ) ;surround
+        ) ;macro
+      ) ;assign
+      (assign "author-affiliation"
+        (macro "x"
+          (document (surround (vspace* "2fn") (vspace "2fn") (doc-author-block (arg "x")))
+          ) ;document
+        ) ;macro
+      ) ;assign
+      (assign "author-email"
+        (macro "x"
+          (surround (vspace* "1fn")
+            ""
+            (doc-author-block
+              (style-with "src-compact"
+                "none"
+                (concat (with "font-shape" "italic" (concat (email-text) (localize ":") " "))
+                  (with "font-family" "tt" (arg "x"))
+                ) ;concat
+              ) ;style-with
+            ) ;doc-author-block
+          ) ;surround
+        ) ;macro
+      ) ;assign
+      (assign "author-homepage"
+        (macro "x"
+          (surround ""
+            (vspace* "1fn")
+            (doc-author-block
+              (style-with "src-compact"
+                "none"
+                (concat (with "font-shape" "italic" (concat (homepage-text) (localize ":") " "))
+                  (with "font-family" "tt" (arg "x"))
+                ) ;concat
+              ) ;style-with
+            ) ;doc-author-block
+          ) ;surround
+        ) ;macro
+      ) ;assign
+    ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document
