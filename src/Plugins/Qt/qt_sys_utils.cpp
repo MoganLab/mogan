@@ -247,8 +247,10 @@ qt_is_file_readonly (url u) {
   QFile   f (path);
   if (!f.exists ()) return false;
   QFileDevice::Permissions perms= f.permissions ();
-  return (perms & (QFileDevice::WriteOwner | QFileDevice::WriteUser |
-                   QFileDevice::WriteGroup | QFileDevice::WriteOther)) == 0;
+  // WriteUser reflects access(W_OK) on Unix and remains set for root on 0444
+  // files; check the actual mode bits (Owner/Group/Other) instead.
+  return (perms & (QFileDevice::WriteOwner | QFileDevice::WriteGroup |
+                   QFileDevice::WriteOther)) == 0;
 }
 
 bool
