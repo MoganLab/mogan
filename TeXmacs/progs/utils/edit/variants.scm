@@ -205,7 +205,18 @@
 
 (tm-define (alternate-toggle t)
   (:require (alternate-standard-context? t))
-  (variant-set t (symbol-toggle-alternate (tree-label t)))
+  (dynamic-wind (lambda ()
+                  (when (defined? 'begin-system-document-load)
+                    (begin-system-document-load)
+                  ) ;when
+                ) ;lambda
+    (lambda () (variant-set t (symbol-toggle-alternate (tree-label t))))
+    (lambda ()
+      (when (defined? 'end-system-document-load)
+        (end-system-document-load)
+      ) ;when
+    ) ;lambda
+  ) ;dynamic-wind
 ) ;tm-define
 
 (tm-define (alternate-fold t) (and-with p (tree-outer t) (alternate-fold p)))

@@ -859,8 +859,20 @@
     (buffer-set inp-url '(document "draft"))
     (switch-to-buffer msg-url)
     ;; chat-tab-with-buffer 通过系统写入豁免可正常更新只读 message buffer
-    (chat-tab-with-buffer msg-url (tree-set! (buffer-get-body msg-url) 0 "updated"))
-    (check (tree->stree (buffer-get-body msg-url)) => '(document "updated"))
+    (chat-tab-with-buffer msg-url
+      (tree-set! (buffer-get-body msg-url)
+        0
+        '(folded-explain (document "title") (document "body"))
+      ) ;tree-set!
+    ) ;chat-tab-with-buffer
+    (let ((explain-node (tree-ref (buffer-get-body msg-url) 0)))
+      (check (tree-label explain-node) => 'folded-explain)
+      ;; 只读文档特例：允许折叠/展开操作（alternate-toggle / mouse-unfold / mouse-fold）
+      (alternate-toggle explain-node)
+      (check (tree-label explain-node) => 'unfolded-explain)
+      (alternate-toggle explain-node)
+      (check (tree-label explain-node) => 'folded-explain)
+    ) ;let
   ) ;let
 ) ;define
 
