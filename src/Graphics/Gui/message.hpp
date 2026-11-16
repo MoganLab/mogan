@@ -82,6 +82,7 @@ enum slot_id {
   SLOT_LEFT_FOOTER,
   SLOT_RIGHT_FOOTER,
   SLOT_MIDDLE_FOOTER,
+  SLOT_READONLY_TIP,
   SLOT_INTERACTIVE_MODE,
   SLOT_INTERACTIVE_PROMPT,
   SLOT_INTERACTIVE_INPUT,
@@ -819,6 +820,12 @@ inline void
 set_middle_footer (widget w, string s) {
   // set middle footer (for page number display)
   send<string> (w, SLOT_MIDDLE_FOOTER, s);
+}
+
+inline void
+show_readonly_tip (widget w, string s) {
+  // show read-only tip above bottom-left page number indicator
+  send<string> (w, SLOT_READONLY_TIP, s);
 }
 
 inline void

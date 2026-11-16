@@ -683,6 +683,10 @@ edit_select_rep::selection_get (string key) {
 
 void
 edit_select_rep::selection_paste (string key) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   tree   t;
   string s;
   (void) ::get_selection (key, t, s, selection_import);
@@ -911,6 +915,10 @@ edit_select_rep::raw_cut (path p1, path p2) {
 
 void
 edit_select_rep::selection_cut (string key) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   if (selection_active_any ()) {
     path p1, p2;
     if (selection_active_table ()) {

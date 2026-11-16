@@ -1263,6 +1263,13 @@ im_tm_widget_rep::send (slot s, blackbox val) {
                           footer_interactive);
 #endif
   } break;
+  case SLOT_READONLY_TIP: {
+    footer_left= open_box<string> (val);
+#ifdef __EMSCRIPTEN__
+    im_react_push_footer (footer_left, footer_middle, footer_right,
+                          footer_interactive);
+#endif
+  } break;
   case SLOT_INTERACTIVE_MODE: {
     footer_interactive= open_box<bool> (val);
 #ifdef __EMSCRIPTEN__

@@ -264,6 +264,19 @@ handle_speech (string s) {
   last_uttering= texmacs_time ();
 }
 
+static bool
+is_readonly_editing_key (const string& k) {
+  return k == "return" || k == "S-return" || k == "C-return" ||
+         k == "M-return" || k == "enter" || k == "S-enter" || k == "C-enter" ||
+         k == "M-enter" || k == "backspace" || k == "S-backspace" ||
+         k == "delete" || k == "S-delete" || k == "tab" || k == "S-tab" ||
+         k == "space" || k == "C-v" || k == "C-S-v" || k == "C-x" ||
+         k == "C-S-x" || k == "C-z" || k == "C-S-z" || k == "C-y" ||
+         k == "C-S-y" || k == "C-d" || k == "C-k" || k == "M-v" ||
+         k == "M-S-v" || k == "M-x" || k == "M-S-x" || k == "M-z" ||
+         k == "M-S-z" || k == "M-y" || k == "M-S-y" || k == "S-insert";
+}
+
 bool
 edit_interface_rep::is_combo_shortcuts (string key) {
   return starts (key, "A-") || starts (key, "S-") || starts (key, "C-") ||
@@ -288,6 +301,11 @@ edit_interface_rep::key_press (string gkey) {
     pre_edit_mark= 0;
   }
   if (starts (key, "speech:")) {
+    if (initial_typeset_pending ()) {
+      show_initial_typeset_readonly_tip ();
+      interrupt_shortcut ();
+      return;
+    }
     if (pre_edit_s != "") return;
     interrupt_shortcut ();
     archive_state ();
@@ -296,6 +314,11 @@ edit_interface_rep::key_press (string gkey) {
     speech_pre_edit= false;
     pauses         = array<string> ();
     current_speech = "";
+    interrupt_shortcut ();
+    return;
+  }
+  if (starts (key, "pre-edit:") && initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
     interrupt_shortcut ();
     return;
   }
@@ -348,6 +371,12 @@ edit_interface_rep::key_press (string gkey) {
     focus_on_buffer (window_to_buffer (parent_window), true);
   }
 
+  if (initial_typeset_pending () && is_readonly_editing_key (key)) {
+    show_initial_typeset_readonly_tip ();
+    interrupt_shortcut ();
+    return;
+  }
+
   string new_sh= N (sh_s) == 0 ? key : sh_s * " " * key;
   if (try_shortcut (new_sh)) return;
   if (new_sh != key) {
@@ -360,6 +389,11 @@ edit_interface_rep::key_press (string gkey) {
     int i ((unsigned char) rew[0]);
     if ((i >= 1 && i <= 127) || (i >= 128 && i <= 255) || (i == 25))
       if (!inside_active_graphics ()) {
+        if (initial_typeset_pending ()) {
+          show_initial_typeset_readonly_tip ();
+          interrupt_shortcut ();
+          return;
+        }
         archive_state ();
         call ("kbd-insert", rew);
         source_complete_try ();
@@ -367,6 +401,11 @@ edit_interface_rep::key_press (string gkey) {
     interrupt_shortcut ();
   }
   else if (contains_unicode_char (rew)) {
+    if (initial_typeset_pending ()) {
+      show_initial_typeset_readonly_tip ();
+      interrupt_shortcut ();
+      return;
+    }
     archive_state ();
     call ("kbd-insert", key);
     interrupt_shortcut ();
@@ -382,11 +421,21 @@ edit_interface_rep::key_press (string gkey) {
            !contains (key, '<') && !contains (key, '>') &&
            cork_to_utf8 ("<" * key * ">") != ("<" * key * ">") &&
            !inside_active_graphics ()) {
+    if (initial_typeset_pending ()) {
+      show_initial_typeset_readonly_tip ();
+      interrupt_shortcut ();
+      return;
+    }
     archive_state ();
     call ("kbd-insert", "<" * key * ">");
     interrupt_shortcut ();
   }
   else if (N (key) > 1 && !is_combo_shortcuts (key) && key != "escape") {
+    if (initial_typeset_pending ()) {
+      show_initial_typeset_readonly_tip ();
+      interrupt_shortcut ();
+      return;
+    }
     archive_state ();
     call ("insert", key);
     interrupt_shortcut ();
@@ -446,7 +495,9 @@ edit_interface_rep::handle_keypress (string key_u8, time_t t) {
   }
 
   if (t > last_event) last_event= t;
-  bool started= false;
+  bool   started         = false;
+  bool   guard_initial_ro= false;
+  double ro_mark         = 0;
   try {
     if (DEBUG_KEYBOARD) {
       // for (int i=0; i<N(key); i++)
@@ -460,8 +511,6 @@ edit_interface_rep::handle_keypress (string key_u8, time_t t) {
     }
     // time_t t1= texmacs_time ();
     if (is_nil (eb)) apply_changes ();
-    start_editing ();
-    started= true;
 
     string zero= "a";
     zero[0]    = '\0';
@@ -470,33 +519,71 @@ edit_interface_rep::handle_keypress (string key_u8, time_t t) {
     else if (gkey == "gtr") gkey= ">";
     else if (gkey == "less") gkey= "<";
 
+    auto is_nav_key= [] (const string& k) {
+      return k == "up" || k == "down" || k == "left" || k == "right" ||
+             k == "home" || k == "end" || k == "pageup" || k == "pagedown" ||
+             k == "S-up" || k == "S-down" || k == "S-left" || k == "S-right" ||
+             k == "S-home" || k == "S-end" || k == "S-pageup" ||
+             k == "S-pagedown" || k == "escape";
+    };
+    bool is_pure_nav = is_nav_key (key) && N (sh_s) == 0 && in_normal_mode ();
+    bool is_quote_key= (key_u8 == "‘" || key_u8 == "’" || key_u8 == "“”" ||
+                        key_u8 == "‘’" || key_u8 == "——");
+    if (initial_typeset_pending () && !is_pure_nav &&
+        (is_readonly_editing_key (gkey) || starts (gkey, "pre-edit:") ||
+         starts (key, "speech:") || is_quote_key)) {
+      if (sh_mark != 0) interrupt_shortcut ();
+      show_initial_typeset_readonly_tip ();
+      return;
+    }
+
+    guard_initial_ro= initial_typeset_pending () && !is_pure_nav;
+    start_editing ();
+    started= true;
+    if (guard_initial_ro) {
+      edit_blocked_during_initial_typeset= false;
+      ro_mark                            = new_marker ();
+      mark_start (ro_mark);
+    }
+
     if (key_u8 == "`") {
       call ("keyboard-press", object (key_u8), object ((double) t));
     }
-    else if (key_u8 == "‘") {
-      call ("insert", "`");
-    }
-    else if (key_u8 == "’") {
-      call ("insert", "<#2019>");
+    else if (key_u8 == "‘" || key_u8 == "’" || key_u8 == "“”" ||
+             key_u8 == "‘’" || key_u8 == "——") {
+      if (initial_typeset_pending ()) {
+        show_initial_typeset_readonly_tip ();
+      }
+      else if (key_u8 == "‘") {
+        call ("insert", "`");
+      }
+      else if (key_u8 == "’") {
+        call ("insert", "<#2019>");
+      }
+      else if (key_u8 == "“”") {
+        call ("insert", "<#201C><#201D>");
+      }
+      else if (key_u8 == "‘’") {
+        call ("insert", "<#2018><#2019>");
+      }
+      else if (key_u8 == "——") {
+        call ("insert", "<#2014><#2014>");
+      }
     }
     else if (key_u8 == "M-`") {
       call ("keyboard-press", object (key_u8), object ((double) t));
     }
-    else if (key_u8 == "“”") {
-      call ("insert", "<#201C><#201D>");
-    }
-    else if (key_u8 == "‘’") {
-      call ("insert", "<#2018><#2019>");
-    }
-    else if (key_u8 == "——") {
-      call ("insert", "<#2014><#2014>");
-    }
     else if (starts (gkey, "pre-edit:")) {
-      if (get_input_mode () == INPUT_COMPLETE) {
-        // pre-edit之前确保不在补全模式下，以防意外触发补全
-        set_input_normal ();
+      if (initial_typeset_pending ()) {
+        show_initial_typeset_readonly_tip ();
       }
-      call ("delayed-keyboard-press", object (gkey), object ((double) t));
+      else {
+        if (get_input_mode () == INPUT_COMPLETE) {
+          // pre-edit之前确保不在补全模式下，以防意外触发补全
+          set_input_normal ();
+        }
+        call ("delayed-keyboard-press", object (gkey), object ((double) t));
+      }
     }
     else {
       call ("keyboard-press", object (gkey), object ((double) t));
@@ -511,6 +598,21 @@ edit_interface_rep::handle_keypress (string key_u8, time_t t) {
     // 键盘事件后更新文本工具栏显示状态
     update_text_popup ();
     update_ai_actions_bar ();
+    if (guard_initial_ro) {
+      bool blocked                       = edit_blocked_during_initial_typeset;
+      edit_blocked_during_initial_typeset= false;
+      if (sh_mark != 0) interrupt_shortcut ();
+      if (pre_edit_mark != 0) {
+        mark_cancel (pre_edit_mark);
+        pre_edit_s   = "";
+        pre_edit_mark= 0;
+      }
+      mark_cancel (ro_mark);
+      ro_mark= 0;
+      if (blocked) {
+        show_initial_typeset_readonly_tip ();
+      }
+    }
     end_editing ();
     // time_t t2= texmacs_time ();
     // if (t2 - t1 >= 10) cout << "handle_keypress took " << t2-t1 << "ms\n";
@@ -518,6 +620,15 @@ edit_interface_rep::handle_keypress (string key_u8, time_t t) {
     if (started) {
       cancel_editing ();
       interrupt_shortcut ();
+    }
+    if (guard_initial_ro && ro_mark != 0) {
+      edit_blocked_during_initial_typeset= false;
+      if (pre_edit_mark != 0) {
+        mark_cancel (pre_edit_mark);
+        pre_edit_s   = "";
+        pre_edit_mark= 0;
+      }
+      mark_cancel (ro_mark);
     }
   }
   handle_exceptions ();

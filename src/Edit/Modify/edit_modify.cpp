@@ -154,6 +154,9 @@ void
 edit_modify_rep::post_notify (path p) {
   // cout << "Post notify\n";
   if (!(rp <= p)) return;
+  if (initial_typeset_pending ()) {
+    edit_blocked_during_initial_typeset= true;
+  }
   selection_cancel ();
   cancel_alt_selections ();
   notify_change (THE_TREE);
@@ -391,6 +394,10 @@ edit_modify_rep::undo_possibilities () {
 
 void
 edit_modify_rep::undo (bool redoable) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   interrupt_shortcut ();
   arch->forget_cursor ();
   if (inside_graphics () && !as_bool (eval ("graphics-undo-enabled"))) {
@@ -431,6 +438,10 @@ edit_modify_rep::redo_possibilities () {
 
 void
 edit_modify_rep::redo (int i) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   interrupt_shortcut ();
   arch->forget_cursor ();
   if (arch->redo_possibilities () == 0) {

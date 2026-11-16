@@ -577,6 +577,10 @@ edit_process_rep::generate_aux_recursively (string which, tree st, path p) {
 
 void
 edit_process_rep::generate_aux (string which) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   // path saved_path= tp;
   generate_aux_recursively (which, subtree (et, rp), rp);
   init_update ();

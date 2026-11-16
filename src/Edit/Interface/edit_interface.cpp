@@ -1085,7 +1085,8 @@ edit_interface_rep::apply_changes () {
     // cout << "Tremble- " << tremble_count << LF;
   }
 
-  typesetter ttt= get_typesetter ();
+  typesetter ttt                = get_typesetter ();
+  bool       was_initial_pending= ::initial_typeset_pending (ttt);
 
   if (env_change == 0) {
     if (new_visible == last_visible) {
@@ -1474,6 +1475,10 @@ edit_interface_rep::apply_changes () {
     call ("modify-ref-tooltip");
   }
 
+  if (env_change & (THE_PROGRESSIVE | THE_TREE)) {
+    set_middle_footer ();
+  }
+
   // cout << "Applied changes\n";
   // time_t t2= texmacs_time ();
   // if (t2 - t1 >= 10) cout << "apply_changes took " << t2-t1 << "ms\n";
@@ -1485,6 +1490,11 @@ edit_interface_rep::apply_changes () {
 
   if (::typeset_in_progress (ttt)) {
     needs_update ();
+  }
+  if (was_initial_pending && !::initial_typeset_pending (ttt) &&
+      ::typeset_total_children (ttt) >= 60 && has_current_window ()) {
+    concrete_window ()->show_readonly_tip (
+        "Full document typesetting complete");
   }
 }
 

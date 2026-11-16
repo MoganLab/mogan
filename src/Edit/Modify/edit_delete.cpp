@@ -277,6 +277,10 @@ edit_text_rep::empty_document_fix () {
 
 void
 edit_text_rep::remove_text (bool forward) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   remove_text_sub (forward);
   empty_document_fix ();
 }
@@ -287,6 +291,10 @@ edit_text_rep::remove_text (bool forward) {
 
 void
 edit_text_rep::remove_structure (bool forward) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   path p;
   int  last, rix;
   tree t, u;
@@ -368,6 +376,10 @@ edit_text_rep::remove_structure (bool forward) {
 
 void
 edit_text_rep::remove_structure_upwards () {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   path p= path_up (tp);
   while ((rp < p) && is_format (subtree (et, path_up (p))))
     p= path_up (p);

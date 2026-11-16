@@ -207,6 +207,10 @@ edit_text_rep::prepare_for_insert () {
 
 void
 edit_text_rep::insert_tree (tree t, path p_in_t) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   if (!as_bool (call ("like-emacs?"))) selection_cut ("none");
   if (is_atomic (t) && (p_in_t == end (t)) &&
       is_atomic (subtree (et, path_up (tp))))
@@ -257,6 +261,10 @@ edit_text_rep::insert_tree (tree t) {
 
 void
 edit_text_rep::var_insert_tree (tree t, path p_in_t) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   if (selection_active_any ()) {
     selection_cut ("wrapbuf");
     insert_tree (t, p_in_t);

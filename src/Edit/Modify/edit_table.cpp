@@ -462,6 +462,10 @@ edit_table_rep::table_get_extents (path fp, int& nr_rows, int& nr_cols) {
 
 void
 edit_table_rep::table_set_extents (path fp, int nr_rows, int nr_cols) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   int old_rows, old_cols;
   table_get_extents (fp, old_rows, old_cols);
   if (nr_rows > old_rows || nr_cols > old_cols)
@@ -484,6 +488,10 @@ edit_table_rep::table_get_limits (path fp, int& i1, int& j1, int& i2, int& j2) {
 
 void
 edit_table_rep::table_remove (path fp, int row, int col, int delr, int delc) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   path p= search_table (fp);
   int  nr_rows, nr_cols;
   table_get_extents (p, nr_rows, nr_cols);
@@ -555,6 +563,10 @@ edit_table_rep::table_remove (path fp, int row, int col, int delr, int delc) {
 
 void
 edit_table_rep::table_insert (path fp, int row, int col, int insr, int insc) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   path p= search_table (fp);
   int  nr_rows, nr_cols;
   table_get_extents (p, nr_rows, nr_cols);
@@ -1079,6 +1091,10 @@ edit_table_rep::table_ver_decorate (path fp, int row, int rbef, int raft) {
 
 void
 edit_table_rep::make_table (int nr_rows, int nr_cols) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   // cout << "make_table " << nr_rows << ", " << nr_cols << "\n";
   string mode    = get_env_string (MODE);
   tree   format_T= default_table_tree (nr_rows, nr_cols,
@@ -1130,6 +1146,10 @@ edit_table_rep::make_table (int nr_rows, int nr_cols) {
 
 void
 edit_table_rep::make_subtable (int nr_rows, int nr_cols) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   path cp= search_upwards (CELL);
   if (is_nil (cp)) return;
   tree T= default_table_tree (
@@ -1149,6 +1169,10 @@ edit_table_rep::make_subtable (int nr_rows, int nr_cols) {
 
 void
 edit_table_rep::destroy_table () {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   path fp= search_format ();
   if (is_nil (fp)) return;
   while (rp < fp) {
@@ -1169,6 +1193,10 @@ edit_table_rep::destroy_table () {
 
 void
 edit_table_rep::table_deactivate () {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   path fp= search_format ();
   if (is_nil (fp)) return;
   tree st= subtree (et, fp);
@@ -1179,6 +1207,10 @@ edit_table_rep::table_deactivate () {
 
 void
 edit_table_rep::table_extract_format () {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   path fp= search_format ();
   if (is_nil (fp)) return;
   tree fm= table_get_format (fp);
@@ -1190,6 +1222,10 @@ edit_table_rep::table_extract_format () {
 
 void
 edit_table_rep::table_insert_row (bool forward) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   int  row, col;
   path fp= search_format (row, col);
   if (is_nil (fp)) return;
@@ -1209,6 +1245,10 @@ edit_table_rep::table_insert_row (bool forward) {
 
 void
 edit_table_rep::table_insert_column (bool forward) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   int  row, col;
   path fp= search_format (row, col);
   if (is_nil (fp)) return;
@@ -1224,6 +1264,10 @@ edit_table_rep::table_insert_column (bool forward) {
 
 void
 edit_table_rep::table_remove_row (bool forward, bool flag) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   int  row, col;
   path fp= search_format (row, col);
   if (is_nil (fp)) return;
@@ -1250,6 +1294,10 @@ edit_table_rep::table_remove_row (bool forward, bool flag) {
 
 void
 edit_table_rep::table_remove_column (bool forward, bool flag) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   int  row, col;
   path fp= search_format (row, col);
   if (is_nil (fp)) return;
@@ -1305,6 +1353,10 @@ edit_table_rep::table_get_extents () {
 
 void
 edit_table_rep::table_set_extents (int rows, int cols) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   path fp= search_format ();
   if (is_nil (fp)) return;
   int min_rows, min_cols, max_rows, max_cols;
@@ -1382,6 +1434,10 @@ edit_table_rep::table_go_to (int row, int col) {
 
 void
 edit_table_rep::table_set_format (string var, tree val) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   if (val == "") table_del_format (var);
   else if (selection_active_table (false)) {
     int  row1, col1, row2, col2;
@@ -1418,6 +1474,10 @@ edit_table_rep::table_get_format (string var) {
 
 void
 edit_table_rep::table_del_format (string var) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   if (selection_active_table (false)) {
     int  row1, col1, row2, col2;
     path fp= selection_get_subtable (row1, col1, row2, col2);
@@ -1433,6 +1493,10 @@ edit_table_rep::table_del_format (string var) {
 
 void
 edit_table_rep::table_format_center () {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   int  row, col;
   path fp= search_format (row, col);
   if (is_nil (fp)) return;
@@ -1441,6 +1505,10 @@ edit_table_rep::table_format_center () {
 
 void
 edit_table_rep::table_row_decoration (bool forward) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   int  row, col, nr_rows, nr_cols;
   path fp= search_format (row, col);
   if (is_nil (fp)) return;
@@ -1451,6 +1519,10 @@ edit_table_rep::table_row_decoration (bool forward) {
 
 void
 edit_table_rep::table_column_decoration (bool forward) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   int  row, col, nr_rows, nr_cols;
   path fp= search_format (row, col);
   if (is_nil (fp)) return;
@@ -1499,6 +1571,10 @@ edit_table_rep::get_cell_mode () {
 
 void
 edit_table_rep::cell_set_format (string var, tree val) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   if (selection_active_table (false)) {
     int  row1, col1, row2, col2, rows, cols;
     path fp= selection_get_subtable (row1, col1, row2, col2);
@@ -1545,6 +1621,10 @@ edit_table_rep::cell_get_format (string var) {
 
 void
 edit_table_rep::cell_del_format (string var) {
+  if (initial_typeset_pending ()) {
+    show_initial_typeset_readonly_tip ();
+    return;
+  }
   if (selection_active_table (false)) {
     int  row1, col1, row2, col2;
     path fp= selection_get_subtable (row1, col1, row2, col2);
