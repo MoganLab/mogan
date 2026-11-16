@@ -49,15 +49,17 @@ in_system_document_load () {
   return system_document_load_depth > 0;
 }
 
+system_document_load_guard::system_document_load_guard () {
+  system_document_load_depth++;
+}
+
+system_document_load_guard::~system_document_load_guard () {
+  system_document_load_depth--;
+}
+
 void
 set_document (path rp, tree t) {
-  system_document_load_depth++;
-  try {
-    // assign (subtree (the_et, rp), t);
-    assign (subtree (the_et, rp), copy (t));
-  } catch (...) {
-    system_document_load_depth--;
-    throw;
-  }
-  system_document_load_depth--;
+  system_document_load_guard guard;
+  // assign (subtree (the_et, rp), t);
+  assign (subtree (the_et, rp), copy (t));
 }

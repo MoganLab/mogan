@@ -1165,7 +1165,10 @@ edit_typeset_rep::typeset_sub (DI& x1, DI& y1, DI& x2, DI& y2) {
   } catch (string msg) {
     the_exception= msg;
     std_error << "Typesetting failure, resetting to empty document\n";
-    assign (rp, tree (DOCUMENT, ""));
+    {
+      system_document_load_guard guard;
+      assign (rp, tree (DOCUMENT, ""));
+    }
     ::notify_assign (ttt, path (), subtree (et, rp));
     eb= ::typeset (ttt, x1, y1, x2, y2);
   }
