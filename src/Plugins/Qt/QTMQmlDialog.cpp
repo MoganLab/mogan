@@ -1629,3 +1629,73 @@ cpp_bibliography_dialog (tree config) {
 
   return kv_map_to_tree (res, true);
 }
+
+// ---- 文档元数据 ------------------------------------------------------------
+
+tree
+cpp_document_metadata_dialog (tree form) {
+  string preset= get_env ("MOGAN_TEST_DOCUMENT_METADATA");
+  if (preset == "cancel") return tree (TUPLE);
+
+  QString      titleStr= qt_translate ("Document metadata");
+  QVariantList qmlFields;
+
+  if (is_compound (form)) {
+    for (int i= 0; i < N (form); i++) {
+      tree   item= form[i];
+      string tag = get_label (item);
+      if (tag == "title" && N (item) >= 1 && is_atomic (item[0])) {
+        titleStr= to_qstring (get_label (item[0]));
+      }
+      else if (tag == "field" && N (item) >= 4 && is_atomic (item[0]) &&
+               is_atomic (item[1]) && is_atomic (item[2]) &&
+               is_atomic (item[3])) {
+        QVariantMap m;
+        m["label"]       = to_qstring (get_label (item[0]));
+        m["key"]         = utf8_to_qstring (get_label (item[1]));
+        m["value"]       = utf8_to_qstring (get_label (item[2]));
+        m["defaultValue"]= utf8_to_qstring (get_label (item[3]));
+        qmlFields << m;
+      }
+    }
+  }
+
+  if (preset == "ok" || preset == "reset") {
+    bool is_reset= (preset == "reset");
+    tree r (TUPLE);
+    for (int i= 0; i < qmlFields.size (); i++) {
+      QVariantMap m= qmlFields[i].toMap ();
+      tree        kv (TUPLE);
+      QString     val= is_reset ? m.value ("defaultValue").toString ()
+                                : m.value ("value").toString ();
+      kv << tree (from_qstring (m.value ("key").toString ()))
+         << tree (from_qstring (val));
+      r << kv;
+    }
+    tree kv_reset (TUPLE);
+    kv_reset << tree ("reset")
+             << tree (is_reset ? string ("true") : string ("false"));
+    r << kv_reset;
+    return r;
+  }
+
+  array<string> buttons= {string ("Reset"), string ("OK"), string ("Cancel")};
+  const int     fieldCount= qmlFields.size ();
+  const int     logicH= 24 * 2 + 28 + fieldCount * (44 + 12) + 40 + 12 * 2 + 8;
+
+  QmlDialogBridge* closeBridge= nullptr;
+  run_qml_dialog (
+      "qrc:/qml/DocumentMetadata.qml", "DocumentMetadata.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        closeBridge= inject_common_context (qw, host);
+        qw->rootContext ()->setContextProperty ("dialogTitle", titleStr);
+        qw->rootContext ()->setContextProperty ("formFields", qmlFields);
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
+      },
+      460, logicH);
+
+  tree r= closeBridge ? kv_map_to_tree (closeBridge->results ()) : tree (TUPLE);
+  delete closeBridge;
+  return r;
+}
