@@ -277,7 +277,9 @@
        ((null? pattern) (values (lambda (k) `(if (null? ,e) ,(k) (fail))) vars))
        (else
          (values
-           (lambda (k) `(if (equal? (syntax->datum ,e) ',pattern) ,(k) (fail)))
+           (lambda (k) `(if (equal? (syntax->datum ,e) (quote ,pattern))
+                          ,(k)
+                          (fail)))
            vars
          ) ;values
        ) ;else
@@ -463,11 +465,11 @@
                ) ;lambda
               ) ;
               (else
-                (values `(%syntax-case-close-identifier ',tmpl (curlet)) envs)
+                (values `(%syntax-case-close-identifier (quote ,tmpl) (curlet)) envs)
               ) ;else
         ) ;cond
        ) ;
-       (else (values `',tmpl envs))
+       (else (values `(quote ,tmpl) envs))
       ) ;cond
     ) ;define
 

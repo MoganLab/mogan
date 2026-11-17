@@ -34,7 +34,7 @@
                    (cons '*export* ())
                    (cons 'export
                      (define-macro (,(gensym) . names)
-                       `(set! *export* (append ',names *export*)))))
+                       `(set! *export* (append (quote ,names) *export*)))))
          ,@body
          (apply inlet
            (map (lambda (entry)
@@ -79,7 +79,7 @@
 (unless (defined? 'import)
   (define-macro (import . libs)
     `(begin
-       (r7rs-import-library-filename ',libs)
+       (r7rs-import-library-filename (quote ,libs))
        (varlet (curlet)
          ,@(map (lambda (lib)
                   (case (car lib)
@@ -87,8 +87,9 @@
                          `((lambda (e names)
                              (apply inlet
                                (map (lambda (name) (cons name (e name))) names)))
-                           (symbol->value (symbol (object->string (cadr ',lib))))
-                           (cddr ',lib)))
+                           (symbol->value (symbol (object->string (cadr (quote
+                                                                          ,lib)))))
+                           (cddr (quote ,lib))))
                         ((except)
                          `((lambda (e names)
                              (apply inlet
@@ -97,8 +98,9 @@
                                         (values)
                                         entry))
                                  e)))
-                           (symbol->value (symbol (object->string (cadr ',lib))))
-                           (cddr ',lib)))
+                           (symbol->value (symbol (object->string (cadr (quote
+                                                                          ,lib)))))
+                           (cddr (quote ,lib))))
                         ((prefix)
                          `((lambda (e prefx)
                              (apply inlet
@@ -107,8 +109,9 @@
                                                               (symbol->string (car entry))))
                                         (cdr entry)))
                                  e)))
-                           (symbol->value (symbol (object->string (cadr ',lib))))
-                           (caddr ',lib)))
+                           (symbol->value (symbol (object->string (cadr (quote
+                                                                          ,lib)))))
+                           (caddr (quote ,lib))))
                         ((rename)
                          `((lambda (e names)
                              (apply inlet
@@ -118,9 +121,10 @@
                                           (cons (cadr info) (cdr entry))
                                           entry)))
                                  e)))
-                           (symbol->value (symbol (object->string (cadr ',lib))))
-                           (cddr ',lib)))
-                        (else `(let ((sym (symbol (object->string ',lib))))
+                           (symbol->value (symbol (object->string (cadr (quote
+                                                                          ,lib)))))
+                           (cddr (quote ,lib))))
+                        (else `(let ((sym (symbol (object->string (quote ,lib)))))
                                  (if (not (defined? sym))
                                    (format () "~A not loaded~%" sym)
                                    (symbol->value sym))))))

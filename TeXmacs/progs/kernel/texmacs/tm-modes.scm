@@ -43,12 +43,12 @@
              (if (null? l) #t (if (null? (cdr l)) (car l) (cons 'and l)))
            ) ;test
            (defn
-             `(varlet *texmacs-module* ',pred (lambda ,() ,test))
+             `(varlet *texmacs-module* (quote ,pred) (lambda ,() ,test))
            ) ;defn
            (rules (map (lambda (dep) (list dep mode)) deps))
            (logic-cmd `(logic-rules ,@rules))
-           (arch1 `(set-symbol-procedure! ',mode ,pred))
-           (arch2 `(set-symbol-procedure! ',pred ,pred))
+           (arch1 `(set-symbol-procedure! (quote ,mode) ,pred))
+           (arch2 `(set-symbol-procedure! (quote ,pred) ,pred))
           ) ;
       (if (== mode 'always%) (set! defn '(noop)))
       (if (null? deps)

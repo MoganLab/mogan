@@ -638,7 +638,7 @@
 (define-public-macro (lazy-menu module . menus)
   `(begin
      (lazy-define ,module ,@menus)
-     (delayed (:idle 500) (module-provide ',module)))
+     (delayed (:idle 500) (module-provide (quote ,module))))
 ) ;define-public-macro
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

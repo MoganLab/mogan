@@ -44,8 +44,8 @@
 ;; ----
 ;; 这是一个宏，会在编译时展开为对 lazy-tmfs-table 的设置操作。
 (define-public-macro (lazy-tmfs-handler module . classes)
-  `(for-each (lambda (class) (ahash-set! lazy-tmfs-table class ',module))
-     ',classes)
+  `(for-each (lambda (class) (ahash-set! lazy-tmfs-table class (quote ,module)))
+     (quote ,classes))
 ) ;define-public-macro
 
 ;; lazy-tmfs-force

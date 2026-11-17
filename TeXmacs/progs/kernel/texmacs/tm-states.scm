@@ -35,11 +35,13 @@
   (for (e l)
     (eval
       `(begin
-         (if (not (defined? ',(car e))) (define-public ,(car e) #f))
+         (if (not (defined? (quote ,(car e)))) (define-public ,(car e) #f))
          (set! ,(car e)
            ,(with val
               (cadr e)
-              (if (and (pair? val) (eq? (car val) 'quote)) val `',(eval val)))))
+              (if (and (pair? val) (eq? (car val) 'quote))
+                val
+                `(quote ,(eval val))))))
     ) ;eval
   ) ;for
 ) ;define
@@ -50,7 +52,7 @@
 ) ;define
 
 (define (slotlist-save l)
-  (for (e l) (set-car! (cdr e) `',(eval (car e))))
+  (for (e l) (set-car! (cdr e) `(quote ,(eval (car e)))))
 ) ;define
 
 ;; User-level API
@@ -138,13 +140,13 @@
          (props (cadr (cadr theslots)))
         ) ;
     `(begin
-       (if (not (defined? ',name)) (define-public ,name #f))
+       (if (not (defined? (quote ,name))) (define-public ,name #f))
        (with cprops
          #f
          (set! cprops
            (map (lambda (x) (eval `(lambda ,() (set! ,(car x) ,(cadr x)))))
-             ',props))
-         (set! ,name (state-create (append '(,slots ,props) `(,cprops))))))
+             (quote ,props)))
+         (set! ,name (state-create (append (quote (,slots ,props)) `(,cprops))))))
   ) ;let*
 ) ;define-public-macro
 

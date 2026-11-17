@@ -98,7 +98,7 @@
         (set! key (speech-pre-sanitize *lan (utf8->cork key)))
         (set! im (speech-pre-sanitize *lan (utf8->cork im)))
         (speech-accepts lan mode key)
-        `(speech-adjust-set ',lan ',mode ,key ,im)
+        `(speech-adjust-set (quote ,lan) (quote ,mode) ,key ,im)
       ) ;with
       '(noop)
     ) ;if
@@ -131,7 +131,7 @@
 ) ;tm-define
 
 (define (speech-collection-add name lan elem)
-  `(speech-collection-set ',name ',lan ,elem)
+  `(speech-collection-set (quote ,name) (quote ,lan) ,elem)
 ) ;define
 
 (tm-define-macro (speech-collection name lan . l)

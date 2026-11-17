@@ -38,8 +38,8 @@
 (tm-define-macro (lazy-keyboard module . modes)
   (for-each (lambda (mode) (lazy-keyboard-do module mode)) modes)
   `(delayed (:idle 250)
-     (ahash-set! lazy-keyboard-done ',module #t)
-     (module-provide ',module))
+     (ahash-set! lazy-keyboard-done (quote ,module) #t)
+     (module-provide (quote ,module)))
 ) ;tm-define-macro
 
 (define lazy-force-all? #f)

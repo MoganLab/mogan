@@ -30,8 +30,8 @@
   ) ;if
   (with (key im)
     x
-    (if (func? key 'unquote 1) (set! key (cadr key)) (set! key `',key))
-    (if (func? im 'unquote 1) (set! im (cadr im)) (set! im `',im))
+    (if (func? key 'unquote 1) (set! key (cadr key)) (set! key `(quote ,key)))
+    (if (func? im 'unquote 1) (set! im (cadr im)) (set! im `(quote ,im)))
     `(let* ((smart-key ,key)
             (smart-im ,im)
             (smart-former (ahash-ref ,t smart-key)))
@@ -55,7 +55,7 @@
 (tm-define-macro (smart-table t . l)
   (:synopsis "Define a smart table @t with entries @l")
   `(begin
-     (when (not (defined? ',t)) (tm-define ,t (make-ahash-table)))
+     (when (not (defined? (quote ,t))) (tm-define ,t (make-ahash-table)))
      ,@(smart-table-insert t '() l))
 ) ;tm-define-macro
 

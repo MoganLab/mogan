@@ -76,7 +76,7 @@
 ) ;define-state
 
 ;; State stack (1)
-(tm-define state-slots `',(state-names graphics-state))
+(tm-define state-slots `(quote ,(state-names graphics-state)))
 
 (define-public-macro (state-len) `(length ,state-slots))
 

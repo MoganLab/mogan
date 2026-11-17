@@ -494,7 +494,7 @@
              (cmd-b (string? cmd-s))
              (cmd-o (string->object cmd-s))
             ) ;
-    (delayed (:idle 1) (secure-eval `(with answer ',val ,cmd-o)))
+    (delayed (:idle 1) (secure-eval `(with answer (quote ,val) ,cmd-o)))
   ) ;and-let*
 ) ;define
 
