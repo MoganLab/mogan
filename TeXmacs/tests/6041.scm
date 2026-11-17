@@ -15,11 +15,15 @@
 (check-set-mode! 'report-failed)
 
 (define (test-metadata-dialog-hook)
-  (let ((form (stree->tree '(metadata-form
-                              (title "Document metadata")
-                              (field "Title" "global-title" "CurTitle" "DefTitle")
-                              (field "Author" "global-author" "CurAuthor" "DefAuthor")
-                              (field "Subject" "global-subject" "CurSubject" "")))))
+  (let ((form (stree->tree '(metadata-form (title "Document metadata")
+                              (field "Title" "global-title" "CurTitle"
+                                "DefTitle")
+                              (field "Author" "global-author" "CurAuthor"
+                                "DefAuthor")
+                              (field "Subject" "global-subject" "CurSubject" ""))
+              ) ;stree->tree
+        ) ;form
+       ) ;
     (system-setenv "MOGAN_TEST_DOCUMENT_METADATA" "cancel")
     (check (tree->stree (cpp-document-metadata-dialog form)) => '(tuple))
 
@@ -27,18 +31,18 @@
     (check (tree->stree (cpp-document-metadata-dialog form))
       =>
       '(tuple (tuple "global-title" "CurTitle")
-              (tuple "global-author" "CurAuthor")
-              (tuple "global-subject" "CurSubject")
-              (tuple "reset" "false"))
+         (tuple "global-author" "CurAuthor")
+         (tuple "global-subject" "CurSubject")
+         (tuple "reset" "false"))
     ) ;check
 
     (system-setenv "MOGAN_TEST_DOCUMENT_METADATA" "reset")
     (check (tree->stree (cpp-document-metadata-dialog form))
       =>
       '(tuple (tuple "global-title" "DefTitle")
-              (tuple "global-author" "DefAuthor")
-              (tuple "global-subject" "")
-              (tuple "reset" "true"))
+         (tuple "global-author" "DefAuthor")
+         (tuple "global-subject" "")
+         (tuple "reset" "true"))
     ) ;check
   ) ;let
   (system-setenv "MOGAN_TEST_DOCUMENT_METADATA" "")
@@ -63,12 +67,13 @@
     (check (buffer-get-metadata u "subject") => "Math")
 
     ;; 提交更新（reset = "false"）写回 global-*
-    (document-metadata-apply-result
-      u
-      (stree->tree `(tuple (tuple "global-title" ,(utf8->cork "新标题"))
-                           (tuple "global-author" "Bob")
-                           (tuple "global-subject" "Physics")
-                           (tuple "reset" "false")))
+    (document-metadata-apply-result u
+      (stree->tree
+        `(tuple (tuple "global-title" ,(utf8->cork "新标题"))
+           (tuple "global-author" "Bob")
+           (tuple "global-subject" "Physics")
+           (tuple "reset" "false"))
+      ) ;stree->tree
     ) ;document-metadata-apply-result
     (check (buffer-get-metadata u "title") => "新标题")
     (check (buffer-get-metadata u "author") => "Bob")
