@@ -45,8 +45,8 @@
                         `(unless (,(cadr arg) ,(car arg))
                            (error 'type-error
                              "~S is not ~S~%"
-                             (quote ,(car arg))
-                             (quote ,(cadr arg))))
+                             ',(car arg)
+                             ',(cadr arg)))
                         (values)))
                  args)
              ,@body)

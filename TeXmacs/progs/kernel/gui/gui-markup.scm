@@ -139,7 +139,7 @@
 
 (tm-define-macro ($menu-link w)
   (:synopsis "Make dynamic link to another widget")
-  `(list 'link (quote ,w))
+  `(list 'link ',w)
 ) ;tm-define-macro
 
 (tm-define-macro ($delayed-when pred? . l)
@@ -154,7 +154,7 @@
 
 (tm-define-macro ($refresh s kind)
   (:synopsis "Make a refresh widget")
-  `(list 'refresh (quote ,s) ,kind)
+  `(list 'refresh ',s ,kind)
 ) ;tm-define-macro
 
 (tm-define-macro ($refreshable kind . l)
@@ -295,7 +295,7 @@
 
 (define (process-translate x)
   (if (or (func? x 'concat) (func? x 'verbatim) (func? x 'replace))
-    `(list (quote ,(car x)) ,@(map process-translate (cdr x)))
+    `(list ',(car x) ,@(map process-translate (cdr x)))
     x
   ) ;if
 ) ;define
@@ -347,18 +347,18 @@
 
 (tm-define-macro ($concat-text . l)
   (:synopsis "Make text concatenation")
-  `(quote (concat ,@l))
+  `'(concat ,@l)
 ) ;tm-define-macro
 
 (tm-define-macro ($verbatim-text . l)
   (:synopsis "Make verbatim text")
-  `(quote (verbatim ,@l))
+  `'(verbatim ,@l)
 ) ;tm-define-macro
 
 (tm-define-macro ($replace-text str . x)
   (:synopsis "Make text to be translated with arguments")
   (if developer-mode? (ahash-set! all-translations (car x) #t))
-  `(quote (replace ,str ,@x))
+  `'(replace ,str ,@x)
 ) ;tm-define-macro
 
 (tm-define-macro ($icon name) (:synopsis "Make icon") `(list 'icon ,name))
@@ -778,7 +778,7 @@
 
 (tm-define-macro ($shortcut cmd)
   ($quote
-    `(shortcut ($unquote (object->string (quote ,cmd))))
+    `(shortcut ($unquote (object->string ',cmd)))
   ) ;$quote
 ) ;tm-define-macro
 

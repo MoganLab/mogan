@@ -205,7 +205,7 @@
              ,@(map (lambda (p ds)
                       `(define ,(car p)
                          (,make-environment-variable
-                          (quote ,(car p))
+                          ',(car p)
                           ,ds
                           ,(caddr p)
                           ,(cadddr p))))

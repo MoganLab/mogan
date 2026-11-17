@@ -382,7 +382,7 @@
                      `(define ,nt
                         (lambda (results)
                           (results->result results
-                            (quote ,nt)
+                            ',nt
                             (lambda ,()
                               (,(parse-alternatives nt (cdr nt-def)) results)))))
                    ) ;let
@@ -417,7 +417,7 @@
                    (match pattern
                     ((('! fails ...) rest ...)
                      `(packrat-unless (string-append "Nonterminal "
-                                        (symbol->string (quote ,nt))
+                                        (symbol->string ',nt)
                                         " expected to fail "
                                         ,(object->external-representation fails))
                         ,(parse-pattern nt #t fails)
@@ -485,9 +485,8 @@
                             args))))
                    ,@(map (lambda (binding)
                             `(,binding
-                              (cond ((assq (quote ,binding) bindings) => cdr)
-                                    (else (error "Missing binding"
-                                            (quote ,binding))))))
+                              (cond ((assq ',binding bindings) => cdr)
+                                    (else (error "Missing binding" ',binding)))))
                        bindings-list))
                ,@body)))
       ) ;let

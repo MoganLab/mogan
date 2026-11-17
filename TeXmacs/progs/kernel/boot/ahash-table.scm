@@ -144,7 +144,7 @@
 
 (define-public-macro (define-table name . l)
   `(begin
-     (when (not (defined? (quote ,name)))
+     (when (not (defined? ',name))
        (if (defined? 'tm-define)
          (tm-define ,name (make-ahash-table))
          (define-public ,name (make-ahash-table))))
@@ -164,7 +164,7 @@
 
 (define-public-macro (define-collection name . l)
   `(begin
-     (when (not (defined? (quote ,name)))
+     (when (not (defined? ',name))
        (if (defined? 'tm-define)
          (tm-define ,name (make-ahash-table))
          (define-public ,name (make-ahash-table))))
