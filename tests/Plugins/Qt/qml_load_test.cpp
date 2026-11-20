@@ -381,6 +381,7 @@ private slots:
   void test_ai_actions_bar_click_actions ();
   void test_ai_actions_bar_hide_translate ();
   void test_ai_actions_bar_repaint_after_toggle ();
+  void test_document_metadata_loads ();
 };
 
 // 共用：构造带 closeBridge/dpScale/isDark 的 QQuickWidget，加载给定 qrc url。
@@ -1750,6 +1751,57 @@ TestQmlLoad::test_ai_actions_bar_repaint_after_toggle () {
     }
   }
   QCOMPARE (failRounds, 0);
+}
+
+void
+TestQmlLoad::test_document_metadata_loads () {
+  QVariantList fields;
+  auto         addField= [&] (const QString& label, const QString& key,
+                      const QString& val, const QString& defVal) {
+    QVariantMap m;
+    m["label"]       = label;
+    m["key"]         = key;
+    m["value"]       = val;
+    m["defaultValue"]= defVal;
+    fields << m;
+  };
+  addField ("Title", "global-title", "My Title", "Default Title");
+  addField ("Author", "global-author", "My Author", "Default Author");
+  addField ("Subject", "global-subject", "My Subject", "");
+
+  QStringList buttons;
+  buttons << "Reset"
+          << "OK"
+          << "Cancel";
+
+  QDialog       host;
+  QQuickWidget* qw= new QQuickWidget (&host);
+  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
+  StubBridge* bridge= new StubBridge (qw);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", 1.0);
+  qw->rootContext ()->setContextProperty ("isDark", false);
+  qw->rootContext ()->setContextProperty ("dialogTitle",
+                                          QString ("Document metadata"));
+  qw->rootContext ()->setContextProperty ("formFields", fields);
+  qw->rootContext ()->setContextProperty ("dialogButtons", buttons);
+  qw->setSource (QUrl ("qrc:/qml/DocumentMetadata.qml"));
+  QCOMPARE (qw->status (), QQuickWidget::Ready);
+
+  QObject* rootObj= qw->rootObject ();
+  QVERIFY (rootObj != nullptr);
+  QMetaObject::invokeMethod (rootObj, "resetToDefaults");
+  QCOMPARE (rootObj->property ("resetPending").toBool (), true);
+  QMetaObject::invokeMethod (rootObj, "submitMetadata");
+  QCOMPARE (bridge->submitCount, 1);
+  QCOMPARE (bridge->lastSubmitted.value ("global-title").toString (),
+            QString ("Default Title"));
+  QCOMPARE (bridge->lastSubmitted.value ("global-author").toString (),
+            QString ("Default Author"));
+  QCOMPARE (bridge->lastSubmitted.value ("global-subject").toString (),
+            QString (""));
+  QCOMPARE (bridge->lastSubmitted.value ("reset").toString (),
+            QString ("true"));
 }
 
 QTEST_MAIN (TestQmlLoad)

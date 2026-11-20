@@ -397,4 +397,15 @@ tree cpp_gradient_selector_dialog (tree old_col);
  */
 tree cpp_bibliography_dialog (tree config);
 
+/**
+ * @brief 「文档 → 元数据...」QML 对话框的 glue 入口（一次性提交）。
+ * @param form Scheme 构造的表单树：
+ *   (metadata-form (title <已翻译标题>)
+ *                  (field <label> <key> <value> <defaultValue>) ...)
+ * @return 用户点 OK 返回 (tuple (tuple <key> <value>) ... (tuple "reset"
+ * "true"|"false"))；Cancel / 关闭 / 加载失败返回空 tree。
+ * @note 测试钩子 MOGAN_TEST_DOCUMENT_METADATA=ok|reset|cancel 命中时不弹窗。
+ */
+tree cpp_document_metadata_dialog (tree form);
+
 #endif // defined QTM_QML_DIALOG_H

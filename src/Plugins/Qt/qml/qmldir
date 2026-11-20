@@ -17,3 +17,4 @@ UpdaterProgress 1.0 UpdaterProgress.qml
 Bibliography 1.0 Bibliography.qml
 PageNumber 1.0 PageNumber.qml
 GoMenu 1.0 GoMenu.qml
+DocumentMetadata 1.0 DocumentMetadata.qml

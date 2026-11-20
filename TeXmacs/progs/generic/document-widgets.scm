@@ -1544,10 +1544,119 @@
   ) ;padded
 ) ;tm-widget
 
+(define (metadata-verbatim-list trees)
+  (let ((strs
+          (map (lambda (t) (cork->utf8 (cpp-texmacs->verbatim t #f "cork"))) trees)
+        ) ;strs
+       ) ;
+    (string-concatenate-with ", " strs)
+  ) ;let
+) ;define
+
+(define (string-concatenate-with sep lst)
+  (cond ((null? lst) "")
+        ((null? (cdr lst)) (car lst))
+        (else (string-append (car lst) sep (string-concatenate-with sep (cdr lst))))
+  ) ;cond
+) ;define
+
+(tm-define (document-metadata-default u kind)
+  (if (not (initial-has? u (string-append "global-" kind)))
+    (buffer-get-metadata u kind)
+    (let* ((doc (buffer-get-body u))
+           (doc-data (tree-search doc (lambda (x) (tree-func? x 'doc-data))))
+          ) ;
+      (cond
+       ((== kind "title")
+        (let ((titles
+                (if (null? doc-data)
+                  '()
+                  (tree-search doc (lambda (x) (tree-func? x 'doc-title)))
+                ) ;if
+              ) ;titles
+             ) ;
+          (cond ((nnull? titles) (metadata-verbatim-list titles))
+                ((nnull? (tree-search doc (lambda (x) (tree-func? x 'tmdoc-title))))
+                 (let ((tt (car (tree-search doc (lambda (x) (tree-func? x 'tmdoc-title))))))
+                   (if (> (tm-arity tt) 0)
+                     (cork->utf8 (cpp-texmacs->verbatim (tm-ref tt 0) #f "cork"))
+                     ""
+                   ) ;if
+                 ) ;let
+                ) ;
+                (else (url->string (url-tail u)))
+          ) ;cond
+        ) ;let
+       ) ;
+       ((== kind "author")
+        (let ((authors
+                (if (null? doc-data)
+                  '()
+                  (tree-search doc (lambda (x) (tree-func? x 'author-name)))
+                ) ;if
+              ) ;authors
+             ) ;
+          (if (nnull? authors) (metadata-verbatim-list authors) "")
+        ) ;let
+       ) ;
+       (else "")
+      ) ;cond
+    ) ;let*
+  ) ;if
+) ;tm-define
+
+(tm-define (document-metadata-form-tree u)
+  `(metadata-form (title ,(translate "Document metadata"))
+     (field ,(translate "Title")
+       "global-title"
+       ,(buffer-get-metadata u "title")
+       ,(document-metadata-default u "title"))
+     (field ,(translate "Author")
+       "global-author"
+       ,(buffer-get-metadata u "author")
+       ,(document-metadata-default u "author"))
+     (field ,(translate "Subject")
+       "global-subject"
+       ,(buffer-get-metadata u "subject")
+       ,(document-metadata-default u "subject")))
+) ;tm-define
+
+(tm-define (document-metadata-apply-result u res)
+  (let* ((pairs (cdr (tree->stree res))))
+    (when (nnull? pairs)
+      (let* ((alist
+               (map (lambda (kv) (cons (cadr kv) (caddr kv))) pairs)
+             ) ;alist
+             (reset? (== (assoc-ref alist "reset") "true"))
+            ) ;
+        (if reset?
+          (initial-default u "global-title" "global-author" "global-subject")
+          (for (spec '(("global-title" . "title")
+                       ("global-author" . "author")
+                       ("global-subject" . "subject"))
+               ) ;spec
+            (let* ((var (car spec)) (kind (cdr spec)) (val (assoc-ref alist var)))
+              (when
+                (and (string? val)
+                  (or (initial-has? u var) (!= (cork->utf8 val) (buffer-get-metadata u kind)))
+                ) ;and
+                (initial-set u var val)
+              ) ;when
+            ) ;let*
+          ) ;for
+        ) ;if
+      ) ;let*
+    ) ;when
+  ) ;let*
+) ;tm-define
+
 (tm-define (open-document-metadata-window)
   (:interactive #t)
-  (let* ((u (current-buffer)))
-    (dialogue-window (document-metadata-editor u) noop "Document metadata")
+  (let* ((u (current-buffer))
+         (res (cpp-document-metadata-dialog (stree->tree (document-metadata-form-tree u)))
+         ) ;res
+        ) ;
+    (document-metadata-apply-result u res)
   ) ;let*
 ) ;tm-define
 
