@@ -71,6 +71,8 @@ private slots:
   void test_blank_pages_at_freeze_boundary ();
   void test_retypeset_after_full_typeset_without_reset ();
   void test_progressive_preserves_env_counters_across_chunks ();
+  void test_remove_at_end_legal_page_shrink_no_duplicate ();
+  void test_remove_relative_to_progressive_frontier ();
 };
 
 void
@@ -379,6 +381,157 @@ TestProgressiveTypeset::
   QCOMPARE (env->read ("equation-nr"), tree ("6"));
 
   delete_typesetter (ttt);
+}
+
+void
+TestProgressiveTypeset::test_remove_at_end_legal_page_shrink_no_duplicate () {
+  edit_env env= create_test_env ();
+  int      n  = 80;
+  tree     doc (DOCUMENT, n);
+  doc[0]= tree ("UniqueShrinkDocTitle");
+  for (int i= 1; i < 77; i++) {
+    doc[i]= string ("Paragraph body content with enough text line ") *
+            as_string (i);
+  }
+  doc[77]= tree (NEW_PAGE);
+  doc[78]= tree ("Extra trailing page paragraph 1");
+  doc[79]= tree ("Extra trailing page paragraph 2");
+
+  the_et        = doc;
+  typesetter ttt= new_typesetter (env, doc, path ());
+
+  box b1= ttt->typeset ();
+  while (ttt->typeset_in_progress ()) {
+    ttt->progressive_advance (30);
+    b1= ttt->typeset ();
+  }
+  QCOMPARE (ttt->progressive_cur_child, n);
+  QVERIFY (!ttt->typeset_in_progress ());
+  int pages_before= N (b1[0]);
+  QVERIFY (pages_before > 1);
+
+  // 删除末尾 3 个节点（包含强制分页符和尾页段落），使页数严格减少
+  the_et= doc (0, 77);
+  notify_remove (ttt, path (77), 3);
+
+  box b2         = ttt->typeset ();
+  int pages_after= N (b2[0]);
+
+  // 1. 页数严格减少，不落入错误兜底二次排版翻倍
+  QVERIFY (pages_after < pages_before);
+  // 2. 首轮重排即覆盖全部剩余节点，不残留 pending
+  QCOMPARE (ttt->progressive_cur_child, 77);
+  QVERIFY (!ttt->typeset_in_progress ());
+
+  // 3. 唯一标题只出现一次
+  QVERIFY (b2->subnr () == 1);
+  box pages_box = b2->subbox (0);
+  int title_hits= 0;
+  for (int pi= 0; pi < pages_box->subnr (); pi++) {
+    if (box_contains_text (pages_box->subbox (pi), "UniqueShrinkDocTitle")) {
+      title_hits++;
+    }
+  }
+  QCOMPARE (title_hits, 1);
+
+  delete_typesetter (ttt);
+}
+
+void
+TestProgressiveTypeset::test_remove_relative_to_progressive_frontier () {
+  edit_env env= create_test_env ();
+
+  // Case 1: 在排版前沿之前删除节点 [10, 15)
+  {
+    int  n        = 100;
+    tree doc      = create_long_document (n);
+    the_et        = doc;
+    typesetter ttt= new_typesetter (env, doc, path ());
+
+    ttt->typeset ();
+    QCOMPARE (ttt->progressive_cur_child, 50);
+    QCOMPARE (ttt->max_typeset_child, 50);
+
+    the_et= doc (0, 10) * doc (15, n);
+    notify_remove (ttt, path (10), 5);
+    QCOMPARE (ttt->max_typeset_child, 45);
+
+    box b= ttt->typeset ();
+    QCOMPARE (ttt->chunk_start, 0);
+    QCOMPARE (ttt->chunk_end, 45);
+    QCOMPARE (ttt->progressive_cur_child, 45);
+    QVERIFY (ttt->typeset_in_progress ());
+
+    // 检查内容完整性：原 15 号段落前移至 10 号
+    bool found_10= false;
+    b->find_box_path (path (10, 0), found_10);
+    QVERIFY (found_10);
+
+    delete_typesetter (ttt);
+  }
+
+  // Case 2: 跨越排版前沿删除节点 [45, 55)
+  {
+    int  n        = 100;
+    tree doc      = create_long_document (n);
+    the_et        = doc;
+    typesetter ttt= new_typesetter (env, doc, path ());
+
+    ttt->typeset ();
+    QCOMPARE (ttt->progressive_cur_child, 50);
+    QCOMPARE (ttt->max_typeset_child, 50);
+
+    the_et= doc (0, 45) * doc (55, n);
+    notify_remove (ttt, path (45), 10);
+    QCOMPARE (ttt->max_typeset_child, 45);
+
+    box b= ttt->typeset ();
+    QCOMPARE (ttt->chunk_start, 0);
+    QCOMPARE (ttt->chunk_end, 45);
+    QCOMPARE (ttt->progressive_cur_child, 45);
+    QVERIFY (ttt->typeset_in_progress ());
+
+    bool found_44= false;
+    b->find_box_path (path (44, 0), found_44);
+    QVERIFY (found_44);
+
+    delete_typesetter (ttt);
+  }
+
+  // Case 3: 在排版前沿之后删除节点 [70, 75)
+  {
+    int  n        = 100;
+    tree doc      = create_long_document (n);
+    the_et        = doc;
+    typesetter ttt= new_typesetter (env, doc, path ());
+
+    ttt->typeset ();
+    QCOMPARE (ttt->progressive_cur_child, 50);
+    QCOMPARE (ttt->max_typeset_child, 50);
+
+    the_et= doc (0, 70) * doc (75, n);
+    notify_remove (ttt, path (70), 5);
+    QCOMPARE (ttt->max_typeset_child, 50);
+
+    box b= ttt->typeset ();
+    QCOMPARE (ttt->chunk_start, 0);
+    QCOMPARE (ttt->chunk_end, 50);
+    QCOMPARE (ttt->progressive_cur_child, 50);
+    QVERIFY (ttt->typeset_in_progress ());
+
+    while (ttt->typeset_in_progress ()) {
+      ttt->progressive_advance (30);
+      b= ttt->typeset ();
+    }
+    QCOMPARE (ttt->progressive_cur_child, 95);
+    QVERIFY (!ttt->typeset_in_progress ());
+
+    bool found_69= false;
+    b->find_box_path (path (69, 0), found_69);
+    QVERIFY (found_69);
+
+    delete_typesetter (ttt);
+  }
 }
 
 #ifdef QTTEXMACS

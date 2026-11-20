@@ -28,7 +28,7 @@ typesetter_rep::typesetter_rep (edit_env& env2, tree et, path ip)
       doc_l (array<page_item> ()), doc_sb (stack_border ()),
       progressive_env (UNINIT), frozen_page_boxes (array<box> ()),
       frozen_border_boxes (array<box> ()), dynamic_buffer_pages (3),
-      page_text_height (0), last_page_count (0), max_typeset_child (0) {
+      page_text_height (0), max_typeset_child (0) {
   paper= (env->get_string (PAGE_MEDIUM) == "paper");
   br   = make_bridge (this, et, ip);
   x1= y1= x2= y2= 0;
@@ -321,31 +321,6 @@ typesetter_rep::typeset () {
         doc_l= range (doc_l, end_in_unfrozen, N (doc_l));
       }
     }
-
-    int nr_pages= N (ppp->pages);
-    // 校验总页数不得少于本轮编辑前的已排版页数（不变式兜底）
-    if (last_page_count > 0 && nr_pages < last_page_count) {
-      progressive_reset ();
-      chunk_start          = 0;
-      chunk_end            = n;
-      progressive_cur_child= n;
-      max_typeset_child    = n;
-      progressive_pending  = false;
-      br->status           = 0;
-      env->complete        = br->my_typeset_will_be_complete ();
-      if (env->complete) {
-        env->local_aux= hashmap<string, tree> (UNINIT);
-        env->missing  = hashmap<string, tree> (UNINIT);
-        env->redefined= array<tree> ();
-        env->touched  = hashmap<string, bool> (false);
-      }
-      br->typeset (PROCESSED + WANTED_PARAGRAPH);
-      tm_delete (ppp);
-      ppp= tm_new<pager_rep> (br->ip, env, l, array<box> (), array<box> ());
-      rb = ppp->make_pages ();
-      nr_pages= N (ppp->pages);
-    }
-    last_page_count= nr_pages;
   }
   if (env->complete && paper) determine_page_references (rb);
   tm_delete (ppp);
