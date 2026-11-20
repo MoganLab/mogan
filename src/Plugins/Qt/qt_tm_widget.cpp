@@ -3397,6 +3397,11 @@ qt_tm_widget_rep::isWidgetInSidebar (const QWidget* sidebar,
   // 故沿 QObject 父链遍历（首个迭代同时覆盖 target == sidebar）
   for (const QObject* cur= target; cur != nullptr; cur= cur->parent ()) {
     if (cur == sidebar) return true;
+    if (const QMenu* menu= qobject_cast<const QMenu*> (cur)) {
+      QPointer<QWidget> origin=
+          menu->property ("texmacsPopupOrigin").value<QPointer<QWidget>> ();
+      if (origin && isWidgetInSidebar (sidebar, origin)) return true;
+    }
   }
   return false;
 }

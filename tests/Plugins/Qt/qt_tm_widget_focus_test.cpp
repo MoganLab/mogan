@@ -37,6 +37,44 @@ private slots:
     }
   }
 
+  void test_deleted_context_menu_origin_is_not_dereferenced () {
+    QDockWidget dock ("AI Chat Sidebar");
+    QWidget*    messageEditor= new QWidget (&dock);
+    QMenu       contextMenu;
+    contextMenu.setProperty (
+        "texmacsPopupOrigin",
+        QVariant::fromValue (QPointer<QWidget> (messageEditor)));
+
+    delete messageEditor;
+
+    QVERIFY (contextMenu.property ("texmacsPopupOrigin")
+                 .value<QPointer<QWidget>> ()
+                 .isNull ());
+    QVERIFY (!qt_tm_widget_rep::isWidgetInSidebar (&dock, &contextMenu));
+  }
+
+  void test_context_menu_origin_determines_sidebar_ownership () {
+    QWidget     parent;
+    QDockWidget dock ("AI Chat Sidebar", &parent);
+    QPushButton messageEditor ("Message", &dock);
+    QPushButton mainEditor ("Document", &parent);
+    QMenu       contextMenu;
+    QMenu       documentContextMenu;
+    QMenu       mainMenu;
+
+    contextMenu.setProperty (
+        "texmacsPopupOrigin",
+        QVariant::fromValue (QPointer<QWidget> (&messageEditor)));
+    documentContextMenu.setProperty (
+        "texmacsPopupOrigin",
+        QVariant::fromValue (QPointer<QWidget> (&mainEditor)));
+
+    QVERIFY (qt_tm_widget_rep::isWidgetInSidebar (&dock, &contextMenu));
+    QVERIFY (
+        !qt_tm_widget_rep::isWidgetInSidebar (&dock, &documentContextMenu));
+    QVERIFY (!qt_tm_widget_rep::isWidgetInSidebar (&dock, &mainMenu));
+  }
+
   void test_widget_hierarchy_and_popup_protection () {
     QWidget     parent;
     QDockWidget dock ("AI Chat Sidebar", &parent);

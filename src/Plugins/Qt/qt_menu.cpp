@@ -46,6 +46,12 @@ qt_menu_rep::popup_window_widget (string s) {
 }
 
 void
+qt_menu_rep::set_popup_origin (QWidget* origin) {
+  get_qmenu ()->setProperty ("texmacsPopupOrigin",
+                             QVariant::fromValue (QPointer<QWidget> (origin)));
+}
+
+void
 qt_menu_rep::send (slot s, blackbox val) {
   switch (s) {
   case SLOT_POSITION: {

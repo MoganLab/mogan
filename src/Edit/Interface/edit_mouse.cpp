@@ -23,6 +23,7 @@
 #include "qapplication.h"
 #include "qnamespace.h"
 #include "qt_chat_controller.hpp"
+#include "qt_menu.hpp"
 #include "qt_simple_widget.hpp"
 #endif
 #include "preferences.hpp"
@@ -257,7 +258,15 @@ edit_interface_rep::mouse_adjust (SI x, SI y, int mods) {
       menu= "texmacs-alternative-popup-menu";
     SERVER (menu_widget ("(vertical (link " * menu * "))", wid));
     widget popup_wid= ::popup_widget (wid);
-    popup_win       = ::popup_window_widget (popup_wid, "Popup menu");
+#ifdef QTTEXMACS
+    // 顶层 QMenu 没有编辑器父链，复制命令执行前须能追溯消息区的来源。
+    qt_simple_widget_rep* source= dynamic_cast<qt_simple_widget_rep*> (this);
+    qt_menu_rep*          popup_menu=
+        dynamic_cast<qt_menu_rep*> (concrete (popup_wid).rep);
+    if (source != nullptr && popup_menu != nullptr)
+      popup_menu->set_popup_origin (source->as_qwidget ());
+#endif
+    popup_win= ::popup_window_widget (popup_wid, "Popup menu");
 #if defined(QTTEXMACS) || defined(AQUATEXMACS)
     SI ox, oy;
     DI sx, sy;
