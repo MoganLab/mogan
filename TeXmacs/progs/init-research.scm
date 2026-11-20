@@ -560,9 +560,6 @@
 (lazy-define (part part-shared) buffer-initialize buffer-notify)
 (lazy-menu (part part-menu) document-master-menu)
 (lazy-tmfs-handler (part part-tmfs) part)
-;; chat:// 权限与协议在 llm 插件懒加载完成前即可能被 set_buffer_tree 查询，
-;; 因此按需通过 chat-loader 提前触发注册，避免 tmfs://chat/*/input 被误判为只读。
-(lazy-tmfs-handler (llm chat-loader) chat)
 
 
 

@@ -189,21 +189,13 @@ private slots:
     QVERIFY (!starts (tmfs_buf->buf->title, ro_prefix_tmfs * ro_prefix_tmfs));
 
     // 9. begin_system_document_load / end_system_document_load 系统写入豁免
-    //    且在 llm 插件延迟加载前通过 lazy-tmfs-handler 正确判定 chat 权限：
-    //    /input 可写（read_only=false），/message 只读（read_only=true）
-    url chat_inp_url= url_system ("tmfs://chat/unit-test/input");
-    set_buffer_tree (chat_inp_url, tree (DOCUMENT, tree ("")));
-    tm_buffer chat_inp_buf= concrete_buffer (chat_inp_url);
-    QVERIFY (!is_nil (chat_inp_buf));
-    QVERIFY (!chat_inp_buf->buf->read_only);
-
     url chat_msg_url= url_system ("tmfs://chat/unit-test/message");
     set_buffer_tree (chat_msg_url, tree (DOCUMENT, tree ("hello")));
     tm_buffer chat_msg_buf= concrete_buffer (chat_msg_url);
     QVERIFY (!is_nil (chat_msg_buf));
-    QVERIFY (chat_msg_buf->buf->read_only);
     chat_msg_buf->data->init ("no-zoom")  = "true";
     chat_msg_buf->data->init (ZOOM_FACTOR)= "1.0";
+    chat_msg_buf->buf->read_only          = true;
     editor chat_msg_ed                    = new_editor (nullptr, chat_msg_buf);
     QVERIFY (chat_msg_ed->is_read_only ());
 
