@@ -142,6 +142,38 @@
   (check (string? (tmfs-load "tmfs://testobj/any")) => #t)
 ) ;define
 
+(define (test-tmfs-default-permissions)
+  (check (tmfs-permission? "tmfs://permission-default/buffer" "read") => #t)
+  (check (tmfs-permission? "tmfs://permission-default/buffer" "write") => #t)
+  (check (tmfs-permission? "tmfs://permission-default/buffer" "execute") => #f)
+  (tmfs-handler "permission-load" 'load (lambda (name) name))
+  (check (tmfs-permission? "tmfs://permission-load/buffer" "write") => #t)
+  (tmfs-handler "permission-readonly"
+    'permission?
+    (lambda (name type) (== type "read"))
+  ) ;tmfs-handler
+  (check (tmfs-permission? "tmfs://permission-readonly/buffer" "read") => #t)
+  (check (tmfs-permission? "tmfs://permission-readonly/buffer" "write") => #f)
+  (check (tmfs-permission? "tmfs://id/example" "write") => #f)
+  (check (tmfs-permission? "tmfs://import/generic/file.tm" "write") => #f)
+  (check (tmfs-permission? "tmfs://aux/editable" "write") => #t)
+) ;define
+
+(define (test-tmfs-generated-permissions)
+  (use-modules (version version-tmfs)
+    (version version-git)
+    (doc docgrep)
+    (utils automate auto-tmfs)
+  ) ;use-modules
+  (for-each
+    (lambda (class)
+      (check (tmfs-permission? (string-append "tmfs://" class "/test") "read") => #t)
+      (check (tmfs-permission? (string-append "tmfs://" class "/test") "write") => #f)
+    ) ;lambda
+    (list "history" "revision" "commit" "git" "grep" "automate")
+  ) ;for-each
+) ;define
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tests for lazy-tmfs-handler and lazy-tmfs-force
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -210,6 +242,8 @@
   (test-query)
   (test-strip-colon)
   (test-tmfs-handler)
+  (test-tmfs-default-permissions)
+  (test-tmfs-generated-permissions)
   (test-lazy-tmfs)
   (test-tmfs-auxiliary)
   (test-aux-name)

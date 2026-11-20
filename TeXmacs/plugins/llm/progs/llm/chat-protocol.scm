@@ -11,7 +11,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (llm chat-protocol)
-  (:use (llm chat-style)
+  (:use (llm chat-permissions)
+    (llm chat-style)
     (llm chat-tree-ops)
     (utils library tree)
     (utils library cursor)
@@ -511,9 +512,3 @@
     ) ;if
   ) ;let
 ) ;tm-define
-
-;;; ---------- tmfs 权限声明 ----------
-
-(tmfs-permission-handler (chat name type)
-  (if (and (string? name) (string-ends? name "/message")) (== type "read") #t)
-) ;tmfs-permission-handler

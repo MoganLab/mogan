@@ -13,6 +13,8 @@
 
 (texmacs-module (utils automate auto-tmfs) (:use (utils automate auto-build)))
 
+(tmfs-permission-handler (automate name type) (== type "read"))
+
 (tmfs-title-handler (automate name doc)
   (let* ((question (tmfs-car name))
          (file-name (tmfs-cdr name))
