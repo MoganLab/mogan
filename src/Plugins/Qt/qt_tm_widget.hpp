@@ -260,8 +260,9 @@ public:
                                                url ownerWindow);
 
   /**
-   * @brief
-   * 判定控件是否属于侧边栏或其子代（包括以侧边栏控件为父级的弹出菜单等浮层）。
+   * @brief 判定控件是否属于侧边栏或其子代。
+   *
+   * 包括以侧边栏控件为父级，或由侧边栏控件发起的顶层弹出菜单。
    */
   static bool isWidgetInSidebar (const QWidget* sidebar, const QWidget* target);
 
