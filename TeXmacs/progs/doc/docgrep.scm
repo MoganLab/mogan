@@ -20,6 +20,8 @@
 
 (texmacs-module (doc docgrep) (:use (doc help-funcs)))
 
+(tmfs-permission-handler (grep name type) (== type "read"))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Get scores for the different files
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

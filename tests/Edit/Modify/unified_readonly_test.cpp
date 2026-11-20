@@ -175,7 +175,29 @@ private slots:
     QVERIFY (!starts (local_buf->buf->title, ro_prefix));
 #endif
 
-    // 8. 重命名已有只读前缀的 tmfs 缓冲区时，不重复添加 [只读] 前缀
+    // 8. 未注册 handler 的 tmfs 默认可编辑
+    url default_tmfs= url_system ("tmfs://permission-default-cpp/buffer");
+    set_buffer_tree (default_tmfs, tree (DOCUMENT, tree ("editable")));
+    tm_buffer default_tmfs_buf= concrete_buffer (default_tmfs);
+    QVERIFY (!is_nil (default_tmfs_buf));
+    QVERIFY (!default_tmfs_buf->buf->read_only);
+    default_tmfs_buf->data->init ("no-zoom")  = "true";
+    default_tmfs_buf->data->init (ZOOM_FACTOR)= "1.0";
+    editor default_tmfs_ed= new_editor (nullptr, default_tmfs_buf);
+    QVERIFY (!default_tmfs_ed->is_read_only ());
+    edit_announce (default_tmfs_ed.operator->(),
+                   mod_assign (default_tmfs_buf->rp * 0, tree ("updated")));
+
+    // 只有 load handler 不再隐式导致只读
+    eval_scheme ("(tmfs-handler \"permission-load-cpp\" 'load "
+                 "(lambda (name) '(document \"loaded\")))");
+    url load_tmfs= url_system ("tmfs://permission-load-cpp/buffer");
+    set_buffer_tree (load_tmfs, tree (DOCUMENT, tree ("editable")));
+    tm_buffer load_tmfs_buf= concrete_buffer (load_tmfs);
+    QVERIFY (!is_nil (load_tmfs_buf));
+    QVERIFY (!load_tmfs_buf->buf->read_only);
+
+    // 重命名已有只读前缀的 tmfs 缓冲区时，不重复添加 [只读] 前缀
     url tmfs_a= url_system ("tmfs://help/readonly_rename_a");
     url tmfs_b= url_system ("tmfs://help/readonly_rename_b");
     set_buffer_tree (tmfs_a, tree (DOCUMENT, tree ("tmfs")));
@@ -188,14 +210,22 @@ private slots:
     QCOMPARE (tmfs_buf->buf->title, ro_prefix_tmfs * "Document");
     QVERIFY (!starts (tmfs_buf->buf->title, ro_prefix_tmfs * ro_prefix_tmfs));
 
-    // 9. begin_system_document_load / end_system_document_load 系统写入豁免
+    // 9. 显式 Chat 权限声明先于 buffer 创建：input 可写、message 只读，
+    //    系统写入豁免允许后台更新只读消息区
+    eval_scheme ("(use-modules (llm chat-permissions))");
+    url chat_inp_url= url_system ("tmfs://chat/unit-test/input");
+    set_buffer_tree (chat_inp_url, tree (DOCUMENT, tree ("")));
+    tm_buffer chat_inp_buf= concrete_buffer (chat_inp_url);
+    QVERIFY (!is_nil (chat_inp_buf));
+    QVERIFY (!chat_inp_buf->buf->read_only);
+
     url chat_msg_url= url_system ("tmfs://chat/unit-test/message");
     set_buffer_tree (chat_msg_url, tree (DOCUMENT, tree ("hello")));
     tm_buffer chat_msg_buf= concrete_buffer (chat_msg_url);
     QVERIFY (!is_nil (chat_msg_buf));
+    QVERIFY (chat_msg_buf->buf->read_only);
     chat_msg_buf->data->init ("no-zoom")  = "true";
     chat_msg_buf->data->init (ZOOM_FACTOR)= "1.0";
-    chat_msg_buf->buf->read_only          = true;
     editor chat_msg_ed                    = new_editor (nullptr, chat_msg_buf);
     QVERIFY (chat_msg_ed->is_read_only ());
 

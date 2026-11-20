@@ -178,8 +178,6 @@
   ) ;let*
 ) ;tmfs-title-handler
 
-(tmfs-permission-handler (apidoc name type) #t)
-
 (tm-define (apidoc-all-symbols)
   (:synopsis "Opens a help buffer with a list of all tm-defined symbols")
   (cursor-history-add (cursor-path))

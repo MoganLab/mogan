@@ -14,6 +14,10 @@
 
 (texmacs-module (version version-tmfs))
 
+(tmfs-permission-handler (history name type) (== type "read"))
+(tmfs-permission-handler (revision name type) (== type "read"))
+(tmfs-permission-handler (commit name type) (== type "read"))
+
 (define version-tool-table (make-ahash-table))
 
 (define version-tool-loaded (make-ahash-table))

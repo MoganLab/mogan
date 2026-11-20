@@ -469,7 +469,7 @@
 ;; 注意
 ;; ----
 ;; 自动排除以 ~ 或 # 结尾的备份文件（若不支持自动保存）。
-;; 若存在 load 处理器但未注册 permission? 处理器，默认允许 "read" 权限。
+;; 未注册 permission? 处理器时，默认允许读写；包装 URL 遵循其实体文件权限。
 (define-public (tmfs-permission? u type)
   "Check whether we have the permission of a given @type for the url @u."
   (with (class name)
@@ -490,8 +490,6 @@
       =>
       (lambda (handler) (handler name type))
      ) ;
-     ((tmfs-wrap u) ((ahash-ref tmfs-handler-table (cons #t 'permission?)) u type))
-     ((ahash-ref tmfs-handler-table (cons class 'load)) (== type "read"))
      (else ((ahash-ref tmfs-handler-table (cons #t 'permission?)) u type))
     ) ;cond
   ) ;with
@@ -1011,6 +1009,8 @@
 
 ;; id 类别的加载处理器示例。
 ;; 将名称包装为简单的 TeXmacs 文档树返回。
+(tmfs-permission-handler (id name type) (== type "read"))
+
 (tmfs-load-handler (id what)
   `(document (TeXmacs ,(texmacs-version))
      (style (tuple "generic"))
@@ -1068,13 +1068,13 @@
 (tmfs-handler #t 'title (lambda (name doc) name))
 
 ;; 默认权限处理器。
-;; 根据包装 URL 的文件系统权限判断读写权限。
+;; 虚拟文档默认可读写；包装 URL 根据其实体文件权限判断。
 (tmfs-handler #t
   'permission?
   (lambda (name kind)
     (with u
       (tmfs-wrap name)
-      (cond ((not u) (== kind "read"))
+      (cond ((not u) (in? kind (list "read" "write")))
             ((== kind "read") (url-test? u "r"))
             ((== kind "write") (url-test? u "w"))
             (else #f)
@@ -1223,6 +1223,8 @@
 
 ;; import 类别的加载处理器。
 ;; 根据格式和路径导入外部文件并转换为 TeXmacs 文档。
+(tmfs-permission-handler (import name type) (== type "read"))
+
 (tmfs-load-handler (import name)
   (if (and (tmfs-pair? name) (tmfs-pair? (tmfs-cdr name)))
     (let* ((fm (tmfs-car name)) (u (tmfs-string->url (tmfs-cdr name))))
