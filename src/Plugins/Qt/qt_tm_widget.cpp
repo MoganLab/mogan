@@ -261,7 +261,6 @@ QTMInteractiveInputHelper::commit (int result) {
 qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     : qt_window_widget_rep (new QTMWindow (0), "popup", _quit), helper (this),
       prompt (NULL), full_screen (false), is_presentation (false),
-      menuToolBarVisibleCache (false), titleBarVisibleCache (false),
       scmNotificationBar (nullptr), loginButton (nullptr), goButton (nullptr),
       inviteButton (nullptr), m_goMenuPopup (nullptr), m_loginDialog (nullptr),
       avatarLabel (nullptr), nameLabel (nullptr), accountIdLabel (nullptr),
@@ -2815,11 +2814,9 @@ qt_tm_widget_rep::set_full_screen (bool flag) {
       //      mainwindow()->window()->setContentsMargins(0,0,0,0);
       // win->showFullScreen();
       win->setWindowState (win->windowState () | Qt::WindowFullScreen);
-      menuToolBarVisibleCache= menuToolBar && menuToolBar->isVisible ();
       if (menuToolBar) menuToolBar->setVisible (false);
       if (windowAgent) {
-        QWidget* tb         = windowAgent->titleBar ();
-        titleBarVisibleCache= tb && tb->isVisible ();
+        QWidget* tb= windowAgent->titleBar ();
         if (tb) tb->setVisible (false);
       }
       if (in_presentation_mode ()) {
@@ -2871,11 +2868,6 @@ qt_tm_widget_rep::set_full_screen (bool flag) {
 
       visibility[0]= cache;
       update_visibility ();
-      if (menuToolBar) menuToolBar->setVisible (menuToolBarVisibleCache);
-      if (windowAgent) {
-        QWidget* tb= windowAgent->titleBar ();
-        if (tb) tb->setVisible (titleBarVisibleCache);
-      }
       if (was_presentation) {
         QTMScrollView* scrollView= scrollarea ();
         if (scrollView) {
