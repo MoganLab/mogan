@@ -131,7 +131,10 @@ qt_load_icon (url file_name) {
 #ifndef USE_MUPDF_RENDERER
 picture
 native_picture (int w, int h, int ox, int oy) {
-  return qt_picture (QImage (w, h, QImage::Format_ARGB32), ox, oy);
+  QImage im (w, h, QImage::Format_ARGB32);
+  if (qt_is_dark_theme ()) im.fill (to_qcolor (tm_background));
+  else im.fill (Qt::white);
+  return qt_picture (im, ox, oy);
 }
 #endif
 
