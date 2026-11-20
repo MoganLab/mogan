@@ -407,8 +407,9 @@ selection_image_url (tree t) {
   else if (is_func (image_tree, TUPLE, 2) &&
            is_func (image_tree[0], RAW_DATA, 1) &&
            is_atomic (image_tree[0][0]) && is_atomic (image_tree[1])) {
-    return url_ramdisc (image_tree[0][0]->label) *
-           url ("image." * image_tree[1]->label);
+    string ext= suffix (image_tree[1]->label);
+    if (ext == "") ext= image_tree[1]->label;
+    return url_ramdisc (image_tree[0][0]->label) * url ("image." * ext);
   }
   return url_none ();
 }
