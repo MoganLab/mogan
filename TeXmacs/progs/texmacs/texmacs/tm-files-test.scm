@@ -143,6 +143,33 @@
 ) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tests for tab cycling (4685): Ctrl/Cmd+Shift+[ / ]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (test-cyclic-view-index)
+  ;; 向前、向后、两端回绕
+  (check (cyclic-view-index 0 1 3) => 1)
+  (check (cyclic-view-index 2 1 3) => 0)
+  (check (cyclic-view-index 1 -1 3) => 0)
+  (check (cyclic-view-index 0 -1 3) => 2)
+  ;; 只有一个 tab：原地不动
+  (check (cyclic-view-index 0 1 1) => 0)
+  (check (cyclic-view-index 0 -1 1) => 0)
+  ;; 空列表：无效
+  (check (cyclic-view-index 0 1 0) => #f)
+) ;define
+
+(define (test-switch-view-round-trip)
+  ;; headless 下 tab 数不定（可能只有 1 个）。不依赖具体数量：
+  ;; 向后再向前必须回到原 view，且两次调用都不得抛错。
+  (let ((v (current-view)))
+    (switch-to-next-view)
+    (switch-to-previous-view)
+    (check (== (current-view) v) => #t)
+  ) ;let
+) ;define
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Test entry point
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -154,5 +181,7 @@
   (test-scratch-buffer-title-stem)
   (test-scratch-buffer-title-old-and-new-stamp)
   (test-scratch-buffer-title-legacy-one-underscore-this-week)
+  (test-cyclic-view-index)
+  (test-switch-view-round-trip)
   (check-report)
 ) ;tm-define
