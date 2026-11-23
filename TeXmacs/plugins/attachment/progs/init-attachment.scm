@@ -219,9 +219,9 @@
            ;; 宿主预检不经 wire，文件系统调用必须先解回真实 UTF-8，
            ;; 否则中文路径 path-file? 恒假、误报「文件不存在」
            (p (path fs-path))
-           ;; 文案文件名取 herk 形态：toast 侧 cork_to_utf8 会解码实体；
-           ;; 扩展名判定只看最后一个点后的 ASCII，实体无点不受影响
-           (filename (path->string (path-name (path file-path))))
+           ;; 文案文件名取 UTF-8 形态：与宿主预检字面量同编码，整条 reason
+           ;; 才能只在出口做一次 utf8->cork；直接取 file-path 会留下实体串
+           (filename (attachment-display-filename file-path))
            ;; size 在可访问时求值：path-getsize 内的 file-exists? 对存在
            ;; 但不可读的文件抛 permission-error（boot.scm）
            (size (if (and (path-file? p) (access fs-path 'R_OK)) (path-getsize p) 0))

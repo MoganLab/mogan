@@ -26,6 +26,19 @@
     "tmu" "tm" "html" "json" "log" "c" "cpp" "h" "java" "py" "js" "ts" "go" "rs")
 ) ;define
 
+;;; ---------- 展示文件名 ----------
+
+;; file-path 自 glue 传入为 herk/cork 实体形态（6217 的 C++ from_qstring
+;; 契约）；宿主预检不经 wire，用于文案的文件名必须先解回真实 UTF-8，
+;; 使宿主字面量与文件名同为 UTF-8，整条 reason 只在出口编码一次。
+;; 文件系统访问与 wire 传输各自沿用既有转换，不在此处统一。
+;; 实体串只含 ASCII 字节且不含路径分隔符，故 basename 先切后解码与
+;; 先解码后切等价
+
+(define (attachment-display-filename file-path)
+  (cork->utf8 (path->string (path-name (path file-path))))
+) ;define
+
 ;;; ---------- 预检纯函数 ----------
 
 ;; count/bytes 为本轮已选累计；size 由调用方在 (and (path-file? p)

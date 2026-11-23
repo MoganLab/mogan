@@ -417,6 +417,56 @@
   ) ;let
 ) ;define
 
+;; 中文文件名：宿主预检文案里的文件名必须与磁盘原名逐字一致。入参为
+;; C++ from_qstring 产出的 herk 实体形态（中文目录 + 中文 .jpg 名），
+;; attachment-ingest 须先经 attachment-display-filename 解回 UTF-8 再
+;; 拼 reason，否则 filename 保留实体形态，出口 utf8->cork 形成二次
+;; 编码，Qt 只解一次 cork_to_utf8 时文件名仍是实体串
+
+(define (test-attachment-host-precheck-nonascii-filename)
+  (let* ((dir "/tmp/chat-protocol-test-6249/论文附件")
+         (name "24你是春天你是背景.jpg")
+         (file (string-append dir "/" name))
+        ) ;
+    (path-mkdir "/tmp/chat-protocol-test-6249")
+    (path-mkdir dir)
+    (path-write-text file "x")
+    (let* ((herk (utf8->cork file))
+           (fs-path (cork->utf8 herk))
+           (display (attachment-display-filename herk))
+          ) ;
+      ;; 展示文件名已恢复为 UTF-8 磁盘原名
+      (check display => name)
+      ;; 类型不支持分支：文案完整且逐字一致
+      (check (attachment-host-precheck fs-path display 1 0 0)
+        =>
+        (string-append "不支持的附件类型： " name)
+      ) ;check
+      ;; 直接拿实体形态文件名入 policy 就是修复前的症状（实体进文案）
+      (check
+        (string-contains?
+          (attachment-host-precheck fs-path (path->string (path-name (path herk))) 1 0 0)
+          "<#"
+        ) ;string-contains?
+        =>
+        #t
+      ) ;check
+      ;; 模拟宿主出口 utf8->cork 与 Qt 入口 cork_to_utf8 各一次：
+      ;; 仍逐字等于原文案，不出现 <#XXXX> 实体
+      (let* ((reason (attachment-host-precheck fs-path display 1 0 0))
+             (wire (utf8->cork reason))
+             (on-toast (cork->utf8 wire))
+            ) ;
+        (check on-toast => (string-append "不支持的附件类型： " name))
+        (check (string-contains? on-toast "<#") => #f)
+      ) ;let*
+    ) ;let*
+    (path-unlink file #t)
+    (path-rmdir dir)
+    (path-rmdir "/tmp/chat-protocol-test-6249")
+  ) ;let*
+) ;define
+
 ;; 异常兜底测试：通过故障注入让缓存清理或 ready 缓存写入抛错，
 ;; 仍返回带原 taskId 的 error 事件而不是向外抛出异常。dynamic-wind
 ;; 保证断言中断时也恢复全局函数并清理样本
@@ -888,6 +938,7 @@
   (test-attachment-host-precheck)
   (test-attachment-host-precheck-unreadable)
   (test-attachment-host-precheck-nonascii-path)
+  (test-attachment-host-precheck-nonascii-filename)
   (test-fake-attachment-ingest-exception-fallback)
   (test-attachment-cache-payload-stored)
   (test-fake-attachment-ingest-put-noop)
