@@ -1202,6 +1202,61 @@ private slots:
         Qt::Key_A, Qt::NoModifier, false));
   }
 
+  // === input_frame_height_cap：输入框高度按面板可用高度封顶 ===
+  // 长表格引用块升到 5 倍档（382px）时，若不封顶会把输入区底部（按钮行与
+  // 光标所在行）顶出面板底边而被裁掉（6251）。
+  void test_input_frame_height_cap_roomy_panel () {
+    // 面板足够高：不限制（452 - 24 - 240 = 188 < 382？此处用留白 22 算）
+    QCOMPARE (ChatConversationPanel::input_frame_height_cap (900, 24, 22, 118),
+              854);
+  }
+
+  void test_input_frame_height_cap_short_panel () {
+    // 面板 502、输入区额外 24、上方保留 240（对话模式消息区最小高）：
+    // 封顶到 502-24-240 = 238
+    QCOMPARE (ChatConversationPanel::input_frame_height_cap (502, 24, 240, 118),
+              238);
+  }
+
+  void test_input_frame_height_cap_never_below_min_frame () {
+    // 面板极短时不低于基准档（否则档位规则失效）
+    QCOMPARE (ChatConversationPanel::input_frame_height_cap (120, 24, 22, 118),
+              118);
+    // 尚未布局（高度 <= 0）：返回基准档
+    QCOMPARE (ChatConversationPanel::input_frame_height_cap (0, 24, 22, 118),
+              118);
+    QCOMPARE (ChatConversationPanel::input_frame_height_cap (-5, 24, 22, 118),
+              118);
+  }
+
+  // === input_area_spacer_offset：欢迎页留白按可用空间收缩 ===
+  void test_input_area_spacer_offset_roomy () {
+    // 面板 900，上方固定 72，frame 382，输入区额外 24，底边 8：
+    // 需要 486，剩余 414 ≥ 设计留白 131 → 用设计值
+    QCOMPARE (ChatConversationPanel::input_area_spacer_offset (131, 72, 382, 24,
+                                                               8, 900),
+              131);
+  }
+
+  void test_input_area_spacer_offset_short_panel () {
+    // 面板 502：需要 486，只剩 16 → 留白收缩为 16，输入区不再溢出
+    QCOMPARE (ChatConversationPanel::input_area_spacer_offset (131, 72, 382, 24,
+                                                               8, 502),
+              16);
+  }
+
+  void test_input_area_spacer_offset_no_room () {
+    // 面板放不下整个输入区：留白压到 0（不再抢），封顶交给
+    // input_frame_height_cap
+    QCOMPARE (ChatConversationPanel::input_area_spacer_offset (131, 72, 382, 24,
+                                                               8, 400),
+              0);
+    // 设计留白为负（面板极矮）：仍不产生负留白
+    QCOMPARE (ChatConversationPanel::input_area_spacer_offset (-50, 0, 118, 24,
+                                                               8, 500),
+              0);
+  }
+
   // === enterConversationMode 布局行为 ===
   // 模拟 contentLayout + topPanel 的布局结构，验证 enterConversationMode
   // 的布局逻辑：将 topPanel 从 Preferred/AlignTop 切换到 Expanding/无对齐

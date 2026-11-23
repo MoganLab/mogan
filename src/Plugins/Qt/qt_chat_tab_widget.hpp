@@ -220,6 +220,38 @@ public:
                                        bool hasActiveCompletionPopup,
                                        bool isInHybrid= false);
 
+  /**
+   * @brief 计算当前面板高度下输入框 frame 允许的最大高度（纯函数）。
+   *
+   * 输入框档位按内容行数确定（最多 5 倍基准档），但面板高度有限（dock 侧
+   * 边栏高度可能只有几十行）：不封顶时输入框会把输入区底部（按钮行与光标
+   * 所在行）顶出面板底边被裁掉。
+   * @param panelHeight 面板高度（<= 0 表示尚未布局，返回 minFrame）
+   * @param areaExtra   输入区除 frame 以外的固定高度
+   * @param reserved    输入区上方需要保留的高度（欢迎页留白/消息区）
+   * @param minFrame    最小档位高度（基准档）
+   * @return frame 允许的最大高度，不小于 minFrame
+   */
+  static int input_frame_height_cap (int panelHeight, int areaExtra,
+                                     int reserved, int minFrame);
+
+  /**
+   * @brief 计算欢迎页顶部留白的目标高度，保证输入区完整落在面板内。
+   *
+   * 留白原本是面板高度的固定比例（2/7），输入框升高且不可压缩时会把输入区
+   * 顶出面板；这里按面板剩余空间回收留白。
+   * @param desiredOffset 设计留白高度（2/7 面板高）
+   * @param contentAbove  留白之下、frame 之上的固定内容高度（标题等）
+   * @param frameHeight   输入框 frame 高度
+   * @param areaExtra     输入区除 frame 以外的固定高度
+   * @param borderMargin  面板底边额外保留的高度
+   * @param panelHeight   面板高度
+   * @return 留白高度（>= 0，且保证输入区不越过面板底边）
+   */
+  static int input_area_spacer_offset (int desiredOffset, int contentAbove,
+                                       int frameHeight, int areaExtra,
+                                       int borderMargin, int panelHeight);
+
 signals:
   void sendRequested (const string& sessionId);
   void thinkingToggled (const string& sessionId, bool enabled);
@@ -264,6 +296,21 @@ private:
   /// 输入框 frame 的封顶档高度（档位策略单一来源）
   int input_frame_max_height ();
 
+  /**
+   * @brief 让输入区（输入框 + 按钮行 + 免责声明）在面板内完整可见。
+   *
+   * 输入框按内容行数升档到 5 倍档时高度可达面板的一半以上，而欢迎页顶部
+   * 留白是固定值、输入框又是 setFixedHeight——两者都不可压缩，总高超过面板
+   * 时布局溢出，输入区底部（按钮行与光标所在行）被面板底边裁掉（6251）。
+   * 这里做两件事：① 输入框高度按面板可用高度封顶；② 欢迎页顶部留白按剩余
+   * 空间收缩。对话模式下留白由消息区占比决定，只做封顶。
+   */
+  void updateInputAreaFit ();
+  /// 输入区除输入框 frame 之外的固定高度（免责声明/间距/边距）
+  int inputAreaExtraHeight () const;
+  /// 当前面板高度下输入框 frame 允许的最大高度
+  int inputFrameHeightCap () const;
+
   string              sessionId_;                ///< 所属会话 ID
   url                 msgBufferUrl_;             ///< 消息缓冲区 URL（外部注入）
   url                 inputBufferUrl_;           ///< 输入缓冲区 URL（外部注入）
@@ -286,6 +333,8 @@ private:
   int                   fixedFrameExtra_= 0; ///< 输入框额外高度（边框等）
   int  inputExtentLinePx_= 0; ///< 空输入时标定的单行内容高度（0 = 未标定）
   bool inputHeightAdjustScheduled_= false; ///< 是否已有待执行的高度更新
+
+  QWidget* inputArea_= nullptr; ///< 输入区容器（输入框 + 免责声明）
 };
 
 /**
