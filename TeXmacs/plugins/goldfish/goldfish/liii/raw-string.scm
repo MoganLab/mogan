@@ -72,9 +72,7 @@
       ) ;let*
     ) ;define
 
-    (define-macro (stx-deindent v)
-      (if (string? v) `(quote ,(f-deindent v)) `(quote ,v))
-    ) ;define-macro
+    (define-macro (stx-deindent v) (if (string? v) `',(f-deindent v) `',v))
 
     (define deindent stx-deindent)
     (define &- stx-deindent)

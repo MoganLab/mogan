@@ -49,9 +49,7 @@
 
 (tm-define (environment-ref* env key) (ahash-ref env key))
 
-(tm-define-macro (environment-ref env key)
-  `(environment-ref* ,env (quote ,key))
-) ;tm-define-macro
+(tm-define-macro (environment-ref env key) `(environment-ref* ,env ',key))
 
 (define (environment-binding env key)
   ;; If @key is bound in @env returns (list @key value). Otherwise, return #f.
@@ -95,7 +93,7 @@
                              (if (not (list-length=2? b))
                                (syntax-error "with-environment"
                                  "Ill-formed binding: ~A" b))
-                             `(list (quote ,(first b)) ,(second b)))
+                             `(list ',(first b) ,(second b)))
                bindings))
      (lambda (,env) ,@body))
 ) ;tm-define-macro

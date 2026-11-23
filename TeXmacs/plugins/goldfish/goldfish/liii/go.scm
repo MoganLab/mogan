@@ -335,7 +335,7 @@
 
     ;; worker 代码前导：恢复 *load-path* 并 import 主会话的全部活动库
     (define (%go-worker-prelude libs)
-      `((set! *load-path* (quote ,*load-path*))
+      `((set! *load-path* ',*load-path*)
         ,@(if (null? libs) '() `((import ,@libs))))
     ) ;define
 

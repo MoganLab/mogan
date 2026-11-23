@@ -44,15 +44,14 @@
   (with old
     (ahash-ref group-table group)
     (if old
-      `(ahash-set! group-table (quote ,group) (append (quote ,old) (quote ,l)))
+      `(ahash-set! group-table ',group (append ',old ',l))
       `(begin
-         (ahash-set! group-table (quote ,group) (quote ,l))
-         (tm-define (,(symbol-append group '-list))
-           (group-resolve (quote ,group)))
+         (ahash-set! group-table ',group ',l)
+         (tm-define (,(symbol-append group '-list)) (group-resolve ',group))
          (tm-define (,(symbol-append group '?) lab)
-           (in? lab (group-resolve (quote ,group))))
+           (in? lab (group-resolve ',group)))
          (tm-define (,(symbol-append 'inside- group '?))
-           (not (not (inside-which (group-resolve (quote ,group)))))))
+           (not (not (inside-which (group-resolve ',group))))))
     ) ;if
   ) ;with
 ) ;tm-define-macro
@@ -183,8 +182,8 @@
   `(begin
      (define-group alternate-first-tag ,first)
      (define-group alternate-second-tag ,second)
-     (ahash-set! alternate-table (quote ,first) (quote ,second))
-     (ahash-set! alternate-table (quote ,second) (quote ,first)))
+     (ahash-set! alternate-table ',first ',second)
+     (ahash-set! alternate-table ',second ',first))
 ) ;tm-define-macro
 
 (tm-define (alternate-reverse? t) #f)

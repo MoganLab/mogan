@@ -1227,14 +1227,14 @@
     `(item (text ,var)
        (input (if answer
                 (begin
-                  (set-interactive-tool-arg (quote ,win) (quote ,fun) ,i answer)
+                  (set-interactive-tool-arg ',win ',fun ,i answer)
                   (if (< (+ ,i 1) ,(length args))
                     (keyboard-focus-on (string-append "interactive-"
                                          (number->string (+ ,i 1))))
-                    (interactive-ok (quote ,win) (quote ,fun) (quote ,args))))
-                (tool-close ,:any 'interactive-tool #f (quote ,win)))
+                    (interactive-ok ',win ',fun ',args)))
+                (tool-close ,:any 'interactive-tool #f ',win))
          ,(interactive-retype type i)
-         (quote ,(rcons vals ""))
+         ',(rcons vals "")
          ,w))
   ) ;with
 ) ;tm-define
@@ -1279,16 +1279,14 @@
                              //
                              //
                              (input (begin
-                                      (set-interactive-tool-arg (quote ,win)
-                                        (quote ,fun)
+                                      (set-interactive-tool-arg ',win
+                                        ',fun
                                         0
                                         answer)
                                       (when answer
-                                        (interactive-ok (quote ,win)
-                                          (quote ,fun)
-                                          (quote ,args))))
+                                        (interactive-ok ',win ',fun ',args)))
                                ,(interactive-retype type 0)
-                               (quote ,(rcons vals ""))
+                               ',(rcons vals "")
                                ,width)
                              >>>))
           ) ;with
@@ -1299,9 +1297,7 @@
                            (.. 0 (length args))))
               ===
               (hlist >>>
-                (division "plain"
-                  ("Ok"
-                   (interactive-ok (quote ,win) (quote ,fun) (quote ,args))))))
+                (division "plain" ("Ok" (interactive-ok ',win ',fun ',args)))))
          ) ;side?
          (else
            `(menu-dynamic (hlist (vlist (aligned ,@(map (cut
@@ -1314,9 +1310,7 @@
                             (vlist (glue #f #t 0 0)
                               (division "plain"
                                 (hlist ("Ok"
-                                        (interactive-ok (quote ,win)
-                                          (quote ,fun)
-                                          (quote ,args)))
+                                        (interactive-ok ',win ',fun ',args))
                                   >>>)))))
          ) ;else
         ) ;cond
