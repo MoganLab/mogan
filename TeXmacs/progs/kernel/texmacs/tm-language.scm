@@ -168,17 +168,17 @@
 
 (tm-define-macro (define-language lan . gr)
   (:synopsis "Define the formal language @lan")
-  `(define-language-impl (symbol->string (quote ,lan)) (quote ,gr))
+  `(define-language-impl (symbol->string ',lan) ',gr)
 ) ;tm-define-macro
 
 (tm-define-macro (lazy-language m . lans)
   (:synopsis "Promise that the languages @lans are defined in the module @m")
-  `(for-each (lambda (lan) (lazy-language-impl lan (quote ,m))) (quote ,lans))
+  `(for-each (lambda (lan) (lazy-language-impl lan ',m)) ',lans)
 ) ;tm-define-macro
 
 (tm-define-macro (lazy-language-force lan)
   (:synopsis "Execute promise to define the language @lan")
-  `(lazy-language-force-impl (quote ,lan))
+  `(lazy-language-force-impl ',lan)
 ) ;tm-define-macro
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -187,16 +187,14 @@
 
 (tm-define-macro (semantic-end lan gr in)
   (:synopsis "Get rightmost path until where @x can be parsed in @lan")
-  `(let* ((lan2 (symbol->string (quote ,lan)))
-          (gr2 (symbol->string (quote ,gr)))
-          (in2 ,in))
+  `(let* ((lan2 (symbol->string ',lan)) (gr2 (symbol->string ',gr)) (in2 ,in))
      (packrat-parse lan2 gr2 in2))
 ) ;tm-define-macro
 
 (tm-define-macro (semantic-context lan gr in pos)
   (:synopsis "Get semantic selections englobing @in at @pos")
-  `(let* ((lan2 (symbol->string (quote ,lan)))
-          (gr2 (symbol->string (quote ,gr)))
+  `(let* ((lan2 (symbol->string ',lan))
+          (gr2 (symbol->string ',gr))
           (in2 ,in)
           (pos1 ,pos)
           (pos2 (if (number? pos1) (list pos1) pos1)))

@@ -144,7 +144,7 @@
          (ctx-add-condition! 3 (car opt))
         ) ;
         (else
-          (ctx-add-condition! 3 `(lambda args (match? args (quote ,opt))))
+          (ctx-add-condition! 3 `(lambda args (match? args ',opt)))
         ) ;else
   ) ;cond
   decl
@@ -159,7 +159,7 @@
 
 (define (define-option-applicable opt decl)
   (with prop
-    `((quote ,(ca*adr decl)) ,:applicable (list (lambda args ,@opt)))
+    `(',(ca*adr decl) ,:applicable (list (lambda args ,@opt)))
     (set! cur-props (cons prop cur-props))
     ;; (define-option-require opt decl)
     decl
@@ -208,7 +208,7 @@
 
 (define (define-property which)
   (lambda (opt decl)
-    (set! cur-props (cons `((quote ,(ca*adr decl)) ,which (quote ,opt)) cur-props))
+    (set! cur-props (cons `(',(ca*adr decl) ,which ',opt) cur-props))
     decl
   ) ;lambda
 ) ;define
@@ -216,7 +216,7 @@
 (define (define-property . l)
   (lambda (opt decl)
     (for (which l)
-      (set! cur-props (cons `((quote ,(ca*adr decl)) ,which (quote ,opt)) cur-props))
+      (set! cur-props (cons `(',(ca*adr decl) ,which ',opt) cur-props))
     ) ;for
     decl
   ) ;lambda
@@ -224,7 +224,7 @@
 
 (define (define-property* which)
   (lambda (opt decl)
-    (set! cur-props (cons `((quote ,(ca*adr decl)) ,which (list ,@opt)) cur-props))
+    (set! cur-props (cons `(',(ca*adr decl) ,which (list ,@opt)) cur-props))
     decl
   ) ;lambda
 ) ;define
@@ -241,37 +241,22 @@
          (args (compute-arguments decl))
          (arg (list :argument (car opt)))
         ) ;
-    (set! cur-props (cons `((quote ,var) ,:arguments (quote ,args)) cur-props))
-    (set! cur-props
-      (cons
-        `((quote ,var) (quote ,arg) (quote ,(cdr opt)))
-        cur-props
-      ) ;cons
-    ) ;set!
+    (set! cur-props (cons `(',var ,:arguments ',args) cur-props))
+    (set! cur-props (cons `(',var ',arg ',(cdr opt)) cur-props))
     decl
   ) ;let*
 ) ;define
 
 (define (define-option-default opt decl)
   (let* ((var (ca*adr decl)) (arg (list :default (car opt))))
-    (set! cur-props
-      (cons
-        `((quote ,var) (quote ,arg) (lambda ,() ,@(cdr opt)))
-        cur-props
-      ) ;cons
-    ) ;set!
+    (set! cur-props (cons `(',var ',arg (lambda ,() ,@(cdr opt))) cur-props))
     decl
   ) ;let*
 ) ;define
 
 (define (define-option-proposals opt decl)
   (let* ((var (ca*adr decl)) (arg (list :proposals (car opt))))
-    (set! cur-props
-      (cons
-        `((quote ,var) (quote ,arg) (lambda ,() ,@(cdr opt)))
-        cur-props
-      ) ;cons
-    ) ;set!
+    (set! cur-props (cons `(',var ',arg (lambda ,() ,@(cdr opt))) cur-props))
     decl
   ) ;let*
 ) ;define
@@ -338,27 +323,27 @@
          ;; (display* "   " ',nval "\n")
          (set! ,var ,nval)
          (ahash-set! tm-defined-table
-           (quote ,var)
-           (cons (quote ,nval) (ahash-ref tm-defined-table (quote ,var))))
-         (ahash-set! tm-defined-name ,var (quote ,var))
+           ',var
+           (cons ',nval (ahash-ref tm-defined-table ',var)))
+         (ahash-set! tm-defined-name ,var ',var)
          (ahash-set! tm-defined-module
-           (quote ,var)
-           (cons *module-name* (ahash-ref tm-defined-module (quote ,var))))
+           ',var
+           (cons *module-name* (ahash-ref tm-defined-module ',var)))
          ,@(map property-rewrite cur-props))
       `(begin
          (when (nnull? cur-conds)
-           (display* "warning: conditional master routine " (quote ,var) "\n")
-           (display* "   " (quote ,nval) "\n"))
+           (display* "warning: conditional master routine " ',var "\n")
+           (display* "   " ',nval "\n"))
          ;; (display* "Defined " ',var "\n")
          ;; (if (nnull? cur-conds) (display* "   " ',nval "\n"))
          (varlet (rootlet)
-           (quote ,var)
+           ',var
            (if (null? cur-conds)
              ,nval
              ,(list 'let '((former (lambda args (noop)))) nval)))
-         (ahash-set! tm-defined-table (quote ,var) (list (quote ,nval)))
-         (ahash-set! tm-defined-name ,var (quote ,var))
-         (ahash-set! tm-defined-module (quote ,var) (list *module-name*))
+         (ahash-set! tm-defined-table ',var (list ',nval))
+         (ahash-set! tm-defined-name ,var ',var)
+         (ahash-set! tm-defined-module ',var (list *module-name*))
          ,@(map property-rewrite cur-props))
     ) ;if
   ) ;let*
@@ -448,10 +433,10 @@
   ) ;let*
   (with name-star
     (string->symbol (string-append (symbol->string name) "*"))
-    `(when (not (defined? (quote ,name)))
+    `(when (not (defined? ',name))
        (tm-define (,name . args)
          ,@opts
-         (let* ((m (resolve-module (quote ,module))) (r (m (quote ,name))))
+         (let* ((m (resolve-module ',module)) (r (m ',name)))
            (if (not r)
              (texmacs-error "lazy-define"
                ,(string-append "Could not retrieve " (symbol->string name))))

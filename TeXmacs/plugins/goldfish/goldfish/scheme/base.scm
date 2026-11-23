@@ -231,7 +231,7 @@
 
     (define-macro (define-values vars expression)
 
-      `(if (not (null? (quote ,vars)))
+      `(if (not (null? ',vars))
          (varlet (curlet) ((lambda ,vars (curlet)) ,expression)))
     ) ;define-macro
 
@@ -569,13 +569,12 @@
                              (catch #t
                                (lambda ,() ,@body)
                                (lambda (,type ,info)
-                                 (cons (quote ,tag)
-                                   (cons ,type (list-copy ,info))))))
+                                 (cons ',tag (cons ,type (list-copy ,info))))))
            (lambda ,vals
              (if (and (pair? ,vals)
                    (null? (cdr ,vals))
                    (pair? (car ,vals))
-                   (eq? (caar ,vals) (quote ,tag)))
+                   (eq? (caar ,vals) ',tag))
                (let ((,type (cadr (car ,vals))) (,info (cddr (car ,vals))))
                  (let ((,var (if (pair? ,info) (car ,info) ,info)))
                    (cond ,@clauses

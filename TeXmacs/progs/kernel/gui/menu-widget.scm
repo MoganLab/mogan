@@ -1347,7 +1347,7 @@
 
 (define (menu-expand-texmacs-output p)
   "Expand output menu item @p."
-  (with (tag doc tmstyle) p `(texmacs-output (quote ,(doc)) (quote ,(tmstyle))))
+  (with (tag doc tmstyle) p `(texmacs-output ',(doc) ',(tmstyle)))
 ) ;define
 
 (define (menu-expand-input p)
@@ -1802,10 +1802,10 @@
 (tm-define lazy-tool-table (make-ahash-table))
 
 (define-public-macro (lazy-tool module . tools)
-  `(for (tool (quote ,tools))
+  `(for (tool ',tools)
      (if (pair? tool) (set! tool (car tool)))
      ;; (display* "Lazy tool " tool ", " ',module "\n")
-     (ahash-set! lazy-tool-table tool (quote ,module)))
+     (ahash-set! lazy-tool-table tool ',module))
 ) ;define-public-macro
 
 (define (lazy-tool-force . tools)
@@ -2122,13 +2122,13 @@
     `(begin
        (tm-widget ,tool ,@body)
        (tm-widget (texmacs-side-tool ,(cadr tool) tool . opts)
-         (,:require (== (car tool) (quote ,(car tool))))
+         (,:require (== (car tool) ',(car tool)))
          (if (and (in? :title opts) ,name)
            (division "title"
              (hlist (text ,name)
                >>
                (division "plain"
-                 ("x" (tool-close ,:any (quote ,(car tool)) ,quit ,(cadr tool)))))))
+                 ("x" (tool-close ,:any ',(car tool) ,quit ,(cadr tool)))))))
          (assuming (tool-side? tool win)
            ,(finalize-side `(dynamic (,(car tool)
                                       ,(cadr tool)

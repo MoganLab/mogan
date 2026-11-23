@@ -479,12 +479,9 @@
   (let ((ar (car (arity (eval t def-env)))))
     (if (= ar 1)
       `(define-macro (,name . args)
-         (resolve-syntactic-closures (,t (cons (quote ,name) args)) ,def-env))
+         (resolve-syntactic-closures (,t (cons ',name args)) ,def-env))
       `(define-macro (,name . args)
-         (resolve-syntactic-closures (,t
-                                      (cons (quote ,name) args)
-                                      (curlet)
-                                      ,def-env)
+         (resolve-syntactic-closures (,t (cons ',name args) (curlet) ,def-env)
            ,def-env))
     ) ;if
   ) ;let

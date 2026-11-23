@@ -27,7 +27,7 @@
   (receive (opts body)
     (list-break l not-define-option?)
     `(begin
-       (set! gr-tags-user (cons (quote ,(ca*r head)) gr-tags-user))
+       (set! gr-tags-user (cons ',(ca*r head) gr-tags-user))
        (tm-define ,head ,@opts (:secure #t) ,@body))
   ) ;receive
 ) ;tm-define-macro

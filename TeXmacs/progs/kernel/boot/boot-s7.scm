@@ -68,9 +68,7 @@
   *current-module*
 ) ;define
 
-(define-macro (export . symbols)
-  `(set! *exports* (append (quote ,symbols) *exports*))
-) ;define-macro
+(define-macro (export . symbols) `(set! *exports* (append ',symbols *exports*)))
 
 (define-macro (with-module module . body)
   `(let ((m ,module))
@@ -176,7 +174,7 @@
                         m))
                  (en (apply inlet exx)))
             (varlet (*texmacs-module* '*current-module*) en)))
-     (quote ,modules))
+     ',modules)
 ) ;define-macro
 
 (define-macro (import-from . modules) `(use-modules ,@modules))
@@ -209,9 +207,9 @@
   (let ((l (map transform options)))
     ;; (display "loading ") (display name) (display "\n")
     `(begin
-       (define *module-name* (quote ,name))
+       (define *module-name* ',name)
        (define *exports* ())
-       (s7-hash-table-set! *modules* (quote ,name) (current-module))
+       (s7-hash-table-set! *modules* ',name (current-module))
        ,@l)
   ) ;let
 ) ;define-macro
