@@ -469,6 +469,7 @@ ChatConversationPanel::setup_ui () {
   QWidget* inputArea= new QWidget (topPanel);
   inputArea->setObjectName ("chat-tab-input-area-wrap");
   inputArea->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Preferred);
+  inputArea_                  = inputArea;
   QVBoxLayout* inputAreaLayout= new QVBoxLayout (inputArea);
   inputAreaLayout->setContentsMargins (0, 0, 0, 0);
   inputAreaLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
@@ -735,6 +736,8 @@ ChatConversationPanel::enterConversationMode (bool animate) {
     // 通知父级布局链重新计算
     updateGeometry ();
   }
+  // 消息区占位后输入框可能超出面板：按对话模式重新封顶
+  updateInputAreaFit ();
 }
 
 void
@@ -744,19 +747,90 @@ ChatConversationPanel::showWelcomePage () {
   if (welcomeTitle_) welcomeTitle_->show ();
 }
 
+int
+ChatConversationPanel::inputAreaExtraHeight () const {
+  QWidget* frame=
+      inputEditorWidget_ ? inputEditorWidget_->parentWidget () : nullptr;
+  if (!frame || !inputArea_) return 0;
+  // 用 sizeHint 而非实际几何：布局被压缩时几何不代表真实所需高度，而 frame
+  // 是输入区里唯一随内容变化的部分
+  int extra= inputArea_->sizeHint ().height () - frame->height ();
+  return extra > 0 ? extra : 0;
+}
+
+int
+ChatConversationPanel::inputFrameHeightCap () const {
+  int minFrame= DpiUtils::scaled (kInputLineHeight * kInputDefaultLines) +
+                fixedFrameExtra_;
+  // 输入区上方还要留出的高度：欢迎页顶部留白至少一行，对话模式下给消息区
+  // 保留其最小高度
+  int reserved= conversationMode_ ? DpiUtils::scaled (kMessageMinHeight)
+                                  : DpiUtils::scaled (kInputLineHeight);
+  return input_frame_height_cap (height (), inputAreaExtraHeight (), reserved,
+                                 minFrame);
+}
+
+int
+ChatConversationPanel::input_frame_height_cap (int panelHeight, int areaExtra,
+                                               int reserved, int minFrame) {
+  if (panelHeight <= 0) return minFrame;
+  int cap= panelHeight - areaExtra - reserved;
+  return cap > minFrame ? cap : minFrame;
+}
+
+int
+ChatConversationPanel::input_area_spacer_offset (int desiredOffset,
+                                                 int contentAbove,
+                                                 int frameHeight, int areaExtra,
+                                                 int borderMargin,
+                                                 int panelHeight) {
+  if (desiredOffset < 0) desiredOffset= 0;
+  // 输入区底部（含边框/免责声明）不得越过面板底边：先按面板可用空间封顶
+  int needed= contentAbove + frameHeight + areaExtra + borderMargin;
+  int room  = panelHeight - needed;
+  int offset= desiredOffset < room ? desiredOffset : room;
+  return offset > 0 ? offset : 0;
+}
+
+void
+ChatConversationPanel::updateInputAreaFit () {
+  if (!topSpacer_ || !inputQTMWidget_ || !inputArea_) return;
+  QWidget* frame=
+      inputEditorWidget_ ? inputEditorWidget_->parentWidget () : nullptr;
+  if (!frame) return;
+  int cap= inputFrameHeightCap ();
+  if (frame->height () > cap) frame->setFixedHeight (cap);
+  // 对话模式下留白固定为一个很小的偏移，由消息区占比决定，不在这里调整
+  if (conversationMode_) return;
+  // 用实测几何而不是 sizeHint 求和：frame 之上还有欢迎页标题等固定内容，
+  // 它们的实际占位由布局决定，直接拿 frame 顶边位置减去当前留白即可得到
+  int spacerH= topSpacer_->sizeHint ().height ();
+  int above  = frame->mapTo (this, QPoint (0, 0)).y () - spacerH;
+  // 面板很矮时留白已经压到 0，还得把标题等固定内容计入封顶，否则仍会溢出
+  int minFrame= DpiUtils::scaled (kInputLineHeight * kInputDefaultLines) +
+                fixedFrameExtra_;
+  int capAbove= input_frame_height_cap (height (),
+                                        inputAreaExtraHeight () + above +
+                                            DpiUtils::scaled (kContentSpacing),
+                                        0, minFrame);
+  if (frame->height () > capAbove) frame->setFixedHeight (capAbove);
+  int offset= input_area_spacer_offset (
+      height () * 2 / 7 - DpiUtils::scaled (kContentMarginY), above,
+      frame->height (), inputAreaExtraHeight (),
+      DpiUtils::scaled (kContentSpacing), height ());
+  if (offset == spacerH) return;
+  topSpacer_->changeSize (0, offset, QSizePolicy::Minimum, QSizePolicy::Fixed);
+  if (QLayout* lay= layout ()) {
+    lay->invalidate ();
+    lay->activate ();
+  }
+}
+
 void
 ChatConversationPanel::resizeEvent (QResizeEvent* event) {
   QWidget::resizeEvent (event);
-  // chips 换行由流式布局自行处理，无需 resize 钩子
-  if (conversationMode_ || !topSpacer_) return;
-  int targetOffset= height () * 2 / 7 - DpiUtils::scaled (kContentMarginY);
-  if (targetOffset < 0) targetOffset= 0;
-  topSpacer_->changeSize (0, targetOffset, QSizePolicy::Minimum,
-                          QSizePolicy::Fixed);
-  if (layout ()) {
-    layout ()->invalidate ();
-    layout ()->activate ();
-  }
+  // chips 换行由流式布局自行处理，无需 resize 钩子；输入区始终要完整可见
+  updateInputAreaFit ();
 }
 
 void
@@ -933,9 +1007,13 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
                 DpiUtils::scaled (kInputLineHeight * kInputDefaultLines);
             if (targetFrameH > frame->height () + oneTierStep)
               targetFrameH= frame->height () + oneTierStep;
+            int cap= inputFrameHeightCap ();
+            if (targetFrameH > cap) targetFrameH= cap;
             if (frame->height () < targetFrameH) {
               setUpdatesEnabled (false);
               frame->setFixedHeight (targetFrameH);
+              // 升档后同步收缩欢迎页留白，避免输入区底部被面板底边裁掉
+              updateInputAreaFit ();
               // 等 TeXmacs 排版完成后再恢复绘制
               QTimer::singleShot (0, this,
                                   [this] () { setUpdatesEnabled (true); });
@@ -986,7 +1064,11 @@ ChatConversationPanel::adjust_input_height () {
   int lines= input_content_lines ();
   if (lines < 1) return; // 排版盒未就绪，维持现状等复测
   int targetFrameH= input_frame_height_for_lines (lines);
+  int cap         = inputFrameHeightCap ();
+  if (targetFrameH > cap) targetFrameH= cap;
   if (frame->height () != targetFrameH) frame->setFixedHeight (targetFrameH);
+  // 输入框变高后同步收缩欢迎页留白，避免输入区底部被面板底边裁掉（6251）
+  updateInputAreaFit ();
 }
 
 /******************************************************************************
