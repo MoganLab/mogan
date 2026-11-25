@@ -174,11 +174,24 @@ QTMAiActionsBar::eventFilter (QObject* watched, QEvent* event) {
 }
 
 void
-QTMAiActionsBar::onActionTriggered (const QString& action) {
+QTMAiActionsBar::performAction (const QString& action) {
   if (edit_interface_rep* ed= dynamic_cast<edit_interface_rep*> (this->owner)) {
     // 动作统一入口（引用选区到 AI 侧边栏的流程与快捷键共用），见
     // edit_interface_rep::ai_action
     ed->ai_action (from_qstring_utf8 (action));
+  }
+}
+
+void
+QTMAiActionsBar::onActionTriggered (const QString& action) {
+  try {
+    performAction (action);
+  } catch (string msg) {
+    // 非 std::exception 异常越过 QML 槽会终止进程，统一走项目异常清理
+    cout << "AI action failed: " << msg << LF;
+    the_exception= msg;
+    handle_exceptions ();
+    disarm ();
   }
 }
 
