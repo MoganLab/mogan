@@ -48,6 +48,9 @@ protected:
 
   bool eventFilter (QObject* watched, QEvent* event) override;
 
+  // 编辑动作独立为受保护虚函数，便于在 Qt 槽边界验证异常处理。
+  virtual void performAction (const QString& action);
+
 private slots:
   // QML 根信号 triggered(action) 的接收槽（translate/polish/chat）
   void onActionTriggered (const QString& action);
