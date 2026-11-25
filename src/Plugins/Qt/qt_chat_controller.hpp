@@ -237,6 +237,22 @@ public:
   void onThinkingEffortSelected (const string& sessionId, const string& effort);
 
   /**
+   * @brief 判断状态跃迁是否应安排一次终态消息区重排。
+   *
+   * 仅当旧状态确为 Generating 且新状态为 Idle 时返回 true：正常完成
+   * （chat-tab-session-next）与取消（chat-tab-session-cancel）共用此出口，
+   * 重复 idle、初始历史会话加载与单纯切换会话均不触发。
+   *
+   * 抽成纯函数便于单元测试锁定触发契约，不依赖 GUI 状态。
+   *
+   * @param oldState 跃迁前的会话状态
+   * @param newState 跃迁后的会话状态
+   * @return 应安排重排时返回 true
+   */
+  static bool shouldRelayoutOnStateTransition (ChatState oldState,
+                                               ChatState newState);
+
+  /**
    * @brief Scheme→C++ 回调：通知状态变更。
    */
   void notifyStateChanged (const string& sessionId, const string& stateStr);

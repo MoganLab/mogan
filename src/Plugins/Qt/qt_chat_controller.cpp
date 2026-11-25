@@ -996,15 +996,37 @@ ChatController::onRenameRequested (const string& sessionId,
   updateManifest (sessionId);
 }
 
+bool
+ChatController::shouldRelayoutOnStateTransition (ChatState oldState,
+                                                 ChatState newState) {
+  // 仅 Generating→Idle 才重排：正常结束与取消共用此出口；重复 idle、
+  // 初始历史会话加载与单纯切换会话不触发，避免每次全文排版失效
+  return oldState == ChatState::Generating && newState == ChatState::Idle;
+}
+
 void
 ChatController::notifyStateChanged (const string& sessionId,
                                     const string& stateStr) {
   ChatSession* session= sessionManager_.getSession (sessionId);
   if (!session) return;
 
+  ChatState oldState= session->state;
   ChatState newState=
       (stateStr == "generating") ? ChatState::Generating : ChatState::Idle;
   sessionManager_.setState (sessionId, newState);
+
+  // 终态重排：仅在 Generating→Idle 跃迁时安排一次，放到当前状态通知之后
+  // 的下一轮事件循环，给最后的树更新、Qt LayoutRequest/Resize 通知先
+  // 落地的机会；以 panel 为上下文防止删除会话后回调访问悬空对象，重排
+  // 目标固定为刚完成的会话（不读取届时可能已变化的 activeSessionId）
+  if (shouldRelayoutOnStateTransition (oldState, newState) && session->panel &&
+      view_) {
+    QPointer<ChatConversationPanel> panelGuard (
+        static_cast<ChatConversationPanel*> (session->panel));
+    QTimer::singleShot (0, panelGuard, [panelGuard] () {
+      if (panelGuard) panelGuard->relayoutMessageWidget ();
+    });
+  }
 
   if (!session->panel || !view_) return;
   ChatConversationPanel* panel=

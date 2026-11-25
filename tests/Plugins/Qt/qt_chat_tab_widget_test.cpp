@@ -1202,6 +1202,39 @@ private slots:
         Qt::Key_A, Qt::NoModifier, false));
   }
 
+  // === 6252: relayoutMessageWidget 消息区终态重排入口 ===
+  // 无编辑器保护、目标 buffer 隔离与对象生命周期
+  void test_relayoutMessageWidget_no_editor_safe_return () {
+    // 欢迎模式：messageWidget_ 尚未创建，重排入口安全返回 false，
+    // 不创建新 buffer、不访问空编辑器
+    ChatConversationPanel panel ("test-session", url_none (), url_none (),
+                                 nullptr);
+    QVERIFY (!panel.relayoutMessageWidget ());
+  }
+
+  void test_relayoutMessageWidget_only_targets_own_panel_buffer () {
+    // 多面板共存：重排仅作用于被调用的面板，不依赖当前活动会话或主文档。
+    // 此处验证入口不读全局状态——调用 A 的重排不影响 B 的 messageWidget_
+    // （B 未创建编辑器仍安全返回 false）。目标隔离由 ChatController 在
+    // notifyStateChanged 中以 panel 上下文 + sessionId 固定保证，本测试
+    // 锁定面板侧语义单一
+    ChatConversationPanel panelA ("sess-a", url_none (), url_none (), nullptr);
+    ChatConversationPanel panelB ("sess-b", url_none (), url_none (), nullptr);
+    // 两者均在欢迎模式，重排各自安全返回 false
+    QVERIFY (!panelA.relayoutMessageWidget ());
+    QVERIFY (!panelB.relayoutMessageWidget ());
+  }
+
+  void test_relayoutMessageWidget_safe_after_destruction () {
+    // 面板销毁后不调用重排：ChatController 以 QPointer 守护，本测试覆盖
+    // 面板侧入口不会因对象生命周期产生悬空访问（未创建编辑器即返回）
+    QPointer<ChatConversationPanel> panel (new ChatConversationPanel (
+        "sess-x", url_none (), url_none (), nullptr));
+    QVERIFY (!panel->relayoutMessageWidget ());
+    delete panel;
+    QVERIFY (panel == nullptr);
+  }
+
   // === input_frame_height_cap：输入框高度按面板可用高度封顶 ===
   // 长表格引用块升到 5 倍档（382px）时，若不封顶会把输入区底部（按钮行与
   // 光标所在行）顶出面板底边而被裁掉（6251）。

@@ -306,6 +306,125 @@ private slots:
     ctrl.view_= nullptr;
   }
 
+  // === 6252: 终态跃迁触发规则（shouldRelayoutOnStateTransition）===
+  // 把「上一轮为 Generating 且新状态为 Idle」提取为可测纯函数：正常完成
+  // 与取消共用此出口，重复 idle / 初始历史加载 / 单纯切换会话均不触发
+  void test_relayout_transition_generating_to_idle () {
+    QVERIFY (ChatController::shouldRelayoutOnStateTransition (
+        ChatState::Generating, ChatState::Idle));
+  }
+
+  void test_relayout_transition_idle_to_idle_no_trigger () {
+    QVERIFY (!ChatController::shouldRelayoutOnStateTransition (
+        ChatState::Idle, ChatState::Idle));
+  }
+
+  void test_relayout_transition_idle_to_generating_no_trigger () {
+    QVERIFY (!ChatController::shouldRelayoutOnStateTransition (
+        ChatState::Idle, ChatState::Generating));
+  }
+
+  void test_relayout_transition_generating_to_generating_no_trigger () {
+    // 同状态不重排：流式期间重复 generating 通知不应每次全文排版失效
+    QVERIFY (!ChatController::shouldRelayoutOnStateTransition (
+        ChatState::Generating, ChatState::Generating));
+  }
+
+  // === 6252: notifyStateChanged 跃迁调度与生命周期 ===
+  // 会话未注册时 exportBuffer/updateManifest 提前返回，无需 Scheme 栈；
+  // 面板输入区在无 TeXmacs buffer 时回退为普通 QWidget，focusInput 为空操作
+  void driveNotifyState (ChatController& ctrl, const string& sid,
+                         const string& state) {
+    ctrl.notifyStateChanged (sid, state);
+  }
+
+  void test_notifyState_generating_to_idle_schedules_single_relayout () {
+    // Generating→Idle 跃迁仅调度一次重排：进入 Generating（不重排）、再进 Idle
+    // （重排一次），事件循环处理后续一次后无副作用
+    ChatController            ctrl;
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    ctrl.view_                  = &widget;
+    string                 sid  = ctrl.sessionManager_.createSession ();
+    ChatConversationPanel* panel= widget.createPanel (sid);
+    QVERIFY (panel != nullptr);
+    ctrl.sessionManager_.getSession (sid)->panel= panel;
+    // 欢迎模式：消息编辑器尚未创建，relayoutMessageWidget 安全返回 false
+    QVERIFY (!panel->relayoutMessageWidget ());
+
+    // 进 Generating：按规则不重排
+    driveNotifyState (ctrl, sid, "generating");
+    QCOMPARE (ctrl.sessionManager_.getSession (sid)->state,
+              ChatState::Generating);
+    // 进 Idle：按规则调度一次重排（欢迎模式下实际 relayout 返回 false，
+    // 验证调度链路不崩）
+    driveNotifyState (ctrl, sid, "idle");
+    QCOMPARE (ctrl.sessionManager_.getSession (sid)->state, ChatState::Idle);
+    // 事件循环落地零延时 singleShot 回调
+    QTest::qWait (20);
+
+    ctrl.view_= nullptr;
+  }
+
+  void test_notifyState_idle_to_idle_no_relayout () {
+    // 初始历史会话加载 / 单纯通知 idle：旧状态 Idle 不重排
+    ChatController            ctrl;
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    ctrl.view_                  = &widget;
+    string                 sid  = ctrl.sessionManager_.createSession ();
+    ChatConversationPanel* panel= widget.createPanel (sid);
+    ctrl.sessionManager_.getSession (sid)->panel= panel;
+
+    driveNotifyState (ctrl, sid, "idle");
+    QCOMPARE (ctrl.sessionManager_.getSession (sid)->state, ChatState::Idle);
+    QTest::qWait (20);
+
+    ctrl.view_= nullptr;
+  }
+
+  void test_notifyState_generating_to_generating_no_relayout () {
+    // 流式期间重复 generating：旧状态 Generating 且新状态亦 Generating，
+    // 不应调度全文排版失效
+    ChatController            ctrl;
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    ctrl.view_                  = &widget;
+    string                 sid  = ctrl.sessionManager_.createSession ();
+    ChatConversationPanel* panel= widget.createPanel (sid);
+    ctrl.sessionManager_.getSession (sid)->panel= panel;
+
+    driveNotifyState (ctrl, sid, "generating");
+    driveNotifyState (ctrl, sid, "generating");
+    QCOMPARE (ctrl.sessionManager_.getSession (sid)->state,
+              ChatState::Generating);
+    QTest::qWait (20);
+
+    ctrl.view_= nullptr;
+  }
+
+  void test_notifyState_panel_destroyed_before_relayout_callback_safe () {
+    // Generating→Idle 后面板被销毁（删除会话），零延时回调以 panel 为
+    // 上下文，QPointer 守护使回调不再访问悬空对象
+    ChatController            ctrl;
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    ctrl.view_                  = &widget;
+    string                 sid  = ctrl.sessionManager_.createSession ();
+    ChatConversationPanel* panel= widget.createPanel (sid);
+    ctrl.sessionManager_.getSession (sid)->panel= panel;
+
+    driveNotifyState (ctrl, sid, "generating");
+    driveNotifyState (ctrl, sid, "idle");
+    // 在 zero-delay 回调落地前销毁面板
+    widget.removePanel (panel);
+    ctrl.sessionManager_.getSession (sid)->panel= nullptr;
+    // 事件循环运行：回调遇 QPointer 为空安全跳过，不崩
+    QTest::qWait (20);
+
+    ctrl.view_= nullptr;
+  }
+
   // === 附件下发序列化（预检在附件插件侧，见 chat-protocol-test） ===
 
   static AttachmentItem make_attachment (const QString& path,

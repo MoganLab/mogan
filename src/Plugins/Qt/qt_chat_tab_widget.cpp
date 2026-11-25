@@ -673,6 +673,23 @@ ChatConversationPanel::ensureMessageWidget () {
   messageFrame_->layout ()->addWidget (messageQWidget);
 }
 
+bool
+ChatConversationPanel::relayoutMessageWidget () {
+  // messageWidget_ 尚未创建（未进入对话模式）或容器已销毁时安全跳过，
+  // 不为重排创建新 buffer/编辑器
+  if (is_nil (messageWidget_) || !messageFrame_) return false;
+  QWidget* messageQWidget= concrete (messageWidget_)->as_qwidget ();
+  if (!messageQWidget) return false;
+  QTMWidget* msgEditor= messageQWidget->findChild<QTMWidget*> ();
+  if (!msgEditor) return false;
+  qt_simple_widget_rep* tm= msgEditor->tm_widget ();
+  edit_interface_rep*   ed= dynamic_cast<edit_interface_rep*> (tm);
+  if (!ed) return false;
+  // 仅使本会话消息 buffer 的排版失效，后续绘制流程据实际尺寸重排
+  ed->typeset_invalidate_all ();
+  return true;
+}
+
 void
 ChatConversationPanel::enterConversationMode (bool animate) {
   if (conversationMode_) return;
