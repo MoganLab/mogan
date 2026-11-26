@@ -207,6 +207,7 @@ resolve_cursor (mogan_tree_id tid, string off_field, tree buf,
     }
   }
 
+  if (N (core_off) == 0) return path ();
   char   head= core_off[0];
   string rest= core_off (1, N (core_off));
   int    off = head == 'T'   ? loro_doc->decode_body_cursor_hex (rest)
