@@ -2219,12 +2219,10 @@ QTChatTabWidget::reflowConversationContent (ChatConversationPanel* panel) {
     }
   } guard (this);
 
-  // 同一 panel 指针移除并立即重新插入，恢复为当前页（不销毁/重建）
-  conversationStack_->removeWidget (panel);
-  conversationStack_->addWidget (panel);
-  conversationStack_->setCurrentWidget (panel);
-
-  // 面板、消息区与嵌入编辑器布局链重算（非单独 repaint）
+  // 不重挂 panel（removeWidget/addWidget 会让消息 QTMWidget 经历 reparent，
+  // 触发 show/resize 与 the_gui 重新排版，破坏 TeXmacs 消息视图并使内容
+  // 消失）。只对当前活动面板的布局链与消息区嵌入编辑器做尺寸重算，
+  // 让 TeXmacs 消息排版按当前宽度重新计算，内容不重建。
   panel->reflowContent ();
   if (panel->layout ()) {
     panel->layout ()->invalidate ();
