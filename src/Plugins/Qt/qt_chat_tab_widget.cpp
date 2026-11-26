@@ -653,6 +653,7 @@ ChatConversationPanel::ensureMessageWidget () {
   set_zoom_factor (messageWidget_, chatZoom);
 
   QWidget* messageQWidget= concrete (messageWidget_)->as_qwidget ();
+  messageEditorWidget_   = messageQWidget;
   messageQWidget->setParent (messageFrame_);
   messageQWidget->setMinimumHeight (DpiUtils::scaled (kMessageMinHeight));
   // TeXmacs 尺寸提示（根窗口大小）不得传导到 dock 几何：此前只 Ignored
@@ -684,16 +685,16 @@ ChatConversationPanel::reflowContent () {
     reflowLayoutOps_++;
   }
   // 消息区嵌入编辑器尺寸重算（TeXmacs 消息排版按当前宽度重新计算）
-  if (!is_nil (messageWidget_) && concrete (messageWidget_).rep) {
-    QWidget* mw= concrete (messageWidget_)->as_qwidget ();
-    if (mw) {
-      if (mw->layout ()) {
-        mw->layout ()->invalidate ();
-        mw->layout ()->activate ();
-      }
-      mw->updateGeometry ();
-      reflowLayoutOps_++;
+  // 复用 ensureMessageWidget 缓存的 QWidget，不重新调 as_qwidget（嵌入
+  // widget 的 as_qwidget 每次新建容器，会扯走 QTMWidget、清空消息区）
+  if (messageEditorWidget_) {
+    QWidget* mw= messageEditorWidget_;
+    if (mw->layout ()) {
+      mw->layout ()->invalidate ();
+      mw->layout ()->activate ();
     }
+    mw->updateGeometry ();
+    reflowLayoutOps_++;
   }
   // 输入区编辑器同步重算（嵌入输入框高度档位保持）
   if (inputQTMWidget_ && inputEditorWidget_) {

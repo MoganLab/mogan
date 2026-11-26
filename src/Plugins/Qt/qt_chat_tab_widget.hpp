@@ -323,13 +323,15 @@ private:
   /// 当前面板高度下输入框 frame 允许的最大高度
   int inputFrameHeightCap () const;
 
-  string              sessionId_;                ///< 所属会话 ID
-  url                 msgBufferUrl_;             ///< 消息缓冲区 URL（外部注入）
-  url                 inputBufferUrl_;           ///< 输入缓冲区 URL（外部注入）
-  bool                conversationMode_ = false; ///< 是否已进入对话模式
-  QLabel*             welcomeTitle_     = nullptr; ///< 欢迎页标题
-  QLabel*             sessionTitle_     = nullptr; ///< 会话标题标签
-  QWidget*            messageFrame_     = nullptr; ///< 消息区域容器
+  string   sessionId_;                 ///< 所属会话 ID
+  url      msgBufferUrl_;              ///< 消息缓冲区 URL（外部注入）
+  url      inputBufferUrl_;            ///< 输入缓冲区 URL（外部注入）
+  bool     conversationMode_= false;   ///< 是否已进入对话模式
+  QLabel*  welcomeTitle_    = nullptr; ///< 欢迎页标题
+  QLabel*  sessionTitle_    = nullptr; ///< 会话标题标签
+  QWidget* messageFrame_    = nullptr; ///< 消息区域容器
+  QWidget* messageEditorWidget_=
+      nullptr; ///< 消息区编辑器容器（as_qwidget 缓存，避免重复创建）
   QWidget*            inputEditorWidget_= nullptr; ///< 输入编辑器容器
   QTMWidget*          inputQTMWidget_   = nullptr; ///< 输入区 QTMWidget
   QToolButton*        sendButton_       = nullptr; ///< 发送/停止按钮
