@@ -32,6 +32,7 @@
 
 #include <QAbstractScrollArea>
 #include <QActionGroup>
+#include <QApplication>
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QDockWidget>
@@ -652,6 +653,7 @@ ChatConversationPanel::ensureMessageWidget () {
   set_zoom_factor (messageWidget_, chatZoom);
 
   QWidget* messageQWidget= concrete (messageWidget_)->as_qwidget ();
+  messageEditorWidget_   = messageQWidget;
   messageQWidget->setParent (messageFrame_);
   messageQWidget->setMinimumHeight (DpiUtils::scaled (kMessageMinHeight));
   // TeXmacs 尺寸提示（根窗口大小）不得传导到 dock 几何：此前只 Ignored
@@ -671,6 +673,38 @@ ChatConversationPanel::ensureMessageWidget () {
     msgEditor->setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
   }
   messageFrame_->layout ()->addWidget (messageQWidget);
+}
+
+void
+ChatConversationPanel::reflowContent () {
+  // 消息区容器布局重算
+  if (messageFrame_ && messageFrame_->layout ()) {
+    messageFrame_->layout ()->invalidate ();
+    messageFrame_->layout ()->activate ();
+    messageFrame_->updateGeometry ();
+    reflowLayoutOps_++;
+  }
+  // 消息区嵌入编辑器尺寸重算（TeXmacs 消息排版按当前宽度重新计算）
+  // 复用 ensureMessageWidget 缓存的 QWidget，不重新调 as_qwidget（嵌入
+  // widget 的 as_qwidget 每次新建容器，会扯走 QTMWidget、清空消息区）
+  if (messageEditorWidget_) {
+    QWidget* mw= messageEditorWidget_;
+    if (mw->layout ()) {
+      mw->layout ()->invalidate ();
+      mw->layout ()->activate ();
+    }
+    mw->updateGeometry ();
+    reflowLayoutOps_++;
+  }
+  // 输入区编辑器同步重算（嵌入输入框高度档位保持）
+  if (inputQTMWidget_ && inputEditorWidget_) {
+    if (inputEditorWidget_->layout ()) {
+      inputEditorWidget_->layout ()->invalidate ();
+      inputEditorWidget_->layout ()->activate ();
+    }
+    inputEditorWidget_->updateGeometry ();
+    reflowLayoutOps_++;
+  }
 }
 
 void
@@ -2152,6 +2186,68 @@ QTChatTabWidget::removePanel (ChatConversationPanel* panel) {
   if (sidebar_) sidebar_->removeItem (panel->sessionId ());
 
   panel->deleteLater ();
+}
+
+void
+QTChatTabWidget::reflowConversationContent (ChatConversationPanel* panel) {
+  if (!panel || !conversationStack_) return;
+  // 仅重排活动面板：后台会话不抢焦点
+  if (activeConversation_ != panel) return;
+  // 保存焦点与消息滚动位置（同一 Qt 事件回调内同步恢复）
+  QWidget* focusBefore = QApplication::focusWidget ();
+  int      msgScrollY  = 0;
+  int      msgScrollMax= 0;
+  QWidget* msgArea     = nullptr;
+  if (panel->messageFrame ()) {
+    msgArea= panel->messageFrame ()->findChild<QAbstractScrollArea*> ();
+    if (msgArea) {
+      auto* sv    = qobject_cast<QAbstractScrollArea*> (msgArea);
+      msgScrollY  = sv->verticalScrollBar ()->value ();
+      msgScrollMax= sv->verticalScrollBar ()->maximum ();
+    }
+  }
+
+  // 作用域守卫：暂时禁用外层重绘，异常/提前返回也恢复
+  struct UpdatesGuard {
+    QWidget* w;
+    bool     was;
+    UpdatesGuard (QWidget* widget)
+        : w (widget), was (widget && widget->updatesEnabled ()) {
+      if (w) w->setUpdatesEnabled (false);
+    }
+    ~UpdatesGuard () {
+      if (w) w->setUpdatesEnabled (was);
+    }
+  } guard (this);
+
+  // 不重挂 panel（removeWidget/addWidget 会让消息 QTMWidget 经历 reparent，
+  // 触发 show/resize 与 the_gui 重新排版，破坏 TeXmacs 消息视图并使内容
+  // 消失）。只对当前活动面板的布局链与消息区嵌入编辑器做尺寸重算，
+  // 让 TeXmacs 消息排版按当前宽度重新计算，内容不重建。
+  panel->reflowContent ();
+  if (panel->layout ()) {
+    panel->layout ()->invalidate ();
+    panel->layout ()->activate ();
+  }
+  panel->updateGeometry ();
+
+  // 恢复消息滚动位置：内容不变，仅重新计算布局尺寸
+  if (msgArea) {
+    auto* sv= qobject_cast<QAbstractScrollArea*> (msgArea);
+    if (sv) {
+      int newMax= sv->verticalScrollBar ()->maximum ();
+      int target= (msgScrollMax > 0)
+                      ? (int) ((qint64) msgScrollY * newMax / msgScrollMax)
+                      : newMax;
+      sv->verticalScrollBar ()->setValue (target);
+    }
+  }
+
+  // 恢复焦点（可能因重挂丢失）
+  if (focusBefore) focusBefore->setFocus ();
+
+  reflowCount_++;
+  emit conversationReflowed (panel);
 }
 
 /******************************************************************************

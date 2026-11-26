@@ -235,6 +235,14 @@ function main()
                     "string"
                 }
             },
+            {
+                scm_name = "qt-chat-tab-notify-real-plugin-completed",
+                cpp_name = "qt_chat_tab_notify_real_plugin_completed",
+                ret_type = "void",
+                arg_list = {
+                    "string"
+                }
+            },
 
             {
                 scm_name = "qt-chat-tab-restore-session",

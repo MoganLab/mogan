@@ -139,6 +139,9 @@ public:
   QLabel*             sessionTitle () const { return sessionTitle_; }
   const string&       sessionId () const { return sessionId_; }
   bool                conversationMode () const { return conversationMode_; }
+  QTMWidget*          inputQTMWidget () const { return inputQTMWidget_; }
+  QWidget*            messageFrame () const { return messageFrame_; }
+  int                 reflowLayoutOps () const { return reflowLayoutOps_; }
 
   /**
    * @name 附件 chips
@@ -176,6 +179,15 @@ public:
   /// 附件字节数格式化（子 KiB 保留原样避免千分位，其余走 C locale）
   static QString format_attachment_size (qint64 bytes);
   /** @} */
+
+  /**
+   * @brief 重排本面板内部布局（消息区与嵌入编辑器尺寸重算）。
+   *
+   * 由 QTChatTabWidget::reflowConversationContent 在面板重挂后下沉调用，
+   * 对消息区容器与嵌入编辑器执行 invalidate/activate/updateGeometry，
+   * 使 TeXmacs 消息排版按当前宽度重新计算。不销毁任何控件。
+   */
+  void reflowContent ();
 
   /**
    * @brief 判断文档体是否为空（仅含一个空字符串的 DOCUMENT 节点）。
@@ -311,13 +323,15 @@ private:
   /// 当前面板高度下输入框 frame 允许的最大高度
   int inputFrameHeightCap () const;
 
-  string              sessionId_;                ///< 所属会话 ID
-  url                 msgBufferUrl_;             ///< 消息缓冲区 URL（外部注入）
-  url                 inputBufferUrl_;           ///< 输入缓冲区 URL（外部注入）
-  bool                conversationMode_ = false; ///< 是否已进入对话模式
-  QLabel*             welcomeTitle_     = nullptr; ///< 欢迎页标题
-  QLabel*             sessionTitle_     = nullptr; ///< 会话标题标签
-  QWidget*            messageFrame_     = nullptr; ///< 消息区域容器
+  string   sessionId_;                 ///< 所属会话 ID
+  url      msgBufferUrl_;              ///< 消息缓冲区 URL（外部注入）
+  url      inputBufferUrl_;            ///< 输入缓冲区 URL（外部注入）
+  bool     conversationMode_= false;   ///< 是否已进入对话模式
+  QLabel*  welcomeTitle_    = nullptr; ///< 欢迎页标题
+  QLabel*  sessionTitle_    = nullptr; ///< 会话标题标签
+  QWidget* messageFrame_    = nullptr; ///< 消息区域容器
+  QWidget* messageEditorWidget_=
+      nullptr; ///< 消息区编辑器容器（as_qwidget 缓存，避免重复创建）
   QWidget*            inputEditorWidget_= nullptr; ///< 输入编辑器容器
   QTMWidget*          inputQTMWidget_   = nullptr; ///< 输入区 QTMWidget
   QToolButton*        sendButton_       = nullptr; ///< 发送/停止按钮
@@ -333,6 +347,7 @@ private:
   int                   fixedFrameExtra_= 0; ///< 输入框额外高度（边框等）
   int  inputExtentLinePx_= 0; ///< 空输入时标定的单行内容高度（0 = 未标定）
   bool inputHeightAdjustScheduled_= false; ///< 是否已有待执行的高度更新
+  int  reflowLayoutOps_= 0; ///< 重排时布局重算操作计数（供测试白盒断言）
 
   QWidget* inputArea_= nullptr; ///< 输入区容器（输入框 + 免责声明）
 };
@@ -585,6 +600,20 @@ public:
    */
   void removePanel (ChatConversationPanel* panel);
 
+  /**
+   * @brief 对目标会话面板做一次无闪烁内容重排。
+   *
+   * 同一 Qt 事件回调内同步完成：暂时禁用外层聊天控件重绘（作用域守卫保证
+   * 恢复），将目标 panel 从 conversationStack_ 移除并立即重新插入、恢复当前
+   * 面板，再对 panel、消息区与嵌入编辑器布局执行 invalidate/activate/
+   * updateGeometry，最后恢复焦点/滚动。中间不 processEvents、sleep、隐藏
+   * Dock 或跨定时器等待。不销毁 panel、消息 buffer 或会话，不调用
+   * sync_chat_sidebar_mode/onDockSidebarShown/ensureNewConversation。
+   *
+   * @param panel 要重排的面板（须为活动面板）
+   */
+  void reflowConversationContent (ChatConversationPanel* panel);
+
   // ---- 状态 ----
   /// 设置关联的 TeXmacs widget（用于 Scheme 交互）
   void setParentTmWidget (qt_tm_widget_rep* tm) { parentTmWidget_= tm; }
@@ -604,6 +633,8 @@ public:
   ChatConversationPanel*         activeConversation () const {
     return activeConversation_;
   }
+  /// 已执行内容重排次数（供测试白盒断言）
+  int  reflowCount () const { return reflowCount_; }
   void setSidebarCollapsed (bool collapsed);
   bool isSidebarCollapsed () const { return sidebarCollapsed_; }
 
@@ -663,6 +694,8 @@ signals:
   void explainClicked ();
   /// 请求切换到 Chat 标签页（dock 侧边栏模式的最大化按钮）
   void maximizeRequested ();
+  /// 一次内容重排已执行（供测试白盒断言）
+  void conversationReflowed (ChatConversationPanel* panel);
 
 protected:
   /// 键盘事件处理（Ctrl+N 新建会话等）
@@ -707,6 +740,9 @@ private:
   bool                   dockMode_            = false; ///< 是否 dock 侧边栏模式
   int                    sidebarExpandedWidth_= 0;     ///< 侧边栏展开时宽度
   qt_tm_widget_rep*      parentTmWidget_= nullptr; ///< 关联的 TeXmacs widget
+
+  /// 已执行内容重排次数（供测试白盒断言）
+  int reflowCount_= 0;
 
   static bool globalSidebarCollapsed_; ///< 全局记忆的侧边栏折叠状态
   static bool initBenchPending_;       ///< chat_init 计时待结束标记

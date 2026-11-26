@@ -294,6 +294,9 @@ ChatController::onSendRequested (const string& sessionId) {
   sessionManager_.touchSession (sessionId);
   panel->enterConversationMode ();
 
+  // 用户迅速开始新一轮时取消旧的待执行重排，不在新一轮流式输出中重排
+  reflowPending_.remove (to_qstring (sessionId));
+
   panel->focusInput ();
   exportBuffer (sessionId);
   updateManifest (sessionId);
@@ -302,6 +305,9 @@ ChatController::onSendRequested (const string& sessionId) {
 
 void
 ChatController::onCancelRequested (const string& sessionId) {
+  // 用户 Stop：进程停止后不再依赖插件补发完成通知，登记停止后重排请求，
+  // 等取消回调写入中断标记、idle 与消息导出收尾后重排一次
+  requestConversationReflow (sessionId, "stop");
   call ("chat-tab-cancel", sessionId);
 }
 
@@ -1040,7 +1046,45 @@ ChatController::notifyStateChanged (const string& sessionId,
     exportBuffer (sessionId);
     updateManifest (sessionId);
     panel->focusInput ();
+    // idle 收尾后调度待执行的内容重排（真插件完成通知或用户 Stop 登记）
+    if (reflowPending_.take (to_qstring (sessionId))) {
+      QTimer::singleShot (0, this,
+                          [this, sessionId] () { executeReflow (sessionId); });
+    }
   }
+}
+
+void
+ChatController::requestConversationReflow (const string& sessionId,
+                                           const string& reason) {
+  if (!view_) return;
+  ChatSession* session= sessionManager_.getSession (sessionId);
+  if (!session || !session->panel) return;
+  // 同一会话已有待执行任务时合并，只执行一次
+  QString key= to_qstring (sessionId);
+  if (reflowPending_.value (key, false)) return;
+  reflowPending_.insert (key, true);
+  // Generating 时只登记，等 idle 收尾后调度，避免重入正在清理的控件
+  if (session->state == ChatState::Generating) return;
+  QTimer::singleShot (0, this,
+                      [this, sessionId] () { executeReflow (sessionId); });
+}
+
+void
+ChatController::executeReflow (const string& sessionId) {
+  // take 已在 request/idle 调度时清除 pending；这里再清一次兜底竞态
+  reflowPending_.remove (to_qstring (sessionId));
+  if (!view_) return;
+  ChatSession* session= sessionManager_.getSession (sessionId);
+  if (!session || !session->panel) return;
+  // 用户已开始新一轮 Generating，不在新一轮流式输出中重排
+  if (session->state == ChatState::Generating) return;
+  // AI Dock 未可见（已隐藏/全屏聊天）不强制打开，后台会话不抢焦点
+  if (!view_->isVisible ()) return;
+  ChatConversationPanel* panel=
+      static_cast<ChatConversationPanel*> (session->panel);
+  if (view_->activeConversation () != panel) return;
+  view_->reflowConversationContent (panel);
 }
 
 void
@@ -1461,6 +1505,13 @@ qt_chat_notify_main_document_changed (const string& name) {
 void
 qt_chat_tab_set_state (string sessionId, string stateStr) {
   get_chat_controller ()->notifyStateChanged (sessionId, stateStr);
+}
+
+void
+qt_chat_tab_notify_real_plugin_completed (string sessionId) {
+  ChatController* ctrl= get_chat_controller ();
+  if (!ctrl) return;
+  ctrl->requestConversationReflow (sessionId, "real-complete");
 }
 
 void
