@@ -37,5 +37,6 @@
         <file>qml/PageNumber.qml</file>
         <file>qml/GoMenu.qml</file>
         <file>qml/OutlineSidebar.qml</file>
+        <file>qml/DocumentMetadata.qml</file>
     </qresource>
 </RCC>
