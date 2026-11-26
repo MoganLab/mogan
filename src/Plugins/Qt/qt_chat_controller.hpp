@@ -242,6 +242,22 @@ public:
   void notifyStateChanged (const string& sessionId, const string& stateStr);
 
   /**
+   * @brief 登记对目标会话内容的一次无闪烁重排请求。
+   *
+   * 真插件正常完成通知（qt_chat_tab_notify_real_plugin_completed）与
+   * 用户 Stop（onCancelRequested）都汇入此入口。按 sessionId 维护待重排
+   * 状态：同一会话已有待执行任务时合并，只执行一次；正在 Generating 时
+   * 只登记，等 idle 收尾后调度；Idle 时立即经事件队列调度，避免重入
+   * 插件回调栈和正在清理的控件。执行后清除 pending，使后续每轮可重新
+   * 请求；新一轮 Generating 时取消旧任务，不在新一轮流式输出中重排。
+   * 不重开 Dock、不切会话、不调用 onDockSidebarShown/ensureNewConversation。
+   *
+   * @param sessionId 目标会话 ID
+   * @param reason    触发原因（用于日志/测试，"real-complete" 或 "stop"）
+   */
+  void requestConversationReflow (const string& sessionId,
+                                  const string& reason);
+  /**
    * @brief Scheme→C++ 回调：恢复单个会话元数据。
    */
   void restoreSessionMeta (const ChatSession& session);
@@ -307,6 +323,25 @@ private:
   QHash<QString, QString> attachConvertedPdf_; ///< taskId → 待终态清理的 PDF
   int               attachTaskSeq_= 0; ///< ingest 任务号自增序号（不透明）
   QPointer<QWidget> attachMenuPopup_;  ///< 附件菜单悬浮窗
+
+  /**
+   * @brief 按 sessionId 记录的待重排请求状态。
+   *
+   * 仅真插件正常完成与用户 Stop 设置；普通 idle 不触碰。同一会话
+   * 已有待执行任务时合并，确保只重排一次。
+   */
+  QHash<QString, bool> reflowPending_;
+
+  /**
+   * @brief 真正执行一次内容重排。
+   *
+   * 清除 pending 后，校验会话/面板仍在、非 Generating、AI Dock 可见且
+   * panel 是当前活动面板（后台会话不抢焦点），再委托 View 重排。任一
+   * 条件不满足则跳过，避免重排已销毁/不可见/非活动会话。
+   *
+   * @param sessionId 目标会话 ID
+   */
+  void executeReflow (const string& sessionId);
 
   /**
    * @brief 批量附加文件到指定会话：去重、派发 ingest 并入列 chips。
@@ -514,9 +549,12 @@ private:
       string createdAtStr, string updatedAtStr, int defaultExpandCount,
       string thinking, string search, string thinkingEffort);
   friend void qt_chat_notify_input_height ();
+  friend void qt_chat_tab_notify_real_plugin_completed (string sessionId);
   friend void qt_chat_ai_send_selection (tree sel, string action);
+  friend void qt_chat_tab_notify_real_plugin_completed (string sessionId);
   friend class AttachMenuBridge;
   friend class TestChatController;
+  friend struct ReflowFixture;
 };
 
 /**
@@ -587,6 +625,17 @@ string qt_chat_tab_active_message_buffer_url ();
  * @brief Scheme→C++ 回调：通知 Chat 输入区重新计算高度。
  */
 void qt_chat_notify_input_height ();
+
+/**
+ * @brief Scheme→C++ 回调：真插件本轮流式回复正常完成通知。
+ *
+ * 由 Liii finalize-response! 在 data-end 后经 flush-command 投递，携带
+ * 本轮 sessionId。Mogan 等消息导出与 idle 状态收尾后对目标会话内容重排
+ * 一次，不重开整个 Dock、不切会话、不重新请求模型。假插件正常完成不
+ * 走此通道。
+ * @param sessionId 本轮回复所属会话 ID
+ */
+void qt_chat_tab_notify_real_plugin_completed (string sessionId);
 
 /**
  * @brief 主文档切换通知（qt_tm_widget SLOT_FILE 调用）。

@@ -1367,6 +1367,61 @@ private slots:
               qPrintable (QString ("topPanel height = %1, expected > 400")
                               .arg (topPanel->height ())));
   }
+  // === 6254 内容重排：重挂同一 panel 指针、布局重算、信号发射（无 GUI）===
+  // 直接调用 reflowConversationContent，不 show 不弹窗；QStackedWidget 的重挂、
+  // invalidate/activate/updateGeometry 与信号发射均可在未 show 控件上验证
+
+  void test_reflow_remounts_same_panel_pointer () {
+    QTChatTabWidget        widget (QList<SessionDisplayInfo> (), "", nullptr);
+    string                 sid1 = "s-reflow-1";
+    ChatConversationPanel* panel= widget.createPanel (sid1);
+    QVERIFY (panel != nullptr);
+    widget.activatePanel (panel);
+    QCOMPARE (widget.activeConversation (), panel);
+
+    ChatConversationPanel* before= widget.activeConversation ();
+    widget.reflowConversationContent (panel);
+    // 同一 panel 指针重挂，活动面板指针不变
+    QCOMPARE (widget.activeConversation (), before);
+    QVERIFY (widget.conversations ().contains (panel));
+    // 重排计数递增
+    QCOMPARE (widget.reflowCount (), 1);
+    // 面板内部布局重算操作执行（reflowLayoutOps>0）
+    QVERIFY (panel->reflowLayoutOps () > 0);
+  }
+
+  void test_reflow_non_active_panel_skipped () {
+    QTChatTabWidget        widget (QList<SessionDisplayInfo> (), "", nullptr);
+    string                 sid1  = "s-reflow-a";
+    string                 sid2  = "s-reflow-b";
+    ChatConversationPanel* panel1= widget.createPanel (sid1);
+    ChatConversationPanel* panel2= widget.createPanel (sid2);
+    widget.activatePanel (panel1);
+    // panel2 非活动面板：重排被跳过，计数与布局操作不变
+    int opsBefore= panel2->reflowLayoutOps ();
+    widget.reflowConversationContent (panel2);
+    QCOMPARE (widget.reflowCount (), 0);
+    QCOMPARE (panel2->reflowLayoutOps (), opsBefore);
+  }
+
+  void test_reflow_emits_signal () {
+    QTChatTabWidget        widget (QList<SessionDisplayInfo> (), "", nullptr);
+    string                 sid1 = "s-reflow-sig";
+    ChatConversationPanel* panel= widget.createPanel (sid1);
+    widget.activatePanel (panel);
+
+    QSignalSpy spy (&widget, &QTChatTabWidget::conversationReflowed);
+    widget.reflowConversationContent (panel);
+    // 同步发射（未依赖事件循环等待）
+    QCOMPARE (spy.count (), 1);
+    QCOMPARE (spy.at (0).at (0).value<ChatConversationPanel*> (), panel);
+  }
+
+  void test_reflow_null_panel_safe () {
+    QTChatTabWidget widget (QList<SessionDisplayInfo> (), "", nullptr);
+    widget.reflowConversationContent (nullptr);
+    QCOMPARE (widget.reflowCount (), 0);
+  }
 };
 
 QTEST_MAIN (TestChatTabWidget)

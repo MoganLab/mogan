@@ -28,6 +28,26 @@
 
 using namespace moebius;
 
+// === 6254 测试夹具：构造带面板的会话并绑定到控制器与视图 ===
+struct ReflowFixture {
+  ChatController            ctrl;
+  QList<SessionDisplayInfo> sessions;
+  QTChatTabWidget           widget;
+  string                    sid;
+  ChatConversationPanel*    panel;
+  ChatSession*              session;
+
+  ReflowFixture () : widget (sessions, "", nullptr) {
+    ctrl.view_    = &widget;
+    sid           = ctrl.sessionManager_.createSession ();
+    panel         = widget.createPanel (sid);
+    session       = ctrl.sessionManager_.getSession (sid);
+    session->panel= panel;
+    widget.activatePanel (panel);
+  }
+  ~ReflowFixture () { ctrl.view_= nullptr; }
+};
+
 class TestChatController : public QObject {
   Q_OBJECT
 
@@ -671,6 +691,142 @@ private slots:
 
   void test_threshold_value_is_one_mib () {
     QCOMPARE (ChatController::kMaxTotalExtractedChars, (qint64) 1048576);
+  }
+
+  // === 真插件完成/Stop 后内容重排调度（6254）===
+  // 见类外 ReflowFixture 与下方测试方法
+
+  void test_reflow_idle_completes_once () {
+    // Idle 时登记 pending 并经事件队列调度；无 GUI（Dock 未 show）时
+    // executeReflow 的 isVisible 门控跳过实际重排，但 pending
+    // 被清除证明调度已执行
+    ReflowFixture f;
+    f.ctrl.requestConversationReflow (f.sid, "real-complete");
+    QVERIFY (f.ctrl.reflowPending_.value (to_qstring (f.sid), false));
+    QTest::qWait (50);
+    QVERIFY (!f.ctrl.reflowPending_.value (to_qstring (f.sid), false));
+    QCOMPARE (f.widget.reflowCount (), 0);
+  }
+
+  void test_reflow_generating_defers_until_idle () {
+    // Generating 时只登记不调度；idle 收尾经 notifyStateChanged 调度
+    ReflowFixture f;
+    f.session->state= ChatState::Generating;
+    f.ctrl.requestConversationReflow (f.sid, "real-complete");
+    QVERIFY (f.ctrl.reflowPending_.value (to_qstring (f.sid), false));
+    QTest::qWait (50);
+    QCOMPARE (f.widget.reflowCount (), 0);
+    // Generating 期间 pending 仍在
+    QVERIFY (f.ctrl.reflowPending_.value (to_qstring (f.sid), false));
+    f.ctrl.notifyStateChanged (f.sid, "idle");
+    QVERIFY (f.session->state == ChatState::Idle);
+    QTest::qWait (50);
+    QVERIFY (!f.ctrl.reflowPending_.value (to_qstring (f.sid), false));
+  }
+
+  void test_reflow_notification_after_idle_also_schedules () {
+    // 通知晚于 idle 到达：idle 时无 pending 不调度，通知到达时 Idle 立即调度
+    ReflowFixture f;
+    f.ctrl.notifyStateChanged (f.sid, "idle");
+    QTest::qWait (50);
+    QCOMPARE (f.widget.reflowCount (), 0);
+    f.ctrl.requestConversationReflow (f.sid, "real-complete");
+    QVERIFY (f.ctrl.reflowPending_.value (to_qstring (f.sid), false));
+    QTest::qWait (50);
+    QVERIFY (!f.ctrl.reflowPending_.value (to_qstring (f.sid), false));
+  }
+
+  void test_reflow_duplicate_merges () {
+    // 同一会话重复请求合并为一次：第二次请求不调度第二个任务，
+    // pending 只登记一次，调度执行后只清除一次
+    ReflowFixture f;
+    f.ctrl.requestConversationReflow (f.sid, "real-complete");
+    QVERIFY (f.ctrl.reflowPending_.value (to_qstring (f.sid), false));
+    f.ctrl.requestConversationReflow (f.sid, "stop");
+    QTest::qWait (50);
+    QVERIFY (!f.ctrl.reflowPending_.value (to_qstring (f.sid), false));
+    QCOMPARE (f.widget.reflowCount (), 0);
+  }
+
+  void test_reflow_stop_and_complete_race_merges () {
+    // 正常完成通知与 Stop 竞态合并为一次：Stop 先登记，完成通知到达（仍
+    // Generating）合并，idle 收尾只调度一次
+    ReflowFixture f;
+    f.session->state= ChatState::Generating;
+    f.ctrl.requestConversationReflow (f.sid, "stop");
+    f.ctrl.requestConversationReflow (f.sid, "real-complete");
+    QTest::qWait (50);
+    QCOMPARE (f.widget.reflowCount (), 0);
+    QVERIFY (f.ctrl.reflowPending_.value (to_qstring (f.sid), false));
+    f.ctrl.notifyStateChanged (f.sid, "idle");
+    QTest::qWait (50);
+    QVERIFY (!f.ctrl.reflowPending_.value (to_qstring (f.sid), false));
+  }
+
+  void test_reflow_new_round_cancels_old () {
+    // 模拟 onSendRequested 置 Generating 时清除 pending：新一轮取消旧待执行重排
+    ReflowFixture f;
+    f.session->state= ChatState::Generating;
+    f.ctrl.requestConversationReflow (f.sid, "real-complete");
+    QVERIFY (f.ctrl.reflowPending_.value (to_qstring (f.sid), false));
+    // onSendRequested 在 Generating 后会 remove pending
+    f.ctrl.reflowPending_.remove (to_qstring (f.sid));
+    QTest::qWait (50);
+    QCOMPARE (f.widget.reflowCount (), 0);
+    QVERIFY (!f.ctrl.reflowPending_.value (to_qstring (f.sid), false));
+  }
+
+  void test_reflow_unknown_session_noop () {
+    // 未知 sessionId 不崩溃、不登记 pending、不重排
+    ReflowFixture f;
+    f.ctrl.requestConversationReflow ("nonexistent-sid", "real-complete");
+    QVERIFY (!f.ctrl.reflowPending_.contains ("nonexistent-sid"));
+    QTest::qWait (50);
+    QCOMPARE (f.widget.reflowCount (), 0);
+  }
+
+  void test_reflow_deleted_panel_noop () {
+    // 面板已置空：不登记 pending、不重排
+    ReflowFixture f;
+    f.session->panel= nullptr;
+    f.ctrl.requestConversationReflow (f.sid, "real-complete");
+    QVERIFY (!f.ctrl.reflowPending_.value (to_qstring (f.sid), false));
+    QTest::qWait (50);
+    QCOMPARE (f.widget.reflowCount (), 0);
+  }
+
+  void test_reflow_background_session_skipped () {
+    // 后台会话（非活动面板）调度后 executeReflow 跳过：不重排
+    ReflowFixture          f;
+    string                 sid2  = f.ctrl.sessionManager_.createSession ();
+    ChatConversationPanel* panel2= f.widget.createPanel (sid2);
+    f.ctrl.sessionManager_.getSession (sid2)->panel= panel2;
+    // sid2 不是活动面板（活动仍为 f.sid）
+    f.ctrl.requestConversationReflow (sid2, "real-complete");
+    QTest::qWait (50);
+    QVERIFY (!f.ctrl.reflowPending_.value (to_qstring (sid2), false));
+    QCOMPARE (f.widget.reflowCount (), 0);
+  }
+
+  void test_reflow_dock_hidden_skipped () {
+    // Dock 未 show（isVisible 假）：调度后 executeReflow 跳过，不重排
+    ReflowFixture f;
+    QVERIFY (!f.widget.isVisible ());
+    f.ctrl.requestConversationReflow (f.sid, "real-complete");
+    QVERIFY (f.ctrl.reflowPending_.value (to_qstring (f.sid), false));
+    QTest::qWait (50);
+    QVERIFY (!f.ctrl.reflowPending_.value (to_qstring (f.sid), false));
+    QCOMPARE (f.widget.reflowCount (), 0);
+  }
+
+  void test_real_plugin_completion_entry () {
+    // 自由函数入口转发到全局控制器：全局控制器无本 fixture 的会话，
+    // 调用不崩溃、不重排本 fixture 的视图
+    ReflowFixture f;
+    QCOMPARE (f.widget.reflowCount (), 0);
+    qt_chat_tab_notify_real_plugin_completed (f.sid);
+    QTest::qWait (50);
+    QCOMPARE (f.widget.reflowCount (), 0);
   }
 };
 
