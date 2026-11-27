@@ -1234,19 +1234,38 @@ smart_font_rep::resolve (string c) {
   }
 
   // Fallback Geometric Shapes (U+2500-U+25FF) to Stix Two Math
-  int geom_code= -1;
+  int unicode_code= -1;
   {
     string uc  = strict_cork_to_utf8 (c);
     int    pos = 0;
     int    code= -1;
     if (N (uc) > 0) code= decode_from_utf8 (uc, pos);
-    if (pos == N (uc) && code >= 0) geom_code= code;
+    if (pos == N (uc) && code >= 0) unicode_code= code;
   }
-  if (geom_code >= 0x2500 && geom_code <= 0x25FF) {
+  if (unicode_code >= 0x2500 && unicode_code <= 0x25FF) {
     font cfn=
         closest_font ("Stix Two Math", "rm", "medium", "right", sz, dpi, 1);
     if (!is_nil (cfn) && cfn->supports (c)) {
       tree key= tuple ("symbol-font", "Stix Two Math");
+      int  nr = sm->add_font (key, REWRITE_NONE);
+      maybe_initialize_font (nr);
+      return sm->add_char (key, c);
+    }
+  }
+
+  // Fallback Latin Extended-D (U+A720-U+A7FF) to DejaVu Serif, then DejaVu Sans
+  if (unicode_code >= 0xA720 && unicode_code <= 0xA7FF) {
+    string ser= (series == "bold" ? "bold" : "medium");
+    font   cfn= closest_font ("DejaVu Serif", "rm", ser, "right", sz, dpi, 1);
+    if (!is_nil (cfn) && cfn->supports (c)) {
+      tree key= tuple ("symbol-font", "DejaVu Serif", ser);
+      int  nr = sm->add_font (key, REWRITE_NONE);
+      maybe_initialize_font (nr);
+      return sm->add_char (key, c);
+    }
+    font cfn_sans= closest_font ("DejaVu Sans", "rm", ser, "right", sz, dpi, 1);
+    if (!is_nil (cfn_sans) && cfn_sans->supports (c)) {
+      tree key= tuple ("symbol-font", "DejaVu Sans", ser);
       int  nr = sm->add_font (key, REWRITE_NONE);
       maybe_initialize_font (nr);
       return sm->add_char (key, c);
@@ -1359,6 +1378,25 @@ smart_font_rep::resolve (string c) {
     return sm->add_char (tuple ("virtual", virt), c);
   }
 
+  // Final fallback to bundled DejaVu Serif, then DejaVu Sans before error
+  string ser= (series == "bold" ? "bold" : "medium");
+  font   dejavu_serif_fn=
+      closest_font ("DejaVu Serif", "rm", ser, "right", sz, dpi, 1);
+  if (!is_nil (dejavu_serif_fn) && dejavu_serif_fn->supports (c)) {
+    tree key= tuple ("symbol-font", "DejaVu Serif", ser);
+    int  nr = sm->add_font (key, REWRITE_NONE);
+    maybe_initialize_font (nr);
+    return sm->add_char (key, c);
+  }
+  font dejavu_sans_fn=
+      closest_font ("DejaVu Sans", "rm", ser, "right", sz, dpi, 1);
+  if (!is_nil (dejavu_sans_fn) && dejavu_sans_fn->supports (c)) {
+    tree key= tuple ("symbol-font", "DejaVu Sans", ser);
+    int  nr = sm->add_font (key, REWRITE_NONE);
+    maybe_initialize_font (nr);
+    return sm->add_char (key, c);
+  }
+
   // cout << "Error " << c << "\n";
   return sm->add_char (tuple ("error"), c);
 }
@@ -1381,9 +1419,11 @@ smart_font_rep::initialize_font (int nr) {
   else if (a[0] == "emoji-font")
     fn[nr]= adjust_subfont (
         closest_font (a[1], "rm", "medium", "right", sz, dpi, 1));
-  else if (a[0] == "symbol-font")
-    fn[nr]= adjust_subfont (
-        closest_font (a[1], "rm", "medium", "right", sz, dpi, 1));
+  else if (a[0] == "symbol-font") {
+    string ser= (N (a) >= 3 ? a[2] : string ("medium"));
+    fn[nr]=
+        adjust_subfont (closest_font (a[1], "rm", ser, "right", sz, dpi, 1));
+  }
   else if (a[0] == "special")
     fn[nr]= smart_font_bis (family, variant, series, "right", sz, hdpi, dpi);
   else if (a[0] == "emu-bracket")
