@@ -301,6 +301,17 @@
   ("std 5" (switch-to-view-index 4))
   ("std 6" (switch-to-view-index 5))
 
+  ;; 切换标签页：Ctrl+Shift+[ / ]（macOS：Cmd+Shift+[ / ]），见 #4685。
+  ;; Qt 对 Shift+[ 上报的 key 随平台/版本而异，C++ 侧（qt_utilities.cpp
+  ;; from_key_press_event）归一结果有三种：Windows/Linux 为 "C-{"；macOS 为
+  ;; "M-S-[" 或 "M-S-{"。三种写法都绑，保证各平台一致。
+  ("std {" (switch-to-previous-view))
+  ("std }" (switch-to-next-view))
+  ("std S-[" (switch-to-previous-view))
+  ("std S-]" (switch-to-next-view))
+  ("std S-{" (switch-to-previous-view))
+  ("std S-}" (switch-to-next-view))
+
   ;; not yet implemented
   ;; ("std t" (add-tab))
   ;; ("std tab" (next-tab))
