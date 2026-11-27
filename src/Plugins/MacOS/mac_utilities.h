@@ -25,4 +25,7 @@ void mac_fix_yosemite_bug ();
 void mac_begin_server ();
 void mac_end_server ();
 
+void mac_save_and_clear_menu ();
+void mac_restore_menu ();
+
 #endif // MAC_UTILITIES_H
