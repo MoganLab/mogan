@@ -3216,6 +3216,7 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
   // 校园网标签 - 处于校园网时显示特殊文本
   campusNetworkLabel= new QLabel ();
   campusNetworkLabel->setObjectName ("login-campus-network");
+  campusNetworkLabel->setWordWrap (true);
   campusNetworkLabel->setVisible (false);
 
   // 动作按钮 - 根据用户状态显示登录或注册
