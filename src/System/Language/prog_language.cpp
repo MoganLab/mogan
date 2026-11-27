@@ -463,7 +463,20 @@ prog_language_rep::get_color (tree t, int start, int end) {
   }
 
   if (current_parser == "string_parser") {
-    type= "constant_string";
+    if (lan_name == "json") {
+      int p= end;
+      while (p < N (s) && is_space (s[p]))
+        p++;
+      if (p < N (s) && s[p] == ':') {
+        type= "variable_identifier";
+      }
+      else {
+        type= "constant_string";
+      }
+    }
+    else {
+      type= "constant_string";
+    }
   }
   else if (current_parser == "escaped_char_parser") {
     type= "constant_char";

@@ -141,6 +141,30 @@
   <assign|quote-bar-color|#8fa0b8>
 
   <assign|quote-text-color|#e6edf3>
+
+  <assign|keyword-color|#d070f0>
+
+  <assign|constant-color|#88bce0>
+
+  <assign|number-color|#88bce0>
+
+  <assign|string-color|#d8a080>
+
+  <assign|comment-color|#d06030>
+
+  <assign|operator-color|#abb2bf>
+
+  <assign|json-key-color|#c678dd>
+
+  <assign|json-string-color|#98c379>
+
+  <assign|json-number-color|#61afef>
+
+  <assign|json-constant-color|#e06c75>
+
+  <assign|json-operator-color|#abb2bf>
+
+  <assign|json-openclose-color|#e5c07b>
   \;
 </body>
 
