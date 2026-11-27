@@ -410,6 +410,11 @@ mupdf_load_image (url u) {
     }
   }
 #endif
+  else if (suf == "ps" || suf == "eps") {
+    // MuPDF does not render PostScript directly; fallback to standard renderer
+    fz_drop_buffer (ctx, buffer);
+    return NULL;
+  }
   else {
     // Othre format.
     fz_try (ctx) { im= fz_new_image_from_buffer (ctx, buffer); }
@@ -663,7 +668,23 @@ mupdf_load_and_parse_image (const char* path, int& w, int& h, string extension,
   if (extension == "pdf") {
     mupdf_pdf_image_size (image, w, h, out_wcm_pointer, out_hcm_pointer);
   }
-  else if (extension == "eps" || extension == "ps" || extension == "svg") {
+  else if (extension == "eps" || extension == "ps") {
+    int x1, y1, x2, y2;
+    if (ps_read_bbox (res, x1, y1, x2, y2)) {
+      w= x2 - x1;
+      h= y2 - y1;
+#ifdef QTTEXMACS
+      if (out_wcm_pointer && out_hcm_pointer) {
+        qt_pretty_image_size (w, h, *out_wcm_pointer, *out_hcm_pointer);
+      }
+#endif
+    }
+    else {
+      w= 0;
+      h= 0;
+    }
+  }
+  else if (extension == "svg") {
     w= 0;
     h= 0;
   }
