@@ -841,6 +841,22 @@ TEST_CASE ("test_named_relations") {
   string_eq (cork_to_utf8 ("<succ>"), "≻");     // U+227B
 }
 
+TEST_CASE ("test_named_bowtie_join") {
+  // Contract with LaTeX: \bowtie = U+22C8 (small), \Join = U+2A1D (large).
+  // The symbol names must match the LaTeX commands (they used to be
+  // mistakenly swapped to <join>/<Bowtie>, see devel/1255.md).
+  string_eq (cork_to_utf8 ("<bowtie>"), "⋈"); // U+22C8
+  string_eq (cork_to_utf8 ("<Join>"), "⨝");   // U+2A1D
+  string_eq (utf8_to_cork ("⋈"), "<bowtie>");
+  string_eq (utf8_to_cork ("⨝"), "<Join>");
+  // The old names are unregistered: unknown entities pass through verbatim.
+  string_eq (cork_to_utf8 ("<join>"), "<join>");
+  string_eq (cork_to_utf8 ("<Bowtie>"), "<Bowtie>");
+  // The strict variant decodes them identically (non-fallback entities).
+  string_eq (strict_cork_to_utf8 ("<bowtie>"), "⋈");
+  string_eq (strict_cork_to_utf8 ("<Join>"), "⨝");
+}
+
 TEST_CASE ("test_named_arrows") {
   string_eq (cork_to_utf8 ("<rightarrow>"), "→");     // U+2192
   string_eq (cork_to_utf8 ("<leftarrow>"), "←");      // U+2190
