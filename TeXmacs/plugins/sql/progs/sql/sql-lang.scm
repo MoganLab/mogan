@@ -25,14 +25,17 @@
 (tm-define (parser-feature lan key)
   (:require (and (== lan "sql") (== key "keyword")))
   `(,(string->symbol key)
+    (extra_chars "_")
     ;; SQL constants
     (constant "TRUE" "FALSE" "NULL" "UNKNOWN" "true" "false" "null" "unknown")
     ;; SQL function and procedure declarations
-    (declare_function "FUNCTION" "PROCEDURE" "function" "procedure")
+    (declare_function "FUNCTION" "PROCEDURE" "TRIGGER" "function" "procedure"
+      "trigger")
     ;; SQL type and object declarations
     (declare_type "CREATE" "DROP" "ALTER" "TABLE" "VIEW" "INDEX" "SEQUENCE"
-      "TRIGGER" "TYPE" "DOMAIN" "CONSTRAINT" "create" "drop" "alter" "table"
-      "view" "index" "sequence" "trigger" "type" "domain" "constraint")
+      "TRIGGER" "TYPE" "DOMAIN" "CONSTRAINT" "TRUNCATE" "create" "drop" "alter"
+      "table" "view" "index" "sequence" "trigger" "type" "domain" "constraint"
+      "truncate")
     ;; SQL module declarations (schemas, databases)
     (declare_module "SCHEMA" "DATABASE" "schema" "database")
     ;; SQL identifier declarations
@@ -45,47 +48,67 @@
       "DISTINCT" "AS" "ON" "USING" "WITH" "RECURSIVE" "JOIN" "INNER" "LEFT"
       "RIGHT" "FULL" "OUTER" "CROSS" "NATURAL" "INSERT" "INTO" "VALUES" "UPDATE"
       "SET" "DELETE" "MERGE" "UPSERT" "GRANT" "REVOKE" "DENY" "UNION"
-      "INTERSECT" "EXCEPT" "MINUS" "LIMIT" "OFFSET" "FETCH" "NEXT" "ONLY" "CAST"
-      "COALESCE" "NULLIF" "IFNULL" "NVL" "KEY" "select" "from" "where" "group"
-      "by" "having" "order" "asc" "desc" "distinct" "as" "on" "using" "with"
-      "recursive" "join" "inner" "left" "right" "full" "outer" "cross" "natural"
-      "insert" "into" "values" "update" "set" "delete" "merge" "upsert" "grant"
-      "revoke" "deny" "union" "intersect" "except" "minus" "limit" "offset"
-      "fetch" "next" "only" "cast" "coalesce" "nullif" "ifnull" "nvl" "key")
+      "INTERSECT" "EXCEPT" "MINUS" "LIMIT" "OFFSET" "FETCH" "FIRST" "NEXT"
+      "ONLY" "ROWS" "ROW" "TOP" "RETURNING" "CAST" "COALESCE" "NULLIF" "IFNULL"
+      "NVL" "KEY" "OVER" "PARTITION" "WINDOW" "RANGE" "PRECEDING" "FOLLOWING"
+      "UNBOUNDED" "CURRENT" "ADD" "COLUMN" "RENAME" "TO" "MODIFY" "CASCADE"
+      "RESTRICT" "TEMPORARY" "TEMP" "IF" "EXPLAIN" "ANALYZE" "SHOW" "DESCRIBE"
+      "USE" "select" "from" "where" "group" "by" "having" "order" "asc" "desc"
+      "distinct" "as" "on" "using" "with" "recursive" "join" "inner" "left"
+      "right" "full" "outer" "cross" "natural" "insert" "into" "values" "update"
+      "set" "delete" "merge" "upsert" "grant" "revoke" "deny" "union"
+      "intersect" "except" "minus" "limit" "offset" "fetch" "first" "next"
+      "only" "rows" "row" "top" "returning" "cast" "coalesce" "nullif" "ifnull"
+      "nvl" "key" "over" "partition" "window" "range" "preceding" "following"
+      "unbounded" "current" "add" "column" "rename" "to" "modify" "cascade"
+      "restrict" "temporary" "temp" "if" "explain" "analyze" "show" "describe"
+      "use")
     ;; SQL conditional keywords
-    (keyword_conditional "CASE" "WHEN" "THEN" "ELSE" "END" "case" "when" "then"
-      "else" "end")
+    (keyword_conditional "CASE" "WHEN" "THEN" "ELSE" "ELSEIF" "END" "case"
+      "when" "then" "else" "elseif" "end")
     ;; SQL control keywords (transactions, etc.)
     (keyword_control "BEGIN" "COMMIT" "ROLLBACK" "SAVEPOINT" "TRANSACTION"
-      "begin" "commit" "rollback" "savepoint" "transaction")
+      "START" "RELEASE" "begin" "commit" "rollback" "savepoint" "transaction"
+      "start" "release")
     ;; SQL functions and aggregates (treated as keywords for highlighting)
-    (keyword "COUNT" "SUM" "AVG" "MIN" "MAX" "ROUND" "TRUNC" "CEIL" "FLOOR"
-      "ABS" "MOD" "POWER" "SQRT" "EXP" "LOG" "LN" "SIN" "COS" "TAN" "ASIN"
-      "ACOS" "ATAN" "ATAN2" "RANDOM" "RAND" "NOW" "CURRENT_DATE" "CURRENT_TIME"
-      "CURRENT_TIMESTAMP" "DATE" "TIME" "TIMESTAMP" "INTERVAL" "EXTRACT"
-      "DATE_PART" "DATE_TRUNC" "TO_CHAR" "TO_DATE" "TO_NUMBER" "TO_TIMESTAMP"
-      "CONCAT" "SUBSTR" "SUBSTRING" "TRIM" "LTRIM" "RTRIM" "UPPER" "LOWER"
-      "INITCAP" "LENGTH" "CHAR_LENGTH" "POSITION" "INSTR" "REPLACE" "TRANSLATE"
-      "REGEXP_MATCH" "REGEXP_REPLACE" "count" "sum" "avg" "min" "max" "round"
-      "trunc" "ceil" "floor" "abs" "mod" "power" "sqrt" "exp" "log" "ln" "sin"
-      "cos" "tan" "asin" "acos" "atan" "atan2" "random" "rand" "now"
-      "current_date" "current_time" "current_timestamp" "date" "time"
-      "timestamp" "interval" "extract" "date_part" "date_trunc" "to_char"
-      "to_date" "to_number" "to_timestamp" "concat" "substr" "substring" "trim"
-      "ltrim" "rtrim" "upper" "lower" "initcap" "length" "char_length"
-      "position" "instr" "replace" "translate" "regexp_match" "regexp_replace")
+    (keyword "COUNT" "SUM" "AVG" "MIN" "MAX" "STRING_AGG" "ARRAY_AGG"
+      "GROUP_CONCAT" "ROW_NUMBER" "RANK" "DENSE_RANK" "PERCENT_RANK" "CUME_DIST"
+      "NTILE" "LAG" "LEAD" "FIRST_VALUE" "LAST_VALUE" "NTH_VALUE" "ROUND"
+      "TRUNC" "CEIL" "CEILING" "FLOOR" "ABS" "MOD" "POWER" "SQRT" "EXP" "LOG"
+      "LN" "SIN" "COS" "TAN" "ASIN" "ACOS" "ATAN" "ATAN2" "RANDOM" "RAND"
+      "GREATEST" "LEAST" "NOW" "CURRENT_DATE" "CURRENT_TIME" "CURRENT_TIMESTAMP"
+      "LOCALTIME" "LOCALTIMESTAMP" "DATE" "TIME" "TIMESTAMP" "INTERVAL"
+      "EXTRACT" "DATE_PART" "DATE_TRUNC" "DATEADD" "DATEDIFF" "DATE_ADD"
+      "DATE_SUB" "AGE" "TO_CHAR" "TO_DATE" "TO_NUMBER" "TO_TIMESTAMP" "CONCAT"
+      "CONCAT_WS" "SUBSTR" "SUBSTRING" "TRIM" "LTRIM" "RTRIM" "UPPER" "LOWER"
+      "INITCAP" "LENGTH" "CHAR_LENGTH" "CHARACTER_LENGTH" "POSITION" "INSTR"
+      "REPLACE" "TRANSLATE" "REGEXP_MATCH" "REGEXP_REPLACE" "LPAD" "RPAD"
+      "REPEAT" "REVERSE" "NVL2" "CONVERT" "count" "sum" "avg" "min" "max"
+      "string_agg" "array_agg" "group_concat" "row_number" "rank" "dense_rank"
+      "percent_rank" "cume_dist" "ntile" "lag" "lead" "first_value" "last_value"
+      "nth_value" "round" "trunc" "ceil" "ceiling" "floor" "abs" "mod" "power"
+      "sqrt" "exp" "log" "ln" "sin" "cos" "tan" "asin" "acos" "atan" "atan2"
+      "random" "rand" "greatest" "least" "now" "current_date" "current_time"
+      "current_timestamp" "localtime" "localtimestamp" "date" "time" "timestamp"
+      "interval" "extract" "date_part" "date_trunc" "dateadd" "datediff"
+      "date_add" "date_sub" "age" "to_char" "to_date" "to_number" "to_timestamp"
+      "concat" "concat_ws" "substr" "substring" "trim" "ltrim" "rtrim" "upper"
+      "lower" "initcap" "length" "char_length" "character_length" "position"
+      "instr" "replace" "translate" "regexp_match" "regexp_replace" "lpad"
+      "rpad" "repeat" "reverse" "nvl2" "convert")
     ;; SQL data types (treated as keywords for highlighting)
     (keyword "INT" "INTEGER" "SMALLINT" "BIGINT" "TINYINT" "MEDIUMINT" "DECIMAL"
       "NUMERIC" "REAL" "FLOAT" "DOUBLE" "PRECISION" "BOOLEAN" "BOOL" "CHAR"
-      "CHARACTER" "VARCHAR" "TEXT" "CLOB" "BLOB" "BYTEA" "DATE" "TIME"
-      "TIMESTAMP" "DATETIME" "YEAR" "MONTH" "DAY" "HOUR" "MINUTE" "SECOND"
-      "INTERVAL" "ENUM" "SET" "JSON" "XML" "UUID" "ARRAY" "RECORD" "ROW"
-      "OBJECT" "int" "integer" "smallint" "bigint" "tinyint" "mediumint"
-      "decimal" "numeric" "real" "float" "double" "precision" "boolean" "bool"
-      "char" "character" "varchar" "text" "clob" "blob" "bytea" "date" "time"
-      "timestamp" "datetime" "year" "month" "day" "hour" "minute" "second"
-      "interval" "enum" "set" "json" "xml" "uuid" "array" "record" "row"
-      "object"))
+      "CHARACTER" "VARCHAR" "TEXT" "CLOB" "BLOB" "BYTEA" "VARBINARY" "BINARY"
+      "DATE" "TIME" "TIMESTAMP" "TIMESTAMPTZ" "DATETIME" "YEAR" "MONTH" "DAY"
+      "HOUR" "MINUTE" "SECOND" "INTERVAL" "ENUM" "SET" "JSON" "JSONB" "XML"
+      "UUID" "ARRAY" "RECORD" "ROW" "OBJECT" "MONEY" "BIT" "int" "integer"
+      "smallint" "bigint" "tinyint" "mediumint" "decimal" "numeric" "real"
+      "float" "double" "precision" "boolean" "bool" "char" "character" "varchar"
+      "text" "clob" "blob" "bytea" "varbinary" "binary" "date" "time"
+      "timestamp" "timestamptz" "datetime" "year" "month" "day" "hour" "minute"
+      "second" "interval" "enum" "set" "json" "jsonb" "xml" "uuid" "array"
+      "record" "row" "object" "money" "bit"))
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -105,9 +128,9 @@
   `(,(string->symbol key)
     ;; SQL operators
     (operator "+" "-" "*" "/" "%" "||" "=" "<>" "!=" "<" "<=" ">" ">=" "&" "|"
-      "^" "~" "<<" ">>" "LIKE" "ILIKE" "BETWEEN" "IN" "IS" "EXISTS" "ANY" "ALL"
-      "SOME" "AND" "OR" "NOT" "like" "ilike" "between" "in" "is" "exists" "any"
-      "all" "some" "and" "or" "not")
+      "^" "~" "<<" ">>" "::" "->" "->>" "LIKE" "ILIKE" "BETWEEN" "IN" "IS"
+      "EXISTS" "ANY" "ALL" "SOME" "AND" "OR" "NOT" "like" "ilike" "between" "in"
+      "is" "exists" "any" "all" "some" "and" "or" "not")
     ;; Brackets / braces / parentheses
     (operator_openclose "{" "}" "(" ")" "[" "]" ";" "," "."))
 ) ;tm-define
@@ -156,6 +179,7 @@
       "unicode_escape"
       ;; Hex escapes
       "hex_escape")
+    (double_escape "'")
     (escape_sequences "\\" "'" "\"" "a" "b" "f" "n" "r" "t" "v" "x" "u" "U"))
 ) ;tm-define
 
@@ -169,7 +193,7 @@
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "sql") (== key "comment")))
-  `(,(string->symbol key) (inline "--") (block_comment "/*" "*/"))
+  `(,(string->symbol key) (inline "--" "#") (block_comment "/*" "*/"))
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
