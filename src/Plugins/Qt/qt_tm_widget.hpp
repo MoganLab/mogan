@@ -41,12 +41,18 @@
 #endif
 
 class QLabel;
+class QJsonObject;
 class QToolBar;
 class QToolButton;
 class QTMInteractivePrompt;
 class PDFReaderWidget;
 class PdfToolBar;
 class OutlineWidget;
+
+struct CampusNetworkInfo {
+  bool    inCampus       = false;
+  QString institutionName= "";
+};
 
 /*! Models one main window with toolbars, an associated view, etc.
 
@@ -104,6 +110,7 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QLabel*           accountIdLabel;
   QLabel*           membershipPeriodLabel;
   QLabel*           membershipTitleLabel;
+  QLabel*           campusNetworkLabel;
   QPushButton*      loginActionButton;
   QPushButton*      logoutButton;
   QPushButton*      chatSidebarToggleBtn; ///< 文档区域右上角的新建对话浮动按钮
@@ -161,7 +168,8 @@ private:
                             const QString& memberType,
                             const QString& periodLabel,
                             const QString& periodLabelColor,
-                            const QString& productType);
+                            const QString& productType, bool inCampus= false,
+                            const QString& campusInstitutionName= "");
   void showNotLoggedInDialog (const QString& errorMessage);
 
   /**
@@ -279,6 +287,10 @@ public:
   static bool shouldRestoreDocumentFocusOnMousePress (bool sidebarVisible,
                                                       bool focusInSidebar,
                                                       bool clickInSidebar);
+
+  static CampusNetworkInfo parseCampusNetwork (const QJsonObject& userData);
+  static QString           formatCampusNetworkText (bool           inCampus,
+                                                    const QString& institutionName);
 
   /**
    * @brief 将当前视图恢复为主窗口文档视图，并将键盘焦点切回主编辑器或 PDF

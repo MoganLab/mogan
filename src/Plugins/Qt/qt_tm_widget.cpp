@@ -265,16 +265,16 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       inviteButton (nullptr), m_goMenuPopup (nullptr), m_loginDialog (nullptr),
       avatarLabel (nullptr), nameLabel (nullptr), accountIdLabel (nullptr),
       membershipPeriodLabel (nullptr), membershipTitleLabel (nullptr),
-      loginActionButton (nullptr), logoutButton (nullptr), m_userId (""),
-      m_currentScmNotificationItem (""), startupContentWidget (nullptr),
-      startupTabMode (false), startupChromePending_ (false),
-      pdfViewerWidget (nullptr), pdfTabMode (false), currentPdfPath (""),
-      chatContentWidget (nullptr), chatTabMode (false), chatSideDock (nullptr),
-      pdfOutlineDock (nullptr), pageOutlineBtn (nullptr),
-      readonlyTipLabel (nullptr), readonlyTipTimer (nullptr),
-      chatSidebarToggleBtn (nullptr), chatSidebarMode (false),
-      chatSidebarModeMemory_ (false), centralWidgetUpdatesFrozen_ (false),
-      centralUnfreezeGeneration_ (0) {
+      campusNetworkLabel (nullptr), loginActionButton (nullptr),
+      logoutButton (nullptr), m_userId (""), m_currentScmNotificationItem (""),
+      startupContentWidget (nullptr), startupTabMode (false),
+      startupChromePending_ (false), pdfViewerWidget (nullptr),
+      pdfTabMode (false), currentPdfPath (""), chatContentWidget (nullptr),
+      chatTabMode (false), chatSideDock (nullptr), pdfOutlineDock (nullptr),
+      pageOutlineBtn (nullptr), readonlyTipLabel (nullptr),
+      readonlyTipTimer (nullptr), chatSidebarToggleBtn (nullptr),
+      chatSidebarMode (false), chatSidebarModeMemory_ (false),
+      centralWidgetUpdatesFrozen_ (false), centralUnfreezeGeneration_ (0) {
   type= texmacs_widget;
 
   main_widget= concrete (::glue_widget (true, true, 1, 1));
@@ -3213,12 +3213,19 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
   membershipPeriodLabel= new QLabel (qt_translate ("Non-member"));
   membershipPeriodLabel->setObjectName ("login-membership-period");
 
+  // 校园网标签 - 处于校园网时显示特殊文本
+  campusNetworkLabel= new QLabel ();
+  campusNetworkLabel->setObjectName ("login-campus-network");
+  campusNetworkLabel->setWordWrap (true);
+  campusNetworkLabel->setVisible (false);
+
   // 动作按钮 - 根据用户状态显示登录或注册
   loginActionButton= new QPushButton (qt_translate ("Login"));
   loginActionButton->setObjectName ("login-action-button");
 
   bottomLayout->addWidget (membershipTitleLabel);
   bottomLayout->addWidget (membershipPeriodLabel);
+  bottomLayout->addWidget (campusNetworkLabel);
   bottomLayout->addWidget (loginActionButton);
 
   // 更新提示区域（商业版显示更新提示）- 放在底部
@@ -3597,7 +3604,11 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
           QJsonDocument doc         = QJsonDocument::fromJson (responseData);
           QJsonObject   json        = doc.object ();
 
-          if (json.contains ("success") && json["success"].toBool ()) {
+          bool isSuccess=
+              (json.contains ("success") && json["success"].toBool ()) ||
+              (json.contains ("code") && json["code"].toInt () == 0);
+
+          if (isSuccess) {
             QJsonObject userData= json["data"].toObject ();
 
             m_userId          = userData["id"].toVariant ().toString ();
@@ -3614,6 +3625,8 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
             QString productType=
                 userData["productType"].toString ("Subscribe Now");
 
+            CampusNetworkInfo campusInfo= parseCampusNetwork (userData);
+
             // 首次点击时弹窗尚未创建（惰性创建），标签为空会导致
             // updateDialogContent 写不进用户信息，须先创建弹窗再更新内容
             if (showDialog) {
@@ -3623,7 +3636,8 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
             // 更新弹窗内容
             updateDialogContent (true, userName, accountEmail, avatarText,
                                  memberType, periodLabel, periodLabelColor,
-                                 productType);
+                                 productType, campusInfo.inCampus,
+                                 campusInfo.institutionName);
 
             syncScmGuestNotification (false);
             syncScmMembershipNotification (true, memberType, periodLabel,
@@ -3665,14 +3679,43 @@ qt_tm_widget_rep::triggerOAuth2 () {
   call ("login");
 }
 
+CampusNetworkInfo
+qt_tm_widget_rep::parseCampusNetwork (const QJsonObject& userData) {
+  CampusNetworkInfo info;
+  if (userData.contains ("campus_network") &&
+      userData["campus_network"].isObject ()) {
+    QJsonObject campusNetwork= userData["campus_network"].toObject ();
+    info.inCampus            = campusNetwork["in_campus"].toBool (false);
+    if (campusNetwork.contains ("institution_name") &&
+        !campusNetwork["institution_name"].isNull ()) {
+      info.institutionName= campusNetwork["institution_name"].toString ("");
+    }
+  }
+  if (info.institutionName.isEmpty () &&
+      userData.contains ("institutionName") &&
+      !userData["institutionName"].isNull ()) {
+    info.institutionName= userData["institutionName"].toString ("");
+  }
+  return info;
+}
+
+QString
+qt_tm_widget_rep::formatCampusNetworkText (bool           inCampus,
+                                           const QString& institutionName) {
+  if (!inCampus) return "";
+  if (!institutionName.isEmpty ()) {
+    return qt_translate ("Campus network: %1").arg (institutionName);
+  }
+  return qt_translate ("Campus network");
+}
+
 void
-qt_tm_widget_rep::updateDialogContent (bool isLoggedIn, const QString& username,
-                                       const QString& email,
-                                       const QString& avatarText,
-                                       const QString& memberType,
-                                       const QString& periodLabel,
-                                       const QString& periodLabelColor,
-                                       const QString& productType) {
+qt_tm_widget_rep::updateDialogContent (
+    bool isLoggedIn, const QString& username, const QString& email,
+    const QString& avatarText, const QString& memberType,
+    const QString& periodLabel, const QString& periodLabelColor,
+    const QString& productType, bool inCampus,
+    const QString& campusInstitutionName) {
   // 保存登录态，供 resize 回调读取
   m_isLoggedIn= isLoggedIn;
 
@@ -3711,6 +3754,19 @@ qt_tm_widget_rep::updateDialogContent (bool isLoggedIn, const QString& username,
     }
   }
 
+  // 更新校园网特殊展示标签
+  if (campusNetworkLabel) {
+    if (isLoggedIn && inCampus) {
+      campusNetworkLabel->setText (
+          formatCampusNetworkText (inCampus, campusInstitutionName));
+      campusNetworkLabel->setVisible (true);
+    }
+    else {
+      campusNetworkLabel->setText ("");
+      campusNetworkLabel->setVisible (false);
+    }
+  }
+
   // 根据登陆与否更新按钮
   if (loginActionButton && logoutButton) {
     if (!isLoggedIn) {
@@ -3732,12 +3788,18 @@ qt_tm_widget_rep::updateDialogContent (bool isLoggedIn, const QString& username,
       }
     }
   }
+
+  if (m_loginDialog) {
+    m_loginDialog->updateGeometry ();
+    m_loginDialog->adjustSize ();
+  }
 }
 
 void
 qt_tm_widget_rep::showNotLoggedInDialog (const QString& errorMessage) {
   updateDialogContent (false, qt_translate ("Not logged in"), errorMessage,
-                       "liii", qt_translate ("Non-member"), "", "", "");
+                       "liii", qt_translate ("Non-member"), "", "", "", false,
+                       "");
 }
 
 /**
