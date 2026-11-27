@@ -23,7 +23,7 @@
   (liii path)
   (liii string)
   (liii json)
-  (srfi srfi-19)
+  (only (srfi srfi-19) make-time TIME-UTC time-utc->date date->string)
 ) ;import
 
 (import (texmacs protocol))

@@ -21,7 +21,9 @@
   (liii uuid)
 ) ;import
 
-(import (only (srfi srfi-19) current-date date->string date-zone-offset))
+(import (liii date-time))
+
+(import (only (srfi srfi-19) current-date date->string))
 
 (define telemetry-buffer-size 20)
 
@@ -125,13 +127,12 @@
 (define-public (telemetry-timezone)
   (catch #t
     (lambda ()
-      (let ((offset (date-zone-offset (current-date))))
-        (if (zero? offset)
+      (let ((offset (timestamp-timezone-offset (current-system-timestamp))))
+        (if (and (zero? (time-delta-hours offset)) (zero? (time-delta-minutes offset)))
           "UTC"
-          (let* ((sign (if (>= offset 0) "+" "-"))
-                 (abs-offset (abs offset))
-                 (hours (quotient abs-offset 3600))
-                 (minutes (quotient (remainder abs-offset 3600) 60))
+          (let* ((sign (if (>= (time-delta-hours offset) 0) "+" "-"))
+                 (hours (abs (time-delta-hours offset)))
+                 (minutes (abs (time-delta-minutes offset)))
                 ) ;
             (string-append sign
               (if (< hours 10) "0" "")
