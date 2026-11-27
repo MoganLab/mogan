@@ -1105,6 +1105,6 @@ make_raster_image (url name, box b, double zoomf) {
   renderer   ren= picture_renderer (pic, zoomf);
   rectangles rs;
   b->redraw (ren, path (0), rs);
-  save_picture (name, pic);
   tm_delete (ren);
+  save_picture (name, pic);
 }
