@@ -56,6 +56,8 @@
 ("Braces { }" "大括号 { }")
 ("Brackets [ ]" "中括号 [ ]")
 ("Buy Now!" "现在购买！")
+("Campus network" "当前处于校园网")
+("Campus network: %1" "当前处于校园网（%1）")
 ("Cancel" "取消")
 ("Caption separator" "标题分隔符")
 ("Captions above" "标题在上方")

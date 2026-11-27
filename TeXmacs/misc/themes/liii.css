@@ -749,6 +749,14 @@ QLabel#login-membership-period {
   margin-bottom: 6px;
 }
 
+/* 校园网标签样式 */
+QLabel#login-campus-network {
+  font-size: 12px;
+  color: #007AFF;
+  background: transparent;
+  margin-bottom: 6px;
+}
+
 /* 会员状态容器样式 */
 QWidget#login-membership-container {
   padding: 6px 0;
